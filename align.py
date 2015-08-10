@@ -76,7 +76,11 @@ def getalignedstampImages(obj, bands=('g','r','i'), band_rf='r', xwidth=57, ywid
 			header=getstampheader(obj,bands[nb],band_rf,xwidth,ywidth)
 			filename=obj.dir_obj+'stamp-'+bands[nb]+'.fits'
 			prihdu = fits.PrimaryHDU(images_aligned_stamp_fits[nb], header=header)
-			prihdu.writeto(filename)
+			if os.path.isfile(filename):
+				os.remove(filename)
+				prihdu.writeto(filename)
+			else:
+				prihdu.writeto(filename)
 	return images_aligned_stamp #.swapaxes(0,1).swapaxes(1,2)
 
 
