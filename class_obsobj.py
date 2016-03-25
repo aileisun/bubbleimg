@@ -4,25 +4,32 @@ WARNING: SDSS.query_region failed
 
 
 from pylab import *
-
 import os
-
-
 import sqlcl
-
 
 import sys
 sys.path.append('/Users/aisun/Documents/Astro/Thesis/followups/Magellan/2014June/data_v2/analysis/')
 import galaxy
 
+import sys
+sys.path.append('/Users/aisun/Documents/Astro/Thesis/bbselection/SDSS/sample/Mullaney/catalogue/')
+import catalogue_util
 
 from astropy.table import Table
 from astropy.coordinates import SkyCoord
 from astroquery.sdss import SDSS
+from astropy.io import fits
+import astropy.units as u
 
-filename='/Users/aisun/Documents/Astro/Thesis/followups/Magellan/2014June/data_v2/analysis/sample/Magellan1406_list.txt'
-magellan_list=Table.read(filename,format='ascii')
+dir_data_SDSS='/Users/aisun/Documents/Astro/Thesis/bbselection/SDSS/data/SDSS/'
 
+dir_data_magellan='/Users/aisun/Documents/Astro/Thesis/bbselection/SDSS/data/magellan/'
+listname_magellan='/Users/aisun/Documents/Astro/Thesis/followups/Magellan/2014June/data_v2/analysis/sample/Magellan1406_list.txt'
+list_magellan=Table.read(listname_magellan,format='ascii')
+
+dir_data_mullaney='/Users/aisun/Documents/Astro/Thesis/bbselection/SDSS/data/mullaney/'
+listname_mullaney='/Users/aisun/Documents/Astro/Thesis/bbselection/SDSS/sample/Mullaney/catalogue/ALPAKA_v1.fits'
+list_mullaney=Table.read(listname_mullaney,format='fits')
 
 class obsobj(object):
 	""" 
@@ -30,30 +37,53 @@ class obsobj(object):
 				 It contains SDSS PhotoObj info and other magnitude infos 
 				 (Only objects both in photoobj and specobj are recognized)
 
-	SYNTAX: class_obsobj.obsobj(list)
-			list is a table row containing two columns ['RA','DEC'] in degree.
+	SYNTAX: class_obsobj.obsobj(listin,catalog='magellan')
+
+	PARAMETERS: 
+			listin (table row): is a table row containing two columns ['RA','DEC'] in [degree].
+			catalog (string): name of the catalog, one of the following:
+								  "magellan": output directory will be, for example, /SDSS/data/magellan/M2100. 
+								  "mullaney": output directory will be, for example, /SDSS/data/mullaney/JXXXX+XXXX. 
 	"""
 	
-	def __init__(self,list):
+	def __init__(self,listin,catalog='magellan',tomatchsdss=True,batch=''):
 		# Initialize SDSSObj with ra dec
-		if 'ra' in list.dtype.names:
-			self.ra=list['ra']
-			self.dec=list['dec']
-		if 'RA' in list.dtype.names:
-			self.ra=list['RA']
-			self.dec=list['DEC']
+		if 'ra' in listin.dtype.names:
+			self.ra=listin['ra']
+			self.dec=listin['dec']
+		if 'RA' in listin.dtype.names:
+			self.ra=listin['RA']
+			self.dec=listin['DEC']
+
+		#== get SDSS Name
+		self.sdssname=catalogue_util.getSDSSName_fromlist(listin)
+		self.dir_obj=dir_data_SDSS+self.sdssname+'/'
+
 		#== match wit sdss
-		self.sdss = obsobj.sdss(self)
+		if tomatchsdss:
+			self.sdss = obsobj.sdss(self)
 
 		#== match wit magellan 
-		print "[obsobj] matching with Magellan 1406 sample"
-		row=magellan_list[all([absolute(magellan_list['RA']-self.ra)<0.001,absolute(magellan_list['DEC']-self.dec)<0.001],axis=0)]
-		if len(row) == 1: self.galaxy=galaxy.galaxy(row['OBJID'].data[0])
-		else: raise NameError('no match to Magellan 1406 sample')
+		if catalog=='magellan':
+			print "[obsobj] matching with Magellan 1406 sample"
+			row=list_magellan[all([absolute(list_magellan['RA']-self.ra)<0.001,absolute(list_magellan['DEC']-self.dec)<0.001],axis=0)]
+			if len(row) == 1: 
+				self.galaxy=galaxy.galaxy(row['OBJID'].data[0])
+				self.dir_obj=dir_data_magellan+'M'+str(self.galaxy.OBJID)+'/'
+				print "matched to "+str(self.galaxy.OBJID)
+			else: raise NameError('no match or duplicate to Magellan 1406 sample')
 
-		# self.magellan = obsobj.magellan(self)
+		#== match with mullaney
+		elif catalog=='mullaney':
+			print "[obsobj] matching with Mullaney+13 sample"
+			row=catalogue_util.selectRADEC(list_mullaney,[listin],radius=3.,verbos=True)
 
-		#self.crossid()
+			if batch!='':batch=batch+'/'
+			if len(row) == 1: 
+				self.mullaney=row
+				self.dir_obj=dir_data_mullaney+batch+self.sdssname+'/'
+				print "matched to "+row['NAME'][0]
+			else: raise NameError('no match or duplicate to Mullaney 13 sample')
 
 
 
@@ -83,6 +113,7 @@ class obsobj(object):
 			self.run2d=xid['run2d'][0]
 			self.instrument=xid['instrument'][0]
 			self.load_photoobj()
+			self.outer=outerself
 
 		def print_xid(self):
 			print self.xid
@@ -91,7 +122,76 @@ class obsobj(object):
 			return SDSS.get_images(matches=self.xid)
 
 		def get_spectra(self):
+			"""
+			PURPOSE: astroquery SDSS spectrum
+			RETURN OUTPUT: sp (hdulist)
+				----- HDUList ---- 
+				HDU 0  : Header info from spPlate
+			    HDU 1  : Coadded spectrum from spPlate   <--- THIS IS WHAT I NEED
+			    		 Columns: ['flux', 'loglam', 'ivar', 'and_mask', 'or_mask', 'wdisp', 'sky', 'model']
+			    HDU 2  : Summary metadata copied from spAll
+			    HDU 3  : Line fitting metadata from spZline
+			    HDU 4+ : [Optional] Individual spCFrame spectra [B, R for each exposure]
+
+				For more informaiton, see http://data.sdss3.org/datamodel/files/BOSS_SPECTRO_REDUX/RUN2D/spectra/PLATE4/spec.html
+			"""
 			return SDSS.get_spectra(matches=self.xid)
+
+		def load_spectra(self, towritefits=True):
+			"""
+			PURPOSE: If self.dir_obj/spec.fits does not exist locally, download and store 
+			         SDSS spectrum of the objec. 
+					 If spec.fits exists locally, then load spec from local file. 
+
+			EXAMPLES: 
+					spectable=obj.sdss.load_spectra(obj)[1].data
+					spec, lcoord= spectable['flux'], 10.**spectable['loglam']
+
+			PARAMETERS:		obj (object of obsobs)
+							towritefits (bool)
+			RETURN OUTPUT: sp (hdulist)
+			WRITE OUTPUT:  obj.dir_obj+'spec.fits'
+
+				----- HDUList ---- 
+				HDU 0  : Header info from spPlate
+			    HDU 1  : Coadded spectrum from spPlate   <--- ((THIS IS WHAT I NEED))
+			    		 Columns: ['flux', 'loglam', 'ivar', 'and_mask', 'or_mask', 'wdisp', 'sky', 'model']
+			    HDU 2  : Summary metadata copied from spAll
+			    HDU 3  : Line fitting metadata from spZline
+			    HDU 4+ : [Optional] Individual spCFrame spectra [B, R for each exposure]
+
+				For more informaiton, see http://data.sdss3.org/datamodel/files/BOSS_SPECTRO_REDUX/RUN2D/spectra/PLATE4/spec.html
+			"""
+			filename=self.outer.dir_obj+'spec.fits'
+			if os.path.isfile(filename): sp=fits.open(filename)
+			else: 
+				sp = SDSS.get_spectra(matches=self.xid)
+				if len(sp)!=1: raise ValueError("SDSS spec obj not uniquely identified. ")
+				else: sp=sp[0]
+				if towritefits: sp.writeto(filename)
+			return sp
+
+		def get_speclcoord(self, wunit=False):
+			"""
+			PURPOSE: retrieve SDSS spec of and obj as spec and lcoord arrays.
+
+			EXAMPLES: 					
+					spec, lcoord = get_spec_lcoord(obj)
+
+			PARAMETERS:		obj (object of obsobs)
+							wunit (bool)  to attach unit or not
+
+			RETURN OUTPUT: spec (nparray), lcoord (nparray)
+			"""
+			spectable=self.load_spectra(self)[1].data
+			spec, lcoord= spectable['flux'], 10.**spectable['loglam']
+
+			if not wunit:	
+				return spec, lcoord
+			else:	
+				u_spec=1.e-17*u.Unit('erg / (Angstrom cm2 s)')
+				u_lcoord=u.AA
+				return spec*u_spec, lcoord*u_lcoord
 
 
 		def load_photoobj(self):
@@ -116,7 +216,7 @@ class obsobj(object):
 
 	# 	def __init__(self,outerself):
 	# 		print "[obsobj] matching with Magellan"
-	# 		row=magellan_list[all([absolute(magellan_list['RA']-outerself.ra)<0.001,absolute(magellan_list['DEC']-outerself.dec)<0.001],axis=0)]
+	# 		row=list_magellan[all([absolute(list_magellan['RA']-outerself.ra)<0.001,absolute(list_magellan['DEC']-outerself.dec)<0.001],axis=0)]
 	# 		if len(row) == 1:
 	# 			self.objid=row['OBJID'][0]
 	# 			self.galaxy=galaxy.galaxy(self.objid)
