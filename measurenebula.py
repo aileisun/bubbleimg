@@ -48,7 +48,7 @@ def obj_measureISO_lOIII5008(obj,isophotocut_base=1.e-15*u.Unit('erg s-1 cm-2 ar
 
 
 
-def measureISO(img,isophotocut,smoothing=4,pixelsize=0.396):
+def measureISO(img,isophotocut,smoothing=4,pixelsize=0.396,useunit=True):
 	"""
 	PURPOSE: Given isophotocut, measure the nebular size, area, and flux. 
 	         To increase singal to noise ratio, smoothing can be applied (recommended). 
@@ -77,11 +77,14 @@ def measureISO(img,isophotocut,smoothing=4,pixelsize=0.396):
 			imgmos: mosaiced and isophoto clipped image
 	"""
 	# sanity check of unit
-	try: img.unit
-	except: 
-		print "assuming image unit of [erg s-1 cm-2 arcsec-2]"
-		imgunit=u.Unit('erg s-1 cm-2 arcsec-2')
-	else:  imgunit=img.unit
+	if useunit:
+		try: img.unit
+		except: 
+			print "assuming image unit of [erg s-1 cm-2 arcsec-2]"
+			imgunit=u.Unit('erg s-1 cm-2 arcsec-2')
+		else:  imgunit=img.unit
+	else:
+		imgunit=1. 
 
 	# setting
 	superpixelsize=pixelsize*smoothing*u.arcsec
@@ -89,6 +92,8 @@ def measureISO(img,isophotocut,smoothing=4,pixelsize=0.396):
 	#==== smoothing
 	imgmos=mosaicImg(img,smoothing)
 	nx,ny=imgmos.shape
+
+	#==== clipping
 	# set all the faint featuers 0, so only bright super pixels will have value
 	imgmos[imgmos*imgunit<isophotocut]=0.
 	nxm,nym=imgmos.shape
@@ -129,12 +134,18 @@ def measureISO(img,isophotocut,smoothing=4,pixelsize=0.396):
 
 def mosaicImg(img,smoothing):
 	"""
-	mosaicing image 
+	PURPOSE: mosaicing image 
 
 	DESCRIPTION: 
-	 If smoothing > 1, mosaicing (average) each block of smoothing * smoothing pixels 
-	 in the original image to one superpixel in the mosaiced image. 
+	 If smoothing > 1, mosaicing (average) each block of smoothing^2 pixels 
+	 to one superpixel in the mosaiced image. 
 
+	PARAMS: 
+		img: 2d numpy array of size nx*ny
+		smoothing: integer of how many pixel across to smooth
+
+	RETURN: 
+		imgmos: 2d numpy array of size (nx/smoothing)*(ny/smoothing)
 	"""
 	# smoothing
 	nx,ny=img.shape

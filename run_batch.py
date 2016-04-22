@@ -73,11 +73,14 @@ def run_batch(list_torun,dir_data, bandline='r',bandconti='z',batch='',catalog='
 	# measurements - continuum magnitudes
 	write_mags(filelist=filelist,dir_data=dir_batch,catalog=catalog,batch=batch,suffix=suffix)
 	# measurements - nebula properties
-	write_measureISO_lOIII5008(filelist=filelist,dir_data=dir_batch,catalog=catalog,batch=batch,suffix=suffix,isophotocut_base=3e-15*u.Unit('erg s-1 cm-2 arcsec-2',smoothing=4)
-	write_measureISO_lOIII5008(filelist,dir_data,catalog,batch,suffix=suffix,isophotocut_base=5.3e-15*u.Unit('erg s-1 cm-2 arcsec-2',smoothing=3)
+	write_measureISO_lOIII5008(filelist=filelist,dir_data=dir_batch,catalog=catalog,batch=batch,suffix=suffix,isophotocut_base=3e-15*u.Unit('erg s-1 cm-2 arcsec-2'),smoothing=4)
+	write_measureISO_lOIII5008(filelist,dir_data,catalog,batch,suffix=suffix,isophotocut_base=5.3e-15*u.Unit('erg s-1 cm-2 arcsec-2'),smoothing=3)
 
 	# join the measure nebula table with mullaney big table
-	if tojoinmullaney: joinmullaney(dir_batch)
+	if tojoinmullaney: 
+		# joinmullaney(dir_batch)
+		joinmullaney(dir_batch,filenameout='join_ISO_I3e-15_b4',filenamein_mags='mags.fits',filenamein_ISO='measureISO_I3e-15_b4.fits')
+		joinmullaney(dir_batch,filenameout='join_ISO_I5.3e-15_b3',filenamein_mags='mags.fits',filenamein_ISO='measureISO_I5.3e-15_b3.fits')
 
 def writesummary(filenameout,list_torun,bandline,bandconti,batch,catalog):
 	""" write summary of the batch """
@@ -190,21 +193,19 @@ def write_measureISO_lOIII5008(filelist,dir_data,catalog,batch,suffix='',isophot
 	tabISO.write(fileout+'.fits',format='fits',overwrite=True)
 
 
-def joinmullaney(dir_data,filenameout=None,filemullaney='/Users/aisun/Documents/Astro/Thesis/bbselection/SDSS/sample/Mullaney/catalogue/Mullaney_allvLOIIIr.fits'):
+def joinmullaney(dir_data,filenameout=None,filenamein_mags='mags.fits',filenamein_ISO='measureISO_I3e-15_b4.fits',filemullaney='/Users/aisun/Documents/Astro/Thesis/bbselection/SDSS/sample/Mullaney/catalogue/Mullaney_allvLOIIIr.fits'):
 	"""
 	join the table with mullaney table
 	"""
 
 	# setting - get filenameout without extension
-	if filenameout==None: filenameout='join_mullaney'
+	if filenameout==None: filenameout='join'
 
 	# files to join
-	filenamein1='mags.fits'
-	filenamein2='measureISO_3e-15_lOIII5008.fits'
 
-	tabin1=Table.read(dir_data+filenamein1,format='fits')
-	tabin2=Table.read(dir_data+filenamein2,format='fits')
-	tabin=join(tabin1, tabin2,keys=['RA','DEC'])
+	tabin_mags=Table.read(dir_data+filenamein_mags,format='fits')
+	tabin_ISO=Table.read(dir_data+filenamein_ISO,format='fits')
+	tabin=join(tabin_mags, tabin_ISO,keys=['RA','DEC'])
 
 	# operation
 	tabmullaney=Table.read(filemullaney,format='fits')

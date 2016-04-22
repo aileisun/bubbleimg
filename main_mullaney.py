@@ -17,6 +17,11 @@ import catalogue_util
 import run_batch
 reload(run_batch)
 
+# calculated with filter function threshold 0.6 for OIII 0.2 for Halpha
+zranges_batch={'g-i':[0	,0.0427703798249],
+				'g-r':[0.0347335796406, 0.0608517163714],
+				'r-z':[0.134609937514, 0.24674420522],
+				'r-i':[0.250366347925,0.343386099708],}
 
 def main():
 
@@ -26,24 +31,32 @@ def main():
 	filelistin='/Users/aisun/Documents/Astro/Thesis/bbselection/SDSS/sample/Mullaney/catalogue/Mullaney_T2vLOIII.fits'
 	listin=Table.read(filelistin,format='fits')
 
-	# #==== set up g - i
-	# bandline='g'
-	# bandconti='i'
+	#==== set up g - i
+	# running band g - i
+	# redshift range 0 - 0.0427703798249
+	# running 1 objects
 
-	# blue_edge='OIII'
-	# red_edge='Ha'
+	bandline='g'
+	bandconti='i'
 
-	# run_mullaney_batch(listin=listin,bandline=bandline,bandconti=bandconti,blue_edge=blue_edge,red_edge=red_edge,list_exclude=[])
+	blue_edge='OIII'
+	red_edge='Ha'
+
+	run_mullaney_batch(listin=listin,bandline=bandline,bandconti=bandconti,blue_edge=blue_edge,red_edge=red_edge,list_exclude=[])
 
 
-	# #==== set up g - r
-	# bandline='g'
-	# bandconti='r'
+	#==== set up g - r
+	# running band g - r
+	# redshift range 0.0347335796406 - 0.0608517163714
+	# running 5 objects
 
-	# blue_edge='Ha'
-	# red_edge='OIII'
+	bandline='g'
+	bandconti='r'
 
-	# run_mullaney_batch(listin=listin,bandline=bandline,bandconti=bandconti,blue_edge=blue_edge,red_edge=red_edge,list_exclude=[])
+	blue_edge='Ha'
+	red_edge='OIII'
+
+	run_mullaney_batch(listin=listin,bandline=bandline,bandconti=bandconti,blue_edge=blue_edge,red_edge=red_edge,list_exclude=[])
 
 
 	#==== set up r - z
@@ -68,8 +81,9 @@ def main():
 
 
 	#==== set up r - i
-	# z1 # 0.25036634792500001
-	# z2 # 0.34338609970799999
+	# running band r - i
+	# redshift range 0.250366347925 - 0.343386099708
+	# running 64 objects
 
 	bandline='r'
 	bandconti='i'
@@ -77,8 +91,8 @@ def main():
 	blue_edge='Ha'
 	red_edge='OIII'
 
-
 	run_mullaney_batch(listin=listin,bandline=bandline,bandconti=bandconti,blue_edge=blue_edge,red_edge=red_edge,list_exclude=[])
+
 
 
 
