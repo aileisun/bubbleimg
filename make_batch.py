@@ -77,9 +77,10 @@ def batch_writelist(dir_batch, list_torun):
 	# set output
 	filename=dir_batch+'list.txt'
 	# make content
-	list_towrite=list_torun['RA','DEC','SDSSNAME']
-	list_towrite.rename_column('SDSSNAME','OBJNAME')
-	list_towrite=list_towrite['OBJNAME','RA','DEC']
+	# list_towrite=list_torun['RA','DEC','SDSSNAME']
+	if 'OBJNAME' not in list_torun.colnames:
+		list_torun.rename_column('SDSSNAME','OBJNAME')
+	list_towrite=list_torun['OBJNAME','RA','DEC']
 	# write
 	list_towrite.write(filename,format='ascii.fixed_width',delimiter='')
 	return list_towrite
@@ -119,17 +120,39 @@ def batch_makeblobmaps(dir_batch, list_torun, catalog, bandline,  bandconti, upd
 	"""
 	PURPOSE: run all blobmaps steps to make all images
 	"""
+	listexclude=Table.read(dir_batch+'list_exclude.txt',format='ascii')
+
 	for i in range(len(list_torun)):
-		obj=obsobj(listin=list_torun[i], catalog=catalog, dir_parent=dir_batch, towriteID=True)
+		objname=list_torun['OBJNAME'][i]
+		if objname not in listexclude['OBJNAME']:
+			obj=obsobj(listin=list_torun[i], catalog=catalog, dir_parent=dir_batch, towriteID=True)
 
-		if obj.sdss.xid is not None:
-			print 'making blob map '+obj.sdssname
-			blobmaps.obj_makeblobmaps(obj, bandline=bandline,bandconti=bandconti,update=update)
-		else:
-			print 'skipping '+obj.sdssname
-			os.rmdir(dir_batch+obj.sdssname)
-			append_list_exclude(dir_batch, obj.sdssname, obj.ra, obj.dec)
+			if obj.sdss.xid is not None:
+				print 'making blob map '+obj.sdssname
+				blobmaps.obj_makeblobmaps(obj, bandline=bandline,bandconti=bandconti,update=update)
+				print 'making scaleconti '+obj.sdssname
+				blobmaps.makemap.objw_makecontiscale(obj, bandline=bandline,bandconti=bandconti,update=update)
+			else:
+				print 'skipping '+obj.sdssname
+				os.rmdir(dir_batch+obj.sdssname)
+				append_list_exclude(dir_batch, obj.sdssname, obj.ra, obj.dec)
 
+
+
+# def batch_makecontiscale(dir_batch, list_torun, bandline,  bandconti, catalog='mullaney', update=False):
+# 	"""
+# 	PURPOSE: run all blobmaps steps to make all images
+# 	"""
+# 	for i in range(len(list_torun)):
+# 		obj=obsobj(listin=list_torun[i], catalog=catalog, dir_parent=dir_batch, towriteID=True)
+
+# 		if obj.sdss.xid is not None:
+# 			print 'making scaleconti '+obj.sdssname
+# 			blobmaps.makemap.objw_makecontiscale(obj, bandline=bandline,bandconti=bandconti,update=update)
+# 		else:
+# 			print 'skipping '+obj.sdssname
+# 			os.rmdir(dir_batch+obj.sdssname)
+# 			append_list_exclude(dir_batch, obj.sdssname, obj.ra, obj.dec)
 
 def	append_list_exclude(dir_batch, sdssname, ra, dec):
 	"""add an object to the list of exclude"""

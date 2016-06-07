@@ -28,32 +28,37 @@ def do_batch(dir_batch):
     3. make ISO measurements on the denoised map and compile the batch table
     4. join the measurement table with Mullaney table
     """
-    #==== renoamlize
-    kwargs={'norm':1.e-15}
+    # #==== renoamlize
+    # kwargs={'filename':'stamp-lOIII5008_I.fits','norm':1.e-15,'update':False}
+    # do_mapjob_onbatch(dir_batch, smallfunc.dir_RenormalizeImg_fits,**kwargs)
+
+    kwargs={'filename':'stamp-conti-onOIIIscale_I.fits','norm':1.e-15,'update':False}
     do_mapjob_onbatch(dir_batch, smallfunc.dir_RenormalizeImg_fits,**kwargs)
 
-    #==== calculate noise
-    kwargs={'filename':'stamp-lOIII5008_I_norm.fits','update':True}
-    do_mapjob_onbatch(dir_batch, denoiseimg.noiselevel.load_noiselevel,**kwargs)
-    # compile batch noise table
-    do_compiletable_onbatch(dir_batch,'noiselevel.csv')
 
-    #==== denoise
-    kwargs={'filename':'stamp-lOIII5008_I_norm.fits'}
-    do_mapjob_onbatch(dir_batch, denoiseimg.dir_makedenoised_fits,**kwargs)
+    # #==== calculate noise
+    # kwargs={'filename':'stamp-lOIII5008_I_norm.fits','update':True}
+    # do_mapjob_onbatch(dir_batch, denoiseimg.noiselevel.load_noiselevel,**kwargs)
+    # # compile batch noise table
+    # do_compiletable_onbatch(dir_batch,'noiselevel.csv')
+
+    # #==== denoise
+    # kwargs={'filename':'stamp-lOIII5008_I_norm.fits','update':False}
+    # do_mapjob_onbatch(dir_batch, denoiseimg.dir_makedenoised_fits,**kwargs)
 
     #==== make iso measurements
     # filename='stamp-lOIII5008_I_norm'
-    filename='stamp-lOIII5008_I_norm_denoised'
-    kwargs={'filename':filename+'.fits',
-            'isocut_rest':3.e-15*u.Unit('erg / (arcsec2 cm2 s)')}
-    do_mapjob_onbatch(dir_batch, measureimg.dir_MeasureImgIso_fits,**kwargs)
-    # compile measurement table
-    do_compiletable_onbatch(dir_batch,'measureimg_'+filename+'.ecsv')
-    do_compiletable_onbatch(dir_batch,'measureimg_'+filename+'.csv')
+    # filename='stamp-lOIII5008_I_norm_denoised'
+    # kwargs={'filename':filename+'.fits',
+    #         'isocut_rest':3.e-15*u.Unit('erg / (arcsec2 cm2 s)'),
+    #         'update':False}
+    # do_mapjob_onbatch(dir_batch, measureimg.dir_MeasureImgIso_fits,**kwargs)
+    # # compile measurement table
+    # do_compiletable_onbatch(dir_batch,'measureimg_'+filename+'.ecsv')
+    # do_compiletable_onbatch(dir_batch,'measureimg_'+filename+'.csv')
 
     #==== join the measurement table with Mullaney table
-    smallfunc.joinmullaney(dir_batch,filename='measureimg_'+filename+'.ecsv')
+    # smallfunc.joinmullaney(dir_batch,filename='measureimg_'+filename+'.ecsv')
 
 
 def do_mapjob_onbatch(dir_batch,function,**kwargs):

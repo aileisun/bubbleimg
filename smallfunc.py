@@ -8,7 +8,7 @@ import os
 from astropy.io import fits
 from astropy.table import Table, join
 
-def dir_RenormalizeImg_fits(dir_obj,filename='stamp-lOIII5008_I.fits',norm=1.e-15):
+def dir_RenormalizeImg_fits(dir_obj,filename='stamp-lOIII5008_I.fits',norm=1.e-15,update=False):
     """
     make 'stamp-lOIII5008_I_norm.fits' which is scaled up by 1.e15
     """
@@ -16,19 +16,21 @@ def dir_RenormalizeImg_fits(dir_obj,filename='stamp-lOIII5008_I.fits',norm=1.e-1
     filein=dir_obj+filename
     fileout=dir_obj+os.path.splitext(filename)[0]+'_norm.fits'
 
-    # read in 
-    img=fits.getdata(filein)
-    header=fits.getheader(filein)
+    if not os.path.isfile(fileout) or update:
+        # read in 
+        img=fits.getdata(filein)
+        header=fits.getheader(filein)
 
-    img_new=img/norm
-    header['HISTORY']="Renormalized by a factor of 1 over "+str(norm)
-    header['BUNIT']='%.1e'%norm+" "+(header['BUNIT'])
+        img_new=img/norm
+        header['HISTORY']="Renormalized by a factor of 1 over "+str(norm)
+        header['BUNIT']='%.1e'%norm+" "+(header['BUNIT'])
 
-    prihdu = fits.PrimaryHDU(img_new, header=header)
-    prihdu.writeto(fileout, clobber=True)
+        prihdu = fits.PrimaryHDU(img_new, header=header)
+        prihdu.writeto(fileout, clobber=True)
+    else: 
+        print "skipping dir_RenormalizeImg_fits as file exists"
 
-
-def joinmullaney(dir_batch,filename='measureimg.ecsv',filemullaney='/Users/aisun/Documents/Astro/Thesis/bbselection/SDSS/sample/Mullaney/catalogue/Mullaney_allvLOIIIr.fits'):
+def joinmullaney(dir_batch,filename='measureimg.ecsv',filemullaney='/Users/aisun/Documents/Astro/Thesis/bbselection/SDSS/sample/Mullaney/catalogue/ALPAKA_extended.fits'):
     """
     join the table with mullaney table
     """

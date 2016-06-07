@@ -77,7 +77,7 @@ def iso_MomEllipseParams(img, threshold):
     ------
     uses polytools.mom_ellipseparams_poly(poly)
     """
-    maincontour, holecontours=find_centercontour(img,threshold)
+    maincontour, holecontours = find_centercontour(img,threshold)
 
     if maincontour is not None:
         params=polytools.mom_ellipseparams_poly(maincontour)
@@ -109,7 +109,7 @@ def iso_FitEllipseParams(img, threshold):
     ------
     see fitEllipsetoContour() and find_centercontour()
     """
-    maincontour, holecontours=find_centercontour(img,threshold)
+    maincontour, holecontours = find_centercontour(img,threshold)
 
     if maincontour is not None:
         params=list(fitEllipsetoContour(maincontour)) # yc, xc, a, b, theta
@@ -118,6 +118,12 @@ def iso_FitEllipseParams(img, threshold):
     else:
         return [0.,0.,0.,0.,0.,0.]
 
+
+def find_contour(img,threshold):
+    from skimage import measure
+
+    contours = measure.find_contours(img, threshold, fully_connected='low', positive_orientation='high')
+    return contours
 
 def find_centercontour(img,threshold):
     """
@@ -133,19 +139,15 @@ def find_centercontour(img,threshold):
     -------
     maincontour: (N*2) ndarray of double
         the polygon of the center high contour. points are counter-clockwise.
-        If failed, return None. 
+        If failed, return []. 
     holecontours:
         a list of the polygons of the holes (low contour) enclosed in the 
         center contours. Points are clockwise. 
     """
-
     from skimage import measure
 
-    contours = measure.find_contours(img, threshold, fully_connected='low', positive_orientation='high')
-    # # flip the order from (row, col) to (x, y)
-    # # and keep high contours counter-clock wise
-    # contours=[contour[::-1,::-1] for contour in contours]
-
+    contours=find_contour(img,threshold)
+    
     # find center positive contour which enclosed the image center
     ccontours=[] # for storing contour(s) that are right at the center
     xc,yc=0.5*(np.array(img.shape)-1.)
@@ -154,17 +156,29 @@ def find_centercontour(img,threshold):
             ccontours=ccontours+[contour]
 
     if len(ccontours)==1: # one unique contour found
-        if polytools.SignedPolygonArea(ccontours[0])>0.:
-            # Success! it's a high contour
-            maincontour = ccontours[0]
-        else: 
-            # Failed! it's a low contour
-            maincontour = None
+        maincontour = ccontours[0]
+
+    elif len(ccontours)>=2: # pick the smallest contour
+        nc=len(ccontours)
+        print "get "+str(nc)+" high center contours, pick smallest one"
+        polyareas=np.array([polytools.SignedPolygonArea(ccontours[i]) for i in range(nc)])
+        ic=np.argmin(polyareas)
+        maincontour=ccontours[ic]
+
+        # sanity check
+        for i in range(nc):
+            if i != ic:
+                a=np.unique(measure.points_in_poly(maincontour,ccontours[i]))
+                if len(a)==1:
+                    if a[0]==False:
+                        raise ValueError("the maincontour is not the smallest")
+                else: 
+                    raise ValueError("the two contours intersect")
     elif len(ccontours)==0:
         # failed. nothing found
         maincontour = None
     else: 
-        raise NameError('something went wrong with the countours')
+        raise ValueError('something went wrong with the countours: '+"number of ccontours:"+str(len(ccontours)))
 
     # find holes in the center contour
     if maincontour is not None:
@@ -172,9 +186,11 @@ def find_centercontour(img,threshold):
         for i, contour in enumerate(contours):
             if not np.array_equal(contour,maincontour) and np.any(measure.points_in_poly(contour,maincontour)):
                 holecontours=holecontours+[contour]
-    else: holecontours=None
+    else: holecontours=[]
 
     return maincontour, holecontours
+
+
 
 
 
@@ -248,7 +264,7 @@ def sandbox_plotting(img,threshold):
     # filein='coif1/threshold_1sigma/img_denoised_soft.npy'
     # img=np.load(filein)
 
-    maincontour, holecontours=find_centercontour(img,threshold)
+    maincontour, holecontours = find_centercontour(img,threshold)
 
     params=fitEllipsetoContour(maincontour)
 

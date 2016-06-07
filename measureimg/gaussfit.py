@@ -63,12 +63,12 @@ def gaussfit_ellipseparams(img, sigma, tofitoffset=False):
 
     return params_bfit
 
-def img2DGaussian_cov(m0, xc, yc, cov, offset=0., nx=57, ny=57):
+def img2DGaussian_cov(m0, xc, yc, cov, offset=0., nx=64, ny=64):
     """
     Return an image of bivaraite gaussian from its covaraince
 
     PARAMS: 
-        m0, xc, yc, cov (2*2 np array), offset=0., nx=57, ny=57
+        m0, xc, yc, cov (2*2 np array), offset=0., nx=64, ny=64
     RETURN: img (np array of size nx*ny)
     """
     from scipy.stats import multivariate_normal
@@ -78,12 +78,12 @@ def img2DGaussian_cov(m0, xc, yc, cov, offset=0., nx=57, ny=57):
     img =offset+m0* multivariate_normal.pdf(yx, mean=[xc,yc], cov=cov)
     return img
 
-def img2DGaussian_axes(m0, xc, yc, a, b, theta, offset=0., nx=57, ny=57):
+def img2DGaussian_axes(m0, xc, yc, a, b, theta, offset=0., nx=64, ny=64):
     """
     Return an image of bivaraite gaussian from its axes
 
     PARAMS: 
-        m0, xc, yc, a, b, theta, offset=0., nx=57, ny=57
+        m0, xc, yc, a, b, theta, offset=0., nx=64, ny=64
 
     RETURN: img (np array of size nx*ny)
     """
@@ -125,7 +125,7 @@ def lnlike(params,img_data,sigma):
 #     plt.xlim(0,n)
 #     plt.ylim(0,n)
 #     plt.show(block=False)
-#     n=57
+#     n=64
 #     plt.close('all')
 #     plt.figure()
 #     plt.clf()

@@ -16,7 +16,7 @@ def obj_makedenoised_fits(obj,**kwargs):
     """
     makedenoised(dir_obj=obj.dir_obj,**kwargs)    
 
-def dir_makedenoised_fits(dir_obj,filename='stamp-lOIII5008_I.fits',wavelet='coif1',mode='soft',smooth=False,thresholdNR=1.):
+def dir_makedenoised_fits(dir_obj,filename='stamp-lOIII5008_I.fits',wavelet='coif1',mode='soft',smooth=False,thresholdNR=1.,update=False):
     """
     For a given obsobj object and image filename, make denoised image.
 
@@ -40,23 +40,26 @@ def dir_makedenoised_fits(dir_obj,filename='stamp-lOIII5008_I.fits',wavelet='coi
     filein=dir_obj+filename
     fileout=dir_obj+os.path.splitext(filename)[0]+'_denoised.fits'
 
-    # read in 
-    img=fits.getdata(filein)
-    header=fits.getheader(filein)
+    if not os.path.isfile(fileout) or update:
+        # read in 
+        img=fits.getdata(filein)
+        header=fits.getheader(filein)
 
-    # operation
-    # get noiselevel and write in noiselevel.csv
-    sigma=noiselevel.load_noiselevel(dir_obj, filename,update=True)
-    threshold = thresholdNR * sigma
-    # denoise
-    img_new=waveletdenoise.waveletdenoise_2d(img,threshold,wavelet=wavelet,mode=mode,smooth=smooth)
+        # operation
+        # get noiselevel and write in noiselevel.csv
+        sigma=noiselevel.load_noiselevel(dir_obj, filename,update=False)
+        threshold = thresholdNR * sigma
+        # denoise
+        img_new=waveletdenoise.waveletdenoise_2d(img,threshold,wavelet=wavelet,mode=mode,smooth=smooth)
 
-    # write header
-    header['HISTORY']='Wavelet denoised by ALS, see WAVELET, WDENOISE, SMOOTHED'
-    header['WAVELET']=wavelet
-    header['WDENOISE']=mode
-    header['SMOOTHED']=str(smooth)
+        # write header
+        header['HISTORY']='Wavelet denoised by ALS, see WAVELET, WDENOISE, SMOOTHED'
+        header['WAVELET']=wavelet
+        header['WDENOISE']=mode
+        header['SMOOTHED']=str(smooth)
 
-    # write output
-    prihdu = fits.PrimaryHDU(img_new, header=header)
-    prihdu.writeto(fileout, clobber=True)
+        # write output
+        prihdu = fits.PrimaryHDU(img_new, header=header)
+        prihdu.writeto(fileout, clobber=True)
+    else:
+        print "skip dir_makedenoised_fits() as file exist"

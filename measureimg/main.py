@@ -45,7 +45,7 @@ def dir_MakeContourPlot_fits(dir_obj,filename='stamp-lOIII5008_I_norm.fits',isoc
 
     # plot iso measurements
     fileplot=dir_obj+filename_base+'_isocontour.pdf'
-    maincontour, holecontours=iso.find_centercontour(img,threshold=threshold)
+    maincontour, holecontours =iso.find_centercontour(img,threshold=threshold)
     plt.clf()
     fig,ax=plottools.plot_img(img,vmin=0.,vmax=threshold*5.)
     if maincontour is not None:
@@ -61,7 +61,7 @@ def dir_MakeContourPlot_fits(dir_obj,filename='stamp-lOIII5008_I_norm.fits',isoc
 
 
 
-def dir_MeasureImgIso_fits(dir_obj,filename='stamp-lOIII5008_I.fits',isocut_rest=3.e-15*u.Unit('erg / (arcsec2 cm2 s)'),toplot=True):
+def dir_MeasureImgIso_fits(dir_obj,filename='stamp-lOIII5008_I.fits',isocut_rest=3.e-15*u.Unit('erg / (arcsec2 cm2 s)'),toplot=True,update=False):
     """
     Make iso measurements on the specified image in the directory, and write 
     the results in file dir_obj+'measureimg.csv'. 
@@ -87,57 +87,66 @@ def dir_MeasureImgIso_fits(dir_obj,filename='stamp-lOIII5008_I.fits',isocut_rest
     fileout=dir_obj+'measureimg'+'_'+filename_base
     fileplot=dir_obj+filename_base+'_iso.pdf'
 
-    # read in 
-    img=fits.getdata(filein)
-    header=fits.getheader(filein)
-    
-    # calculate iso threshold
-    xid=Table.read(dir_obj+'xid.csv',format='ascii.csv',comment='#')
-    z=xid['z'][0]
-    imgunit=u.Unit(header['BUNIT'])
-    isocut_obs=isocut_rest*(1.+z)**-4
-    threshold=(isocut_obs/imgunit).to(u.dimensionless_unscaled).value
+    if not os.path.isfile(fileout+'.ecsv') or update:
+        # read in 
+        img=fits.getdata(filein)
+        header=fits.getheader(filein)
+        
+        # calculate iso threshold
+        xid=Table.read(dir_obj+'xid.csv',format='ascii.csv',comment='#')
+        z=xid['z'][0]
+        imgunit=u.Unit(header['BUNIT'])
+        isocut_obs=isocut_rest*(1.+z)**-4
+        threshold=(isocut_obs/imgunit).to(u.dimensionless_unscaled).value
 
 
-    # calculation
-    kwargs={'threshold':threshold,'pixelsize':0.396,'imgunit':imgunit,'pixunit':u.Unit('arcsec'),'useunits':True,'tooffset':False}
+        # calculation
+        kwargs={'threshold':threshold,'pixelsize':0.396,'imgunit':imgunit,'pixunit':u.Unit('arcsec'),'useunits':True,'tooffset':False}
 
-    tabisofit=measureparams(img,method='isofit',**kwargs)
-    tabisomom=measureparams(img,method='isomom',**kwargs)
-    tabisoshape=measureparams(img,method='isoshape',**kwargs)
+        tabisofit=measureparams(img,method='isofit',**kwargs)
+        tabisomom=measureparams(img,method='isomom',**kwargs)
+        tabisoshape=measureparams(img,method='isoshape',**kwargs)
 
-    if toplot:
-        # plot iso measurements
-        maincontour, holecontours=iso.find_centercontour(img,threshold=threshold)
-        plt.clf()
-        fig,ax=plottools.plot_img(img,vmin=0.,vmax=threshold*5.)
-        if maincontour is not None:
-            plottools.overplot_contours(ax, [maincontour]+holecontours,color='white')
-            plottools.overplot_ellipse_fromtab(ax,img,tabisofit,color='red',useunits=True)
-            plottools.overplot_ellipse_fromtab(ax,img,tabisomom,color='green',useunits=True)
-            plottools.overplot_feret_fromtab(ax,img,tabisoshape,tabisomom,color='blue',useunits=True)
-        fig.savefig(fileplot)
+        if toplot:
+            plotmsr(fileplot, img, threshold, tabisofit, tabisomom, tabisoshape)
+
+        # assemble table
+        for col in tabisofit.colnames:
+            tabisofit.rename_column(col,'isofit_'+col)
+        for col in tabisomom.colnames:
+            tabisomom.rename_column(col,'isomom_'+col)
+        for col in tabisoshape.colnames:
+            tabisoshape.rename_column(col,'isoshape_'+col)
+
+        tabheader=Table([[filename],[z],[str(isocut_rest)],[threshold]],names=['filename','z','isocut_rest','threshold'])
+        # tabheader=Table([[xid['ra'][0]],[xid['dec'][0]],[z],[filename],[str(isocut_rest)],[threshold]],names=['RA','DEC','z','filename','isocut_rest','threshold'])
+        tabout=hstack([tabheader,tabisofit,tabisomom,tabisoshape])
+        # writing
+        tabout.write(fileout+'.ecsv',format='ascii.ecsv')
+        tabout.write(fileout+'.csv',format='ascii.csv')
+        # tabout.write(fileout+'.fits',format='fits')
+    else: 
+        print "skip dir_MeasureImgIso_fits() as file exist"
+
+ 
+def plotmsr(fileplot, img, threshold, tabisofit, tabisomom, tabisoshape):
+    # plot iso measurements
+    maincontour, holecontours=iso.find_centercontour(img, threshold=threshold)
+    contours=iso.find_contour(img, threshold=threshold)
+    plt.clf()
+    fig,ax=plottools.plot_img(img,vmin=0.,vmax=threshold*5.)
+
+    if len(contours)>0:
+        plottools.overplot_contours(ax, contours,color='grey',lw=2)
+    if maincontour is not None:
+        plottools.overplot_contours(ax, [maincontour]+holecontours,color='white')
+        plottools.overplot_ellipse_fromtab(ax,img,tabisofit,color='red',useunits=True)
+        plottools.overplot_ellipse_fromtab(ax,img,tabisomom,color='green',useunits=True)
+        plottools.overplot_feret_fromtab(ax,img,tabisoshape,tabisomom,color='blue',useunits=True)
+    fig.savefig(fileplot)
 
 
-    # assemble table
-    for col in tabisofit.colnames:
-        tabisofit.rename_column(col,'isofit_'+col)
-    for col in tabisomom.colnames:
-        tabisomom.rename_column(col,'isomom_'+col)
-    for col in tabisoshape.colnames:
-        tabisoshape.rename_column(col,'isoshape_'+col)
-
-    tabheader=Table([[filename],[z],[str(isocut_rest)],[threshold]],names=['filename','z','isocut_rest','threshold'])
-    # tabheader=Table([[xid['ra'][0]],[xid['dec'][0]],[z],[filename],[str(isocut_rest)],[threshold]],names=['RA','DEC','z','filename','isocut_rest','threshold'])
-    tabout=hstack([tabheader,tabisofit,tabisomom,tabisoshape])
-    # writing
-    tabout.write(fileout+'.ecsv',format='ascii.ecsv')
-    tabout.write(fileout+'.csv',format='ascii.csv')
-    # tabout.write(fileout+'.fits',format='fits')
-
-
-
-def measureparams(img,method='moment',sigma=0.,threshold=0.,pixelsize=0.396,imgunit=u.Unit('erg s-1 cm-2 arcsec-2'),pixunit=u.Unit('arcsec'),useunits=True, tooffset=False): 
+def measureparams(img,method='moment',sigma=0.,threshold=0.,pixelsize=0.396,imgunit=1.e-15*u.Unit('erg s-1 cm-2 arcsec-2'),pixunit=u.Unit('arcsec'),useunits=True, tooffset=False): 
     """
     Infer the ellipse params:
         ('flux' or 'area','xc','yc','a','b','theta','eccen')

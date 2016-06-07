@@ -5,15 +5,16 @@ __all__ = ['main','filtertools']
 
 import main
 import filtertools
-import getzrange_band
+import getzrange_batch
+import getzrange_line
 
 reload(main)
 reload(filtertools)
-reload(getzrange_band)
+reload(getzrange_batch)
+reload(getzrange_line)
 
 
 from filtertools import getFilterResponseFunc
 from filtertools import filterwavelengths
 from filtertools import getlocalpath
 from filtertools import accessFile
-from getzrange_band import getzrange

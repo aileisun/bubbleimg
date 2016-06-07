@@ -11,6 +11,7 @@ Contains two functions for plotting: plot_img, overplot_ellipse_fromtab
 import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
+from astropy.table import Table
 
 
 def plot_img(img,vmin=None,vmax=None):
@@ -36,7 +37,7 @@ def plot_img(img,vmin=None,vmax=None):
     return fig, ax
 
 
-def overplot_contour(ax, contour, color='black', ls='-'):
+def overplot_contour(ax, contour, color='black', ls='-',lw=3):
     """ 
     overplot a contour on subplot ax. no units interpretation. 
 
@@ -50,10 +51,10 @@ def overplot_contour(ax, contour, color='black', ls='-'):
 
     color: string 
     """
-    ax.plot(contour[:, 1], contour[:, 0], linewidth=2, color=color)
+    ax.plot(contour[:, 1], contour[:, 0], linewidth=2, color=color,lw=lw)
 
 
-def overplot_contours(ax, contours, color='black'):
+def overplot_contours(ax, contours, color='black',lw=3):
     """ 
     overplot a set of contours on subplot ax. no units interpretation. 
     counter-clock wise contours will be solid lines while clock-wise contours 
@@ -72,9 +73,9 @@ def overplot_contours(ax, contours, color='black'):
     from polytools import SignedPolygonArea
     for contour in contours:
         if SignedPolygonArea(contour)>0:
-            overplot_contour(ax, contour, color=color, ls='-')
+            overplot_contour(ax, contour, color=color, ls='-',lw=lw)
         else:
-            overplot_contour(ax, contour, color=color, ls='--')
+            overplot_contour(ax, contour, color=color, ls='--',lw=lw)
 
 def overplot_ellipse(ax, ellipse_params, color='black'):
     """ overplot a ellipse on subplot ax. no units interpretation. 
@@ -187,7 +188,9 @@ def overplot_axes(ax, params, color='black'):
     ax.plot(xc,yc,marker='x',ms=5,mew=2,color=color)
 
 
-def overplot_feret_fromtab(ax,img,tab_feret,tab_xyc,color='black',pixelsize=0.396,useunits=True):
+
+
+def overplot_feret_fromtab(ax,img,tab_feret,tab_xyc=None,color='black',pixelsize=0.396,useunits=True):
     """
     PURPOSE: 
         plot the max feret distance and the max90 feret distance
@@ -223,14 +226,18 @@ def overplot_feret_fromtab(ax,img,tab_feret,tab_xyc,color='black',pixelsize=0.39
             if tab_feret[col].unit != u.Unit('arcsec'): 
                 raise NameError('check unit')
         for col in ['xc','yc',]: # sanity check
-            if tab_xyc[col].unit != u.Unit('arcsec'): 
-                raise NameError('check unit')
-
-
+            if tab_xyc is not None:
+                if tab_xyc[col].unit != u.Unit('arcsec'): 
+                    raise NameError('check unit')
     else:
         pixelsize=1.
-    xc = tab_xyc['xc'][0]/pixelsize
-    yc = tab_xyc['yc'][0]/pixelsize
+
+    if tab_xyc is None:
+        xc = 0.5*(img.shape[0]-1)
+        yc = 0.5*(img.shape[0]-1)
+    else:
+        xc = tab_xyc['xc'][0]/pixelsize
+        yc = tab_xyc['yc'][0]/pixelsize
     a=tab_feret['feretmax'][0]/pixelsize
     b=tab_feret['feret90'][0]/pixelsize
     theta = tab_feret['theta_feretmax'][0]

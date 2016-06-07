@@ -1,13 +1,85 @@
-# getFilterResponseFunc.py
+# filtertools.py
 # ALS 2016/05/02
 
 import numpy as np
+import matplotlib.pyplot as plt
+
 from astropy.io import fits
 import astropy.units as u
 
 from astropy.table import Table
 
+from scipy.interpolate import UnivariateSpline
+from scipy.interpolate import interp1d
+from scipy.optimize import fsolve
+
+
 filterwavelengths={'u': 3551.*u.AA, 'g': 4686.*u.AA, 'r': 6166.*u.AA, 'i': 7480.*u.AA, 'z': 8932.*u.AA}
+
+
+def findFilterBounday(threshold=0.6,toplot=True):
+    """
+    PURPOSE: write file filterboundary.txt to record filter boundary defined by 80% of maximum throughput
+    PARAMETERS:
+            threshold=0.6 (float)
+            toplot=True
+    """
+
+    # fileout
+    fileout='filterboundary_'+'%.1f'%threshold+'.txt'
+
+    tabout=Table([[],[],[],],names=('band','w1','w2'),dtype=('string','int','int'))
+
+    for band in ['u','g','r','i','z']:
+        # readin filter function
+        spec,lcoord=getFilterResponseFunc(band=band)
+
+
+        spl=UnivariateSpline(lcoord, spec/max(spec)-threshold,s=0)
+        roots=spl.roots()
+        # print roots
+
+        # solve for root
+        f = interp1d(lcoord, spec/max(spec),kind='linear',bounds_error=False,fill_value=0.)
+        tosolve=lambda x: f(x)-threshold
+
+        x1=fsolve(tosolve,x0=roots[0])
+        x2=fsolve(tosolve,x0=roots[-1])
+
+        tabout.add_row([band,x1,x2])
+
+        if toplot:
+            plt.clf()
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            ax.plot(lcoord,spec/max(spec),color='black')
+            ax.axhline(threshold)
+            ax.axvline(x1)
+            ax.axvline(x2)
+            ax.set_xlim(min(lcoord),max(lcoord))
+            # raw_input("Enter...")
+            fig.savefig(band+'_'+'%.1f'%threshold+'.pdf')
+
+    tabout.write(fileout,format='ascii.fixed_width',delimiter='')
+
+
+def intRoverldl(band='r'):
+    """
+    For a specified band, calcualte and return the integral 
+        s=int{R(l)/l dl}, 
+    where R is the filter transmission funciton. 
+    s is a dimensionless quantity. 
+    """
+    R,l=getFilterResponseFunc(band=band)
+    # sanity check - dl constant
+    if len(np.unique(np.diff(l)))==1: dl=np.diff(l)[0]
+    else: raise ValueError("Filter response function not equally spaced in lambda")
+    # integral
+    s=0.
+    for i in range(len(R)):
+        s=s+R[i]/l[i]*dl
+    return s
+
 
 
 def getlocalpath():

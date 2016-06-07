@@ -11,3 +11,4 @@ reload(waveletdenoise)
 reload(noiselevel)
 from main import obj_makedenoised_fits
 from main import dir_makedenoised_fits
+from waveletdenoise import waveletdenoise_2d

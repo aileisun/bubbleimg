@@ -28,7 +28,7 @@ def load_noiselevel(dir_obj,filename,update=True):
     ------
     sigma: (float)
     """
-    print "loading noiselevel"
+    # print "loading noiselevel"
     file_img=dir_obj+filename
     file_tab=dir_obj+'noiselevel.csv'
     if os.path.isfile(file_tab): 
@@ -40,12 +40,14 @@ def load_noiselevel(dir_obj,filename,update=True):
             data=fits.open(file_img)[0].data
             sigma=getnoiselevel_gaussfit(data,dir_obj=dir_obj)
             if update:
+                print "writing noise level"
                 tabnew=Table([[filename],[sigma]],names=['filename','sigma'])
                 tab=vstack([tab,tabnew])
                 tab.write(file_tab,format='ascii.csv')
             return sigma
 
         elif (filename in tab['filename']) and update: 
+            print "updating noise level"
             # measure sigma and update in table
             data=fits.open(file_img)[0].data
             sigma=getnoiselevel_gaussfit(data,dir_obj=dir_obj)
@@ -55,6 +57,7 @@ def load_noiselevel(dir_obj,filename,update=True):
             return sigma
 
         elif (filename in tab['filename']) and not update:
+            # print "reading noise level from file"
             # read from file
             sigma=tab[tab['filename']==filename]['sigma'][0]
             if (type(sigma) is not float) and (type(sigma) is not np.float64): 
@@ -67,6 +70,7 @@ def load_noiselevel(dir_obj,filename,update=True):
         data=fits.open(file_img)[0].data
         sigma=getnoiselevel_gaussfit(data,dir_obj=dir_obj)
         if update:
+            print "writing noise level"    
             tab=Table([[filename],[sigma]],names=['filename','sigma'])
             tab.write(file_tab,format='ascii.csv')
         return sigma
