@@ -13,6 +13,8 @@ import matplotlib.pyplot as plt
 import astropy.units as u
 from astropy.table import Table
 
+from .. import standards
+
 
 def plot_img(img,vmin=None,vmax=None):
     """
@@ -28,11 +30,11 @@ def plot_img(img,vmin=None,vmax=None):
     plt.clf()
     fig = plt.figure(0)
     ax = fig.add_subplot(111, aspect='equal')
-    cax=ax.imshow(img,interpolation='nearest',origin='lower left',aspect='equal',cmap='viridis',vmin=vmin,vmax=vmax,extent=[0,img.shape[0],0,img.shape[1]])
+    cax=ax.imshow(img,interpolation='nearest',origin='lower left',aspect='equal',cmap='viridis',vmin=vmin,vmax=vmax)#,extent=[0,img.shape[0],0,img.shape[1]])
     
     fig.colorbar(cax)
-    ax.set_xlim(0,img.shape[0])
-    ax.set_ylim(0,img.shape[1])
+    ax.set_xlim(-0.5,img.shape[0]-0.5)
+    ax.set_ylim(-0.5,img.shape[1]-0.5)
 
     return fig, ax
 
@@ -75,7 +77,7 @@ def overplot_contours(ax, contours, color='black',lw=3):
         if SignedPolygonArea(contour)>0:
             overplot_contour(ax, contour, color=color, ls='-',lw=lw)
         else:
-            overplot_contour(ax, contour, color=color, ls='--',lw=lw)
+            overplot_contour(ax, contour, color=color, ls='--',lw=lw-1)
 
 def overplot_ellipse(ax, ellipse_params, color='black'):
     """ overplot a ellipse on subplot ax. no units interpretation. 
@@ -233,8 +235,9 @@ def overplot_feret_fromtab(ax,img,tab_feret,tab_xyc=None,color='black',pixelsize
         pixelsize=1.
 
     if tab_xyc is None:
-        xc = 0.5*(img.shape[0]-1)
-        yc = 0.5*(img.shape[0]-1)
+        xc, yc = standards.get_img_xycenter(img)        
+        # xc = 0.5*(img.shape[0]-1)
+        # yc = 0.5*(img.shape[0]-1)
     else:
         xc = tab_xyc['xc'][0]/pixelsize
         yc = tab_xyc['yc'][0]/pixelsize
@@ -244,3 +247,20 @@ def overplot_feret_fromtab(ax,img,tab_feret,tab_xyc=None,color='black',pixelsize
 
     ellipse_params=[xc, yc, a, b, theta]
     overplot_axes(ax, ellipse_params, color=color)
+
+
+def overplot_feretDR_frommdict(ax, dictparam, xc, yc, color='black'):
+    """
+    PURPOSE: 
+        plot the feretmaxD and feretmaxR
+    """
+
+    # unit conversion from arcsec to pix
+
+    vd=0.5*dictparam['dferetmax']*np.array([np.cos(np.radians(dictparam['theta_dferetmax'])),np.sin(np.radians(dictparam['theta_dferetmax']))])
+    vr=dictparam['rferetmax']*np.array([np.cos(np.radians(dictparam['theta_rferetmax'])),np.sin(np.radians(dictparam['theta_rferetmax']))])
+
+    ax.plot([xc-vd[0],xc+vd[0]],[yc-vd[1],yc+vd[1]],linewidth=4.0,color=color)
+    ax.plot([xc,xc+vr[0]],[yc,yc+vr[1]],linewidth=2.0,color=color)
+    ax.plot(xc,yc,marker='x',ms=5,mew=2,color=color)
+

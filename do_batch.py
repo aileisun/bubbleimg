@@ -2,8 +2,8 @@
 # ALS 2016/05/03
 
 """
-once a batch is made (with bathc/list.txt and subdirectories), run certain 
-operations on the whole batch. objobs is not required. 
+once a batch is made (with bathc/list.txt and subdirectories), run certain
+operations on the whole batch. objobs is not required.
 """
 import os
 from astropy.table import Table, hstack, vstack
@@ -18,7 +18,10 @@ reload(measureimg)
 import denoiseimg
 reload(denoiseimg)
 
-def do_batch(dir_batch):
+import fitpsf
+
+
+def do_batch(dir_batch, bandline=None, update=True):
     """
     Do a bunch of operations on a batch directory:
 
@@ -28,40 +31,60 @@ def do_batch(dir_batch):
     3. make ISO measurements on the denoised map and compile the batch table
     4. join the measurement table with Mullaney table
     """
+    isocut_rest = 3.e-15*u.Unit('erg / (arcsec2 cm2 s)')
+
     # #==== renoamlize
-    # kwargs={'filename':'stamp-lOIII5008_I.fits','norm':1.e-15,'update':False}
+    # kwargs={'filename':'stamp-lOIII5008_I.fits','norm':1.e-15,'update':update}
     # do_mapjob_onbatch(dir_batch, smallfunc.dir_RenormalizeImg_fits,**kwargs)
 
-    kwargs={'filename':'stamp-conti-onOIIIscale_I.fits','norm':1.e-15,'update':False}
-    do_mapjob_onbatch(dir_batch, smallfunc.dir_RenormalizeImg_fits,**kwargs)
-
+    # kwargs={'filename':'stamp-conti-onOIIIscale_I.fits','norm':1.e-15,'update':update}
+    # do_mapjob_onbatch(dir_batch, smallfunc.dir_RenormalizeImg_fits,**kwargs)
 
     # #==== calculate noise
-    # kwargs={'filename':'stamp-lOIII5008_I_norm.fits','update':True}
+    # kwargs={'filename':'stamp-lOIII5008_I_norm.fits','update':update}
     # do_mapjob_onbatch(dir_batch, denoiseimg.noiselevel.load_noiselevel,**kwargs)
     # # compile batch noise table
     # do_compiletable_onbatch(dir_batch,'noiselevel.csv')
 
-    # #==== denoise
-    # kwargs={'filename':'stamp-lOIII5008_I_norm.fits','update':False}
+    # # ==== do psf fitting
+    # kwargs = dict(band=bandline, fileimg='stamp-lOIII5008_I_norm.fits',
+    #               searchradius=5., fixb=True)
+    # do_mapjob_onbatch(dir_batch, fitpsf.dir_fit_psf, **kwargs)
+
+
+    # # #==== denoise
+    # # kwargs={'filename':'stamp-lOIII5008_I_norm.fits','update':update}
+    # # do_mapjob_onbatch(dir_batch, denoiseimg.dir_makedenoised_fits,**kwargs)
+    # kwargs={'filename':'stamp-lOIII5008_I_norm_psfresidual.fits','update':update}
     # do_mapjob_onbatch(dir_batch, denoiseimg.dir_makedenoised_fits,**kwargs)
 
-    #==== make iso measurements
-    # filename='stamp-lOIII5008_I_norm'
-    # filename='stamp-lOIII5008_I_norm_denoised'
-    # kwargs={'filename':filename+'.fits',
-    #         'isocut_rest':3.e-15*u.Unit('erg / (arcsec2 cm2 s)'),
-    #         'update':False}
-    # do_mapjob_onbatch(dir_batch, measureimg.dir_MeasureImgIso_fits,**kwargs)
-    # # compile measurement table
-    # do_compiletable_onbatch(dir_batch,'measureimg_'+filename+'.ecsv')
-    # do_compiletable_onbatch(dir_batch,'measureimg_'+filename+'.csv')
 
-    #==== join the measurement table with Mullaney table
+    # ==== deleting redundant files
+    filenames=[
+    "measureimg_iso_contoursdict_linblobmasked.pdf",
+    "contoursdict_linblobmasked.pkl",
+    "contoursdict_stamp-lOIII5008_I_norm_psfmodel_iso3e-15_alim0.pkl",
+    "measureimg_iso_stamp-lOIII5008_I_norm_denoised_contours.pkl", 
+    "measureimg_iso_stamp-lOIII5008_I_norm_denoised.ecsv", 
+    "measureimg_iso_stamp-lOIII5008_I_norm_denoised.csv", 
+    "measureimg_stamp-lOIII5008_I_norm_denoised.ecsv", 
+    "measureimg_stamp-lOIII5008_I_norm_denoised.csv", ]
+    kwargs=dict(filenames=filenames)
+    do_mapjob_onbatch(dir_batch, smallfunc.dir_delete_files, **kwargs)
+
+
+    # ==== make new iso measurements
+    kwargs = {'isocut_rest': isocut_rest,
+              'isoareallimit': 10, 'contrastr': 0.1,
+              'update': update, 'toplot': True}
+    do_mapjob_onbatch(dir_batch, measureimg.dir_doIsos, **kwargs)
+
+    # # ==== join the measurement table with Mullaney table
     # smallfunc.joinmullaney(dir_batch,filename='measureimg_'+filename+'.ecsv')
 
 
-def do_mapjob_onbatch(dir_batch,function,**kwargs):
+
+def do_mapjob_onbatch(dir_batch, function, **kwargs):
     """
     apply function to all objects in the batch. The funciton takes parameter 
     dir_obj and optionally **kwargs, and give no returns. 
@@ -203,7 +226,7 @@ def do_compiletable_onbatch(dir_batch,filename):
 #         # do_mapjob_onbatch(dir_batch, denoiseimg.dir_makedenoised_fits,**kwargs)
 
 #         # # recalculate noise
-#         # kwargs={'filename':'stamp-lOIII5008_I_norm.fits','update':True}
+#         # kwargs={'filename':'stamp-lOIII5008_I_norm.fits','update':update}
 #         # do_mapjob_onbatch(dir_batch, denoiseimg.noiselevel.load_noiselevel,**kwargs)
 
 #         # # compile batch noise table
@@ -214,10 +237,24 @@ def do_compiletable_onbatch(dir_batch,filename):
 #         # make iso measurements
 #         kwargs={'filename':filename+'.fits',
 #                 'isocut_rest':3.e-15*u.Unit('erg / (arcsec2 cm2 s)')}
-#         do_mapjob_onbatch(dir_batch, measureimg.dir_MeasureImgIso_fits,**kwargs)
+#         do_mapjob_onbatch(dir_batch, measureimg.dir_MeasureImgIso,**kwargs)
 
 #         # compile batch noise table
 #         do_compiletable_onbatch(dir_batch,'measureimg_'+filename+'.csv')
 
         
 #         smallfunc.joinmullaney(dir_batch,filename='measureimg_'+filename+'.csv')
+
+
+
+# old code: 
+    # #==== make iso measurements
+    # filename='stamp-lOIII5008_I_norm_denoised'
+    # kwargs={'fileimg':filename+'.fits',
+    #         'isocut_rest': isocut_rest,
+    #         'isoareallimit':10,
+    #         'update':update}
+    # do_mapjob_onbatch(dir_batch, measureimg.dir_MeasureImgIso, **kwargs)
+    # # compile measurement table
+    # # do_compiletable_onbatch(dir_batch,'measureimg_iso_'+filename+'.ecsv')
+    # # do_compiletable_onbatch(dir_batch,'measureimg_iso_'+filename+'.csv')

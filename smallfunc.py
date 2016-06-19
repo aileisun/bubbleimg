@@ -30,6 +30,22 @@ def dir_RenormalizeImg_fits(dir_obj,filename='stamp-lOIII5008_I.fits',norm=1.e-1
     else: 
         print "skipping dir_RenormalizeImg_fits as file exists"
 
+
+def dir_delete_file(dir_obj, filename):
+    """ delete file "filename" in dir_obj """
+    if os.path.isfile(dir_obj+filename):
+        print "deleting file "+filename
+        os.remove(dir_obj+filename)
+    else:
+        print "skip deleting file "+filename
+
+
+def dir_delete_files(dir_obj, filenames):
+    """ delete file "filename" in dir_obj """
+    for filename in filenames: 
+        dir_delete_file(dir_obj, filename)
+
+
 def joinmullaney(dir_batch,filename='measureimg.ecsv',filemullaney='/Users/aisun/Documents/Astro/Thesis/bbselection/SDSS/sample/Mullaney/catalogue/ALPAKA_extended.fits'):
     """
     join the table with mullaney table

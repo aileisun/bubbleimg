@@ -10,6 +10,7 @@ import iso
 import plottools
 import ellipsetools
 import polytools
+import shapelytools
 
 reload(main)
 reload(moment)
@@ -18,5 +19,7 @@ reload(iso)
 reload(plottools)
 reload(ellipsetools)
 reload(polytools)
+reload(shapelytools)
 from main import measureparams
-from main import dir_MeasureImgIso_fits
+from main import dir_MeasureImgIso
+from main import dir_doIsos

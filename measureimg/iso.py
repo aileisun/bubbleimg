@@ -11,186 +11,131 @@ from astropy.table import Table
 
 import polytools
 
+import collections
 
-def iso_ShapeParams(img,threshold):
-
+def ShapeParamsdict_from_contours(contours, xc, yc):
     """
-    Make shape measurements to the center isophote at threshold. 
-
-    Parameters
-    ------
-    img (2d np array)
-    threshold (float): threshold of the isophote
-
-    Returns
-    ------
-    params: list
-        area: net area in the centroid "isophote" (minus the holes). 
-        feretmax: maximum feret's diameter
-        theta_feretmax: orientation of the feretmax in degree y of x
-        feretmin: minimum feret's diameter
-        theta_feretmin: orientation of the feretmin in degree y of x
-        feret90: feret's diameter perpendicular to the maximum
-        feretaspectratio: feret90/feretmax
-
-    DESCRIPTION
-    ------
-    see polytools
+    return a dictionary of key:value pairs of ShapeParams measured from contours
     """
-    # find contour
-    maincontour, holecontours = find_centercontour(img,threshold)
-
-    # calculate
-    if maincontour is not None:
-        area=polytools.NetPolygonArea([maincontour]+holecontours)
-        feretmax,theta_feretmax=polytools.FeretD_max(maincontour)
-        feretmin,theta_feretmin=polytools.FeretD_min(maincontour)
-        feret90,theta_feretmax90=polytools.FeretD_max90(maincontour)
-        feretaspectratio=polytools.FeretAspectRatio(maincontour)
-
-        return [area,feretmax,theta_feretmax,feretmin,theta_feretmin,feret90,feretaspectratio]
+    cols=['area', 'dferetmax', 'theta_dferetmax', 'rferetmax', 'theta_rferetmax']
+    if len(contours)>0:
+        area=polytools.NetPolygonsArea(contours)
+        dferetmax, theta_dferetmax=polytools.FeretD_max(contours)
+        rferetmax, theta_rferetmax=polytools.FeretR_max(contours, xc, yc)
+        values=[area, dferetmax, theta_dferetmax, rferetmax, theta_rferetmax]
     else: 
-        return [0,0,0,0,0,0,0]
+        values=[0., 0., np.nan, 0., np.nan]
 
-def iso_MomEllipseParams(img, threshold):
-    """
-    Get the moments (represented in ellipse params) of the region enclosed by 
-    the center isophote at threshold. Its an estimate as the region is 
-    pixelized. Holes inside the region is not taken into accoutn (yet). 
+    paramsdict=collections.OrderedDict(zip(cols, values))
+    return paramsdict
 
-    Parameters
-    ------
-    img (2d np array)
-    threshold (float): threshold of the isophote
+# def iso_ShapeParams(img, threshold, areallimit):
+#     """
+#     Make shape measurements to the iso contours. The contour at the center 
+#     and the contours larger than an area of areallimit are considered. 
 
-    Returns
-    ------
-    params: list
-        area: area enclosed in the isophote, holes are not subtracted
-        xc: x centroid
-        yc: y centroid
-        a (length in pixels): sigma_major 
-        b (length in pixels): sigma_minor
-        theta (orientation in degree): y of x
+#     Parameters
+#     ------
+#     img (2d np array)
+#     threshold (float): threshold of the isophote
 
-    DESCRIPTION
-    ------
-    uses polytools.mom_ellipseparams_poly(poly)
-    """
-    maincontour, holecontours = find_centercontour(img,threshold)
+#     Returns
+#     ------
+#     params: list
+#         area: net area in the centroid "isophote" (minus the holes). 
+#         dferetmax: maximum feret's diameter
+#         theta_dferetmax: orientation of the dferetmax in degree y of x
 
-    if maincontour is not None:
-        params=polytools.mom_ellipseparams_poly(maincontour)
-        return params
-    else:
-        return [0.,0.,0.,0.,0.,0.]
+#         rferetmax: maximum radius measured from center
+#         theta_rferetmax: orientation of the rferetmax in degree y of x
 
+#     DESCRIPTION
+#     ------
+#     see polytools
+#     """
+#     xc, yc = 0.5*(np.array(img.shape)-1.)
 
-def iso_FitEllipseParams(img, threshold):
-    """
-    Get params of the best fit ellipse to the center isophote at threshold. 
+#     # find contour
+#     contours=polytools.find_realisocontours(img, threshold, areallimit)
 
-    Parameters
-    ------
-    img (2d np array)
-    threshold (float): threshold of the isophote
+#     # calculate
+#     if len(contours)>0:
+#         area=polytools.NetPolygonsArea(contours)
+#         dferetmax, theta_dferetmax=polytools.FeretD_max(contours)
+#         rferetmax, theta_rferetmax=polytools.FeretR_max(contours, xc, yc)
 
-    Returns
-    ------
-    params: list
-        area: area of the ellipse, pi * a * b
-        xc: x centroid
-        yc: y centroid
-        a (length in pixels): semi-major axis
-        b (length in pixels): semi-minor axis
-        theta (orientation in degree): y of x
-
-    DESCRIPTION
-    ------
-    see fitEllipsetoContour() and find_centercontour()
-    """
-    maincontour, holecontours = find_centercontour(img,threshold)
-
-    if maincontour is not None:
-        params=list(fitEllipsetoContour(maincontour)) # yc, xc, a, b, theta
-        ellipsearea=np.pi*params[2]*params[3]
-        return [ellipsearea]+params
-    else:
-        return [0.,0.,0.,0.,0.,0.]
+#         return [area, dferetmax, theta_dferetmax, rferetmax, theta_rferetmax]
+#     else: 
+#         return [0, 0, 0, 0, 0]
 
 
-def find_contour(img,threshold):
-    from skimage import measure
-
-    contours = measure.find_contours(img, threshold, fully_connected='low', positive_orientation='high')
-    return contours
-
-def find_centercontour(img,threshold):
-    """
-    Find the high contour at the of the image, and all the low contours 
-    enclosed in it. 
-
-    Parameters
-    ----------
-    img: 2d np array
-    threshold: float
-
-    Returns
-    -------
-    maincontour: (N*2) ndarray of double
-        the polygon of the center high contour. points are counter-clockwise.
-        If failed, return []. 
-    holecontours:
-        a list of the polygons of the holes (low contour) enclosed in the 
-        center contours. Points are clockwise. 
-    """
-    from skimage import measure
-
-    contours=find_contour(img,threshold)
-    
-    # find center positive contour which enclosed the image center
-    ccontours=[] # for storing contour(s) that are right at the center
-    xc,yc=0.5*(np.array(img.shape)-1.)
-    for i, contour in enumerate(contours):
-        if measure.points_in_poly([[xc,yc]],contour) and polytools.SignedPolygonArea(contour)>0. :
-            ccontours=ccontours+[contour]
-
-    if len(ccontours)==1: # one unique contour found
-        maincontour = ccontours[0]
-
-    elif len(ccontours)>=2: # pick the smallest contour
-        nc=len(ccontours)
-        print "get "+str(nc)+" high center contours, pick smallest one"
-        polyareas=np.array([polytools.SignedPolygonArea(ccontours[i]) for i in range(nc)])
-        ic=np.argmin(polyareas)
-        maincontour=ccontours[ic]
-
-        # sanity check
-        for i in range(nc):
-            if i != ic:
-                a=np.unique(measure.points_in_poly(maincontour,ccontours[i]))
-                if len(a)==1:
-                    if a[0]==False:
-                        raise ValueError("the maincontour is not the smallest")
-                else: 
-                    raise ValueError("the two contours intersect")
-    elif len(ccontours)==0:
-        # failed. nothing found
-        maincontour = None
-    else: 
-        raise ValueError('something went wrong with the countours: '+"number of ccontours:"+str(len(ccontours)))
-
-    # find holes in the center contour
-    if maincontour is not None:
-        holecontours=[]
-        for i, contour in enumerate(contours):
-            if not np.array_equal(contour,maincontour) and np.any(measure.points_in_poly(contour,maincontour)):
-                holecontours=holecontours+[contour]
-    else: holecontours=[]
-
-    return maincontour, holecontours
 
 
+# def iso_MomEllipseParams(img, threshold):
+#     """
+#     Get the moments (represented in ellipse params) of the region enclosed by 
+#     the center isophote at threshold. Its an estimate as the region is 
+#     pixelized. Holes inside the region is not taken into accoutn (yet). 
+
+#     Parameters
+#     ------
+#     img (2d np array)
+#     threshold (float): threshold of the isophote
+
+#     Returns
+#     ------
+#     params: list
+#         area: area enclosed in the isophote, holes are not subtracted
+#         xc: x centroid
+#         yc: y centroid
+#         a (length in pixels): sigma_major 
+#         b (length in pixels): sigma_minor
+#         theta (orientation in degree): y of x
+
+#     DESCRIPTION
+#     ------
+#     uses polytools.mom_ellipseparams_poly(poly)
+#     """
+#     maincontour, holecontours = polytools.find_centercontour(img,threshold)
+
+#     if maincontour is not None:
+#         params=polytools.mom_ellipseparams_poly(maincontour)
+#         return params
+#     else:
+#         return [0.,0.,0.,0.,0.,0.]
+
+
+# def iso_FitEllipseParams(img, threshold):
+#     """
+#     Get params of the best fit ellipse to the center isophote at threshold. 
+
+#     Parameters
+#     ------
+#     img (2d np array)
+#     threshold (float): threshold of the isophote
+
+#     Returns
+#     ------
+#     params: list
+#         area: area of the ellipse, pi * a * b
+#         xc: x centroid
+#         yc: y centroid
+#         a (length in pixels): semi-major axis
+#         b (length in pixels): semi-minor axis
+#         theta (orientation in degree): y of x
+
+#     DESCRIPTION
+#     ------
+#     see fitEllipsetoContour() and polytools.find_centercontour()
+#     """
+#     maincontour, holecontours = polytools.find_centercontour(img,threshold)
+
+#     if maincontour is not None:
+#         params=list(fitEllipsetoContour(maincontour)) # yc, xc, a, b, theta
+#         ellipsearea=np.pi*params[2]*params[3]
+#         return [ellipsearea]+params
+#     else:
+#         return [0.,0.,0.,0.,0.,0.]
 
 
 
@@ -248,33 +193,144 @@ def fitEllipsetoContour(poly):
 
 
 
-def sandbox():
-    poly=maincontour
-    plt.close('all')
-    plt.plot(poly[0:21,0],poly[0:21,1])
-    plt.plot(poly[20:41,0],poly[20:41,1])
-    plt.plot(poly[40:61,0],poly[40:61,1])
-    plt.plot(poly[60:81,0],poly[60:81,1])
-    plt.plot(poly[80:101,0],poly[80:101,1])
-    plt.plot(poly[100:121,0],poly[100:121,1])
-    plt.show(block=False)
+# def find_centercontour_old(img,threshold):
+    # """
+    # Find the high contour at the of the image, and all the low contours 
+    # enclosed in it. 
+
+    # Parameters
+    # ----------
+    # img: 2d np array
+    # threshold: float
+
+    # Returns
+    # -------
+    # maincontour: (N*2) ndarray of double
+    #     the polygon of the center high contour. points are counter-clockwise.
+    #     If failed, return []. 
+    # holecontours:
+    #     a list of the polygons of the holes (low contour) enclosed in the 
+    #     center contours. Points are clockwise. 
+    # """
+    # from skimage import skimage.measure
+
+    # contours=find_contours(img,threshold)
+    
+    # # find center positive contour which enclosed the image center
+    # ccontours=[] # for storing contour(s) that are right at the center
+    # xc,yc=0.5*(np.array(img.shape)-1.)
+    # for i, contour in enumerate(contours):
+    #     if skimage.measure.points_in_poly([[xc,yc]],contour) and polytools.SignedPolygonArea(contour)>0. :
+    #         ccontours=ccontours+[contour]
+
+    # if len(ccontours)==1: # one unique contour found
+    #     maincontour = ccontours[0]
+
+    # elif len(ccontours)>=2: # pick the smallest contour
+    #     nc=len(ccontours)
+    #     print "get "+str(nc)+" high center contours, pick smallest one"
+    #     polyareas=np.array([polytools.SignedPolygonArea(ccontours[i]) for i in range(nc)])
+    #     ic=np.argmin(polyareas)
+    #     maincontour=ccontours[ic]
+
+    #     # sanity check
+    #     for i in range(nc):
+    #         if i != ic:
+    #             a=np.unique(skimage.measure.points_in_poly(maincontour,ccontours[i]))
+    #             if len(a)==1:
+    #                 if a[0]==False:
+    #                     raise ValueError("the maincontour is not the smallest")
+    #             else: 
+    #                 raise ValueError("the two contours intersect")
+    # elif len(ccontours)==0:
+    #     # failed. nothing found
+    #     maincontour = None
+    # else: 
+    #     raise ValueError('something went wrong with the countours: '+"number of ccontours:"+str(len(ccontours)))
+
+    # # find holes in the center contour
+    # if maincontour is not None:
+    #     holecontours=[]
+    #     for i, contour in enumerate(contours):
+    #         if not np.array_equal(contour,maincontour) and np.any(skimage.measure.points_in_poly(contour,maincontour)):
+    #             holecontours=holecontours+[contour]
+    # else: holecontours=[]
+
+    # return maincontour, holecontours
 
 
-def sandbox_plotting(img,threshold):
-    # filein='coif1/threshold_1sigma/img_denoised_soft.npy'
-    # img=np.load(filein)
 
-    maincontour, holecontours = find_centercontour(img,threshold)
 
-    params=fitEllipsetoContour(maincontour)
 
-    # import plottools
-    plt.close('all')
-    fig,ax=plottools.plot_img(img)
-    plottools.overplot_contour(ax,maincontour,color='red')
-    # plottools.overplot_contour(ax,modelcontour)
-    plottools.overplot_ellipse(ax,params,color='green')
-    fig.show()
+# def iso_ShapeParams_old(img,threshold):
+
+#     """
+#     Make shape measurements to the center isophote at threshold. 
+
+#     Parameters
+#     ------
+#     img (2d np array)
+#     threshold (float): threshold of the isophote
+
+#     Returns
+#     ------
+#     params: list
+#         area: net area in the centroid "isophote" (minus the holes). 
+#         feretmax: maximum feret's diameter
+#         theta_feretmax: orientation of the feretmax in degree y of x
+#         feretmin: minimum feret's diameter
+#         theta_feretmin: orientation of the feretmin in degree y of x
+#         feret90: feret's diameter perpendicular to the maximum
+#         feretaspectratio: feret90/feretmax
+
+#     DESCRIPTION
+#     ------
+#     see polytools
+#     """
+#     # find contour
+#     maincontour, holecontours = polytools.find_centercontour(img,threshold)
+
+#     # calculate
+#     if maincontour is not None:
+#         area=polytools.NetPolygonsArea([maincontour]+holecontours)
+#         feretmax,theta_feretmax=polytools.FeretD_max(maincontour)
+#         feretmin,theta_feretmin=polytools.FeretD_min(maincontour)
+#         feret90,theta_feretmax90=polytools.FeretD_max90(maincontour)
+#         feretaspectratio=polytools.FeretAspectRatio(maincontour)
+
+#         return [area,feretmax,theta_feretmax,feretmin,theta_feretmin,feret90,feretaspectratio]
+#     else: 
+#         return [0,0,0,0,0,0,0]
+
+
+
+# def sandbox():
+#     poly=maincontour
+#     plt.close('all')
+#     plt.plot(poly[0:21,0],poly[0:21,1])
+#     plt.plot(poly[20:41,0],poly[20:41,1])
+#     plt.plot(poly[40:61,0],poly[40:61,1])
+#     plt.plot(poly[60:81,0],poly[60:81,1])
+#     plt.plot(poly[80:101,0],poly[80:101,1])
+#     plt.plot(poly[100:121,0],poly[100:121,1])
+#     plt.show(block=False)
+
+
+# def sandbox_plotting(img,threshold):
+#     # filein='coif1/threshold_1sigma/img_denoised_soft.npy'
+#     # img=np.load(filein)
+
+#     maincontour, holecontours = polytools.find_centercontour(img,threshold)
+
+#     params=fitEllipsetoContour(maincontour)
+
+#     # import plottools
+#     plt.close('all')
+#     fig,ax=plottools.plot_img(img)
+#     plottools.overplot_contour(ax,maincontour,color='red')
+#     # plottools.overplot_contour(ax,modelcontour)
+#     plottools.overplot_ellipse(ax,params,color='green')
+#     fig.show()
 
 
 # examples

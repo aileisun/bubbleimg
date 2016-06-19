@@ -19,7 +19,8 @@ from scipy.ndimage import interpolation
 from astroquery.sdss import SDSS
 import ds9
 
-def objw_makeall(obj, bands=('u','g','r','i','z'), band_rf='r', xwidth=64, ywidth=64, tods9=False, tokeepframe=False, update=False):
+
+def objw_makeall(obj, bands=('u', 'g', 'r', 'i', 'z'), band_rf='r', xwidth=64, ywidth=64, tods9=False, tokeepframe=False, update=False):
 	"""
 	PURPOSE: make aligned stamp multi-band images of an SDSS object. 
 
@@ -119,7 +120,7 @@ def getalignedstampImages(obj, bands=('g','r','i'), band_rf='r', xwidth=64, ywid
 	for nb in range(len(bands)):
 		# make stamps
 		images_aligned_stamp[nb]=cutstampImage(images_aligned[nb], xcenter, ycenter, xwidth, ywidth)#.swapaxes(0,1)
-	if clipnegative:	
+	if clipnegative:
 		images_aligned_stamp=np.amax([images_aligned_stamp,np.zeros(images_aligned_stamp.shape)],axis=0)
 	# store fits file
 	#w_ref=getstampwcs(obj,band_rf,xwidth,ywidth)
@@ -202,17 +203,17 @@ def cutstampImage(image, xcenter, ycenter, xwidth, ywidth):
 
 	Note
 	------
-	If xwidth, ywidth are even numbers, the center is on [xwidth/2.,ywidth/2.]
+	If xwidth, ywidth are even numbers, the center is on [xwidth/2., ywidth/2.]
 	of the stamp image. Otherwise if odd, the center is on [(xwidth-1)/2.,(ywidth-1)/2.]
 	"""
 	dx=(xwidth)/2.
 	dy=(ywidth)/2.
 
-	if (xwidth%2==0) and (ywidth%2==0):
-		epsilon=0.
-	elif (xwidth%2==1) and (ywidth%2==1):
-		epsilon=0.5
-		stampimage=image[xcenter-dx:xcenter+dx+1, ycenter-dy:ycenter+dy+1]
+	if (xwidth % 2 == 0) and (ywidth % 2 == 0):
+		epsilon = 0.
+	elif (xwidth % 2 == 1) and (ywidth % 2 == 1):
+		epsilon = 0.5
+		stampimage = image[xcenter-dx:xcenter+dx+1, ycenter-dy:ycenter+dy+1]
 	else: 
 		raise NameError("alignstamp.cutstampImage: xwdith and ywidth have different parity")
 
