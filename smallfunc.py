@@ -6,7 +6,8 @@ a temporary repository of small functions
 """
 import os
 from astropy.io import fits
-from astropy.table import Table, join
+import astropy.table as at
+import astropy.units as u
 
 def dir_RenormalizeImg_fits(dir_obj,filename='stamp-lOIII5008_I.fits',norm=1.e-15,update=False):
     """
@@ -46,20 +47,77 @@ def dir_delete_files(dir_obj, filenames):
         dir_delete_file(dir_obj, filename)
 
 
-def joinmullaney(dir_batch,filename='measureimg.ecsv',filemullaney='/Users/aisun/Documents/Astro/Thesis/bbselection/SDSS/sample/Mullaney/catalogue/ALPAKA_extended.fits'):
+def dir_fix_units_measureimg_iso(dir_obj):
+    """ to fix a bug """ 
+    pixelsize=0.396
+    pixunit=u.Unit('arcsec')
+    pixscale= pixelsize * (pixunit)
+
+    filename = "measureimg_iso"
+    tab = at.Table.read(dir_obj+filename+".ecsv", format='ascii.ecsv')
+    if tab['isoshape_dferetper'].unit != pixunit and tab['isoshape_theta_dferetper'].unit != u.Unit('degree'):
+        tab['isoshape_dferetper'] = tab['isoshape_dferetper']*pixelsize
+        tab['isoshape_dferetper'].unit = pixunit
+        tab['isoshape_theta_dferetper'].unit = u.Unit('degree')
+
+        tab.write(dir_obj+filename+".ecsv", format='ascii.ecsv')
+        tab.write(dir_obj+filename+".csv", format='ascii.csv')
+    else: 
+        print "skip dir_fix_units_measureimg_iso as units are correct"
+
+def joinmullaney(dir_batch, filein, fileout=None, filemullaney='/Users/aisun/Documents/Astro/Thesis/bbselection/SDSS/sample/Mullaney/catalogue/ALPAKA_extended.fits'):
     """
     join the table with mullaney table
     """
-
-    # files to join
-    tabin=Table.read(dir_batch+filename,format='ascii.ecsv')
-    tabmullaney=Table.read(filemullaney,format='fits')
-    tabmullaney.rename_column('SDSSNAME','OBJNAME')
-
-    tabout=join(tabin,tabmullaney,keys=['OBJNAME'], join_type='left')
+    import catalogue
 
     # write out
-    # tabout.write(dir_batch+filenameout+'.fits',format='fits',overwrite=True)
+    if fileout is None:
+        fileout = os.path.splitext(filein)[0]+'_joinmullaney'
+ 
+    # files to join
+    tabin=at.Table.read(dir_batch+filein,format='ascii.ecsv')
+    tabmullaney=at.Table.read(filemullaney,format='fits')
+    tabmullaney.rename_column('SDSSNAME','OBJNAME')
 
-    tabout.write(dir_batch+os.path.splitext(filename)[0]+'_joinmullaney.ecsv',format='ascii.ecsv')
-    tabout.write(dir_batch+os.path.splitext(filename)[0]+'_joinmullaney.csv',format='ascii.csv')
+    tabmullaney_matched = catalogue.catalogue_util.selectRADEC(tabmullaney, tabin, radius=5., verbos=True)
+
+    tabout=at.join(tabin, tabmullaney_matched, keys=['OBJNAME'], join_type='left')
+
+    tabout.write(dir_batch+fileout+'.ecsv',format='ascii.ecsv')
+    tabout.write(dir_batch+fileout+'.csv',format='ascii.csv')
+
+
+def matchedmullaney(dir_batch, filein, fileout=None, filemullaney='/Users/aisun/Documents/Astro/Thesis/bbselection/SDSS/sample/Mullaney/catalogue/ALPAKA_extended.fits'):
+    import catalogue
+    reload(catalogue)
+    # write out
+    if fileout is None:
+        fileout = os.path.splitext(filein)[0]+'_matchedmullaney'
+
+    # files to join
+    tabin = at.Table.read(dir_batch+filein, format='ascii.ecsv')
+    tabmullaney = at.Table.read(filemullaney, format='fits')
+    tabmullaney.rename_column('SDSSNAME', 'OBJNAME')
+
+    tabout = catalogue.catalogue_util.selectRADEC(tabmullaney, tabin, radius=5., verbos=True)
+
+    if len(tabout) != len(tabin):
+        raise ValueError("len of tabout does not match with tabin")
+
+    tabout.write(dir_batch+fileout+'.ecsv',format='ascii.ecsv')
+    tabout.write(dir_batch+fileout+'.csv',format='ascii.csv')
+
+
+def write_list_ran(dir_batch, filein):
+    """
+    write those three columns of the table as a new table
+    """
+    print "writing list_ran.csv"
+    fileout = 'list_ran.csv'
+    tabin = at.Table.read(dir_batch+filein, format='ascii')
+
+    tabout = tabin['OBJNAME', 'RA', 'DEC']
+        
+    tabout.write(dir_batch+fileout, format='ascii.csv')
+

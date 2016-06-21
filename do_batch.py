@@ -6,7 +6,7 @@ once a batch is made (with bathc/list.txt and subdirectories), run certain
 operations on the whole batch. objobs is not required.
 """
 import os
-from astropy.table import Table, hstack, vstack
+import astropy.table as at
 import astropy.units as u
 
 import smallfunc
@@ -17,6 +17,12 @@ reload(measureimg)
 
 import denoiseimg
 reload(denoiseimg)
+
+import contaminants
+reload(contaminants)
+
+import classify
+reload(classify)
 
 import fitpsf
 
@@ -58,30 +64,71 @@ def do_batch(dir_batch, bandline=None, update=True):
     # kwargs={'filename':'stamp-lOIII5008_I_norm_psfresidual.fits','update':update}
     # do_mapjob_onbatch(dir_batch, denoiseimg.dir_makedenoised_fits,**kwargs)
 
+    # delete_redundant_files(dir_batch)
 
-    # ==== deleting redundant files
+    # # ==== make new iso measurements
+    # kwargs = {'isocut_rest': isocut_rest,
+    #           'isoareallimit': 10, 'contrastr': 0.1,
+    #           'update': update, 'toplot': True, 'toclean': True}
+    # do_mapjob_onbatch(dir_batch, measureimg.dir_doIsos, **kwargs)
+
+
+    # # ==== compile tables
+    # kwargs = dict(filein='measureimg_iso.ecsv',
+    #               selectkey='filecontoursdict',
+    #               selectvalues=['contours_blob.pkl',
+    #                             'contours_blobctr.pkl',
+    #                             'contours_blob_psfresid.pkl',
+    #                             'contours_galctr.pkl',
+    #                             'contours_galmask.pkl',
+    #                             'contours_galmaskctr.pkl',
+    #                             'contours_psfmask.pkl',
+    #                             'contours_lblob_psfresid_galmasked.pkl',
+    #                             'contours_lblob_psfresid_galmasked_psfmasked.pkl',],)
+    # do_compiletables_onbatch(dir_batch, **kwargs)
+
+    # # # ==== join the measurement table with Mullaney table
+    # kwargs = dict(filein='measureimg_iso_contours_blob.ecsv', 
+    #               fileout='measureimg_iso_matchedmullaney')
+    
+    # smallfunc.matchedmullaney(dir_batch, **kwargs)
+
+    # smallfunc.joinmullaney(dir_batch,filename='measureimg_'+filename+'.ecsv')
+
+    # # write list_final
+    # kwargs = dict(filein='measureimg_iso_contours_blob.ecsv', 
+    #               fileout='list_final')
+    # smallfunc.writeObjnameRaDec(dir_batch, **kwargs)
+
+    # kwargs = dict(bandmag='r', min_modelMag=21, radius=18*u.arcsec, update=False)
+    # do_mapjob_onbatch(dir_batch, contaminants.dir_find_contaminants, **kwargs)
+
+    # compile big contaminants.csv table
+    # do_reducejob_onbatch(dir_batch, contaminants.dir_reduce_contaminantstable, fileout='contaminants.csv')
+
+    # filein = 'measureimg_iso_contours_blob.csv'
+    # smallfunc.write_list_ran(dir_batch, filein)
+
+    # classify objects
+    classify.batch_classify(dir_batch)
+
+def delete_redundant_files(dir_batch):
+    """ deleting redundant files from old versions """
     filenames=[
     "measureimg_iso_contoursdict_linblobmasked.pdf",
+    "measureimg_iso_stamp-lOIII5008_I_norm_denoised.pdf",
+    "stamp-lOIII5008_I_norm_denoised_iso.pdf",
     "contoursdict_linblobmasked.pkl",
     "contoursdict_stamp-lOIII5008_I_norm_psfmodel_iso3e-15_alim0.pkl",
     "measureimg_iso_stamp-lOIII5008_I_norm_denoised_contours.pkl", 
     "measureimg_iso_stamp-lOIII5008_I_norm_denoised.ecsv", 
     "measureimg_iso_stamp-lOIII5008_I_norm_denoised.csv", 
     "measureimg_stamp-lOIII5008_I_norm_denoised.ecsv", 
-    "measureimg_stamp-lOIII5008_I_norm_denoised.csv", ]
+    "measureimg_stamp-lOIII5008_I_norm_denoised.csv", 
+    "measureimg_iso.csv",
+    "measureimg_iso.ecsv",]
     kwargs=dict(filenames=filenames)
     do_mapjob_onbatch(dir_batch, smallfunc.dir_delete_files, **kwargs)
-
-
-    # ==== make new iso measurements
-    kwargs = {'isocut_rest': isocut_rest,
-              'isoareallimit': 10, 'contrastr': 0.1,
-              'update': update, 'toplot': True}
-    do_mapjob_onbatch(dir_batch, measureimg.dir_doIsos, **kwargs)
-
-    # # ==== join the measurement table with Mullaney table
-    # smallfunc.joinmullaney(dir_batch,filename='measureimg_'+filename+'.ecsv')
-
 
 
 def do_mapjob_onbatch(dir_batch, function, **kwargs):
@@ -113,8 +160,8 @@ def do_mapjob_onbatch(dir_batch, function, **kwargs):
     """
     print "doing map "+function.func_name
 
-    listin=Table.read(dir_batch+'list.txt',format='ascii')
-    listexclude=Table.read(dir_batch+'list_exclude.txt',format='ascii')
+    listin=at.Table.read(dir_batch+'list.txt',format='ascii')
+    listexclude=at.Table.read(dir_batch+'list_exclude.txt',format='ascii')
 
     for objname in listin['OBJNAME']:
         if objname not in listexclude['OBJNAME']:
@@ -123,12 +170,65 @@ def do_mapjob_onbatch(dir_batch, function, **kwargs):
             function(dir_obj,**kwargs)
 
 
-def do_reducejob_onbatch(dir_batch,function,filename_tabout,**kwargs):
+def do_compiletables_onbatch(dir_batch, filein, selectkey, selectvalues):
+    """
+    for each selectvalue compile a big table with its name
+
+    Params
+    -----
+    filein: str
+        filename of the obj table to compile
+    selectkey: str
+        within the obj table based on what col to split rows
+        e.g., filecontoursdict
+    selectvalues: list
+        a list of values for the key
+
+    """
+    for selectvalue in selectvalues:
+        inprefix = os.path.splitext(filein)[0]
+        insuffix = os.path.splitext(filein)[1] # file extension
+        outprefix = os.path.splitext(str(selectvalue))[0]
+        fileout = inprefix+'_'+outprefix+insuffix
+        do_compiletable_onbatch(dir_batch, filein, fileout, selectkey=selectkey, selectvalue=selectvalue)        
+
+
+def do_compiletable_onbatch(dir_batch, filein, fileout, selectkey=None, selectvalue=None):
+    """
+    read tables 'filein' in indivisual dir_obj under dir_batch and stack them 
+    to a big table 'fileout' under dir_batch. 
+    """
+    print "compiling table "+fileout+" from "+filein
+    kwargs = {'filename': filein, 'selectkey': selectkey, 'selectvalue': selectvalue}
+    do_reducejob_onbatch(dir_batch, readtable, fileout=fileout, **kwargs)
+
+
+def readtable(dir_obj, filename, selectkey=None, selectvalue=None):
+    """ read table with format """
+    # read extension
+    extension = os.path.splitext(filename)[1]
+    formatdict = {'.csv': 'ascii.csv', '.ecsv': 'ascii.ecsv', '.fits': 'fits'}
+    tableformat = formatdict[extension]
+
+    # read table
+    tab = at.Table.read(dir_obj+filename, format=tableformat)
+
+    # select table rows
+    if selectkey is not None:
+        tab = tab[tab[selectkey] == selectvalue]
+
+    if len(tab) > 1:
+        print "Warning: multiple entries per object being compiled"
+
+    return tab, tableformat
+
+
+def do_reducejob_onbatch(dir_batch, function, fileout, **kwargs):
     """
     apply function to all objects in the batch. The funciton takes parameter 
     dir_obj and optionally **kwargs, the function returns a table, and the 
     tables are compiled (each row marked by OBJNAME) and saved under 
-    filename_tabout.
+    fileout.
 
     Data need to be structured in this way:
     dir_batch/
@@ -147,50 +247,31 @@ def do_reducejob_onbatch(dir_batch,function,filename_tabout,**kwargs):
     """
     # print "doing reduce "+function.func_name
 
-    listin=Table.read(dir_batch+'list.txt',format='ascii')
-    listexclude=Table.read(dir_batch+'list_exclude.txt',format='ascii')
+    listin=at.Table.read(dir_batch+'list.txt',format='ascii')
+    listexclude=at.Table.read(dir_batch+'list_exclude.txt',format='ascii')
 
-    tabout=Table()
+    tabout=at.Table()
     tableformat='ascii.csv'
 
-    for objname in listin['OBJNAME']:
+    for i, objname in enumerate(listin['OBJNAME']):
         if objname not in listexclude['OBJNAME']:
 
+            # printing
             print objname
-            dir_obj=dir_batch+objname+'/'
+
+            dir_obj = dir_batch+objname+'/'
 
             # run function
-            tabfunc, tableformat=function(dir_obj,**kwargs)
+            tabfunc, tableformat = function(dir_obj, **kwargs)
 
             # compile table
-            tabobjname=Table([[objname]],names=['OBJNAME'])
-            tabrow=hstack([tabobjname,tabfunc])
-            tabout=vstack([tabout,tabrow])
+            ra, dec = listin[i]['RA'], listin[i]['DEC']
+            tabheader = at.Table([[objname], [ra], [dec]], names=['OBJNAME', 'RA', 'DEC'])
+            tabrow = at.hstack([tabheader, tabfunc])
+            tabout = at.vstack([tabout, tabrow])
 
-    tabout.write(dir_batch+filename_tabout,format=tableformat)
-
-
-def do_compiletable_onbatch(dir_batch,filename):
-    """
-    read tables in indivisual dir_obj under dir_batch and stack them to a 
-    big table under dir_batch
-
-    """
-    def readtable(dir_obj,filename):
-        # read format
-        extension=os.path.splitext(filename)[1]
-        if extension=='.csv': tableformat='ascii.csv'
-        elif extension=='.ecsv': tableformat='ascii.ecsv'
-        elif extension=='.fits': tableformat='fits'
-        else: raise NameError('file extension of table unrecognized')
-
-        return Table.read(dir_obj+filename,format=tableformat), tableformat
-
-    print "compiling table "+filename
-    kwargs={'filename':filename}
-    do_reducejob_onbatch(dir_batch,readtable,filename,**kwargs)
-
-
+    tabout.write(dir_batch+fileout, format=tableformat)
+    tabout.write(dir_batch+fileout.split('.')[0], format='ascii.csv')
 
 
 # def main():

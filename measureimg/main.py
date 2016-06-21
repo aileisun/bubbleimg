@@ -24,7 +24,7 @@ import shapelytools
 from .. import standards
 
 
-def dir_doIsos(dir_obj, isocut_rest=3.e-15*u.Unit('erg / (arcsec2 cm2 s)'),  isoareallimit=10, contrastr=0.1, update=True, toplot=True): 
+def dir_doIsos(dir_obj, isocut_rest=3.e-15*u.Unit('erg / (arcsec2 cm2 s)'),  isoareallimit=10, contrastr=0.1, update=True, toplot=True, toclean=False): 
     """
     do the following operations: 
         find/store isocut contour on denoised line map as linblob
@@ -32,78 +32,111 @@ def dir_doIsos(dir_obj, isocut_rest=3.e-15*u.Unit('erg / (arcsec2 cm2 s)'),  iso
         find/store isocut/contrastr contour on continuum map as galmask
         subtract galmask from lineblob as lineblobmasked
         measure isoshape on the lineblobmasked
+
+    Notation:
+        fc_: filename of contour dictionary
+        c_: contour dictionary 
+        blob: OIII line 
+        gal: galaxy
+        ctr: center (not including disconnected patches)
+        mask: mask obtained by "contrastr" times higher isocut
+        masked: applied mask subtraction
     """
+    # ==== list of input filenames
     fileimg_line = 'stamp-lOIII5008_I_norm_denoised.fits'
     fileimg_line_psfresid = 'stamp-lOIII5008_I_norm_psfresidual_denoised.fits'
     fileimg_gal = 'stamp-conti-onOIIIscale_I_norm.fits'
     fileimg_psfmodel = 'stamp-lOIII5008_I_norm_psfmodel.fits'
+
+    # ==== define contour names
+    prefix_cdict='contours_'
+
+    # subject contours
+    fc_blob = prefix_cdict+'blob.pkl'
+    fc_blobctr = prefix_cdict+'blobctr.pkl'
+    fc_blob_psfresid = prefix_cdict+'blob_psfresid.pkl'
+    fc_blob_psfresidctr = prefix_cdict+'blob_psfresidctr.pkl'
+    fc_galctr = prefix_cdict+'galctr.pkl'
+
+    # mask contours
+    fc_galmask = prefix_cdict+'galmask.pkl'
+    fc_galmaskctr = prefix_cdict+'galmaskctr.pkl'
+    fc_psfmask = prefix_cdict+'psfmask.pkl'
     
-    prefix_cdict='contoursdict_'
-    fcdict_linblob = prefix_cdict+'linblob.pkl'
-    fcdict_galmask = prefix_cdict+'galmask.pkl'
-    fcdict_galctrmask = prefix_cdict+'galctrmask.pkl'
-    fcdict_linblob_galm = prefix_cdict+'linblob_galmasked.pkl'
-    fcdict_psfmask = prefix_cdict+'psfmask.pkl'
-    fcdict_linblob_galm_psfm = prefix_cdict+'linblob_galmasked_psfmasked.pkl'
-    fcdict_linblob_psfresid =  prefix_cdict+'linblob_psfresid.pkl'
-    fcdict_linblob_psfresid_galm =  prefix_cdict+'linblob_psfresid_galmasked.pkl'
+    # masked contours
+    fc_blob_psfresid_galm = prefix_cdict+'blob_psfresid_galmasked.pkl'
+    fc_blob_psfresid_galm_psfm = prefix_cdict+'blob_psfresid_galmasked_psfmasked.pkl'
+    fc_blob_psfresidctr_galm = prefix_cdict+'blob_psfresidctr_galmasked.pkl'
+    fc_blob_psfresidctr_galm_psfm = prefix_cdict+'blob_psfresidctr_galmasked_psfmasked.pkl'
 
-    # # start temporary codes
-    # cdict_galmask = read_pickle(dir_obj+fcdict_galmask)
-    # cdict_linblob = read_pickle(dir_obj+fcdict_linblob)
+    # ==== clean files
+    if toclean:
+        fms=["measureimg_iso.csv", "measureimg_iso.ecsv",]
+        fcs=[fc_blob, fc_blobctr, fc_blob_psfresid, fc_blob_psfresidctr, fc_galctr, fc_galmask, fc_galmaskctr, fc_psfmask, fc_blob_psfresid_galm, fc_blob_psfresid_galm_psfm, ]
+        fplots=['measureimg_iso_'+fc.split('.')[0]+'.pdf' for fc in fcs]
 
-    # # end temporary codes
+        for filename in fms+fcs+fplots:
+            if os.path.isfile(dir_obj+filename):
+                print "deleting file "+filename
+                os.remove(dir_obj+filename)
+            else:
+                print "skip deleting file "+filename
 
-    # get contour of line blob
-    cdict_linblob=dir_makeContoursDict(dir_obj, fileimg=fileimg_line, filecontoursdict=fcdict_linblob,isocut_rest=isocut_rest, isoareallimit=isoareallimit, update=update)
+    # ==== make contours
+    print "making contours"
+    # subject contours
+    c_blob = dir_makeContoursDict(dir_obj, fileimg=fileimg_line, filecontoursdict=fc_blob, isocut_rest=isocut_rest, isoareallimit=isoareallimit, update=update)
 
-    # get contour of galaxy mask
-    cdict_galmask=dir_makeContoursDict(dir_obj, fileimg=fileimg_gal, filecontoursdict=fcdict_galmask, isocut_rest=isocut_rest/contrastr, isoareallimit=0, update=update)
+    c_blobctr = dir_makeContoursDict(dir_obj, fileimg=fileimg_line, filecontoursdict=fc_blobctr, isocut_rest=isocut_rest, isoareallimit=np.inf, update=update)
 
-    cdict_galmaskctr = dir_makeContoursDict(dir_obj, fileimg=fileimg_gal, filecontoursdict=fcdict_galctrmask, isocut_rest=isocut_rest/contrastr, isoareallimit=64*64, update=update)
+    c_blob_psfresid = dir_makeContoursDict(dir_obj, fileimg=fileimg_line_psfresid, filecontoursdict=fc_blob_psfresid, isocut_rest=isocut_rest, isoareallimit=isoareallimit, update=update)
+
+    c_blob_psfresidctr = dir_makeContoursDict(dir_obj, fileimg=fileimg_line_psfresid, filecontoursdict=fc_blob_psfresidctr, isocut_rest=isocut_rest, isoareallimit=np.inf, update=update)
+
+    c_galctr = dir_makeContoursDict(dir_obj, fileimg=fileimg_gal, filecontoursdict=fc_galctr, isocut_rest=isocut_rest, isoareallimit=np.inf, update=update)
+
+    # mask contours
+
+    c_galmask = dir_makeContoursDict(dir_obj, fileimg=fileimg_gal, filecontoursdict=fc_galmask, isocut_rest=isocut_rest/contrastr, isoareallimit=0., update=update)
+
+    c_galmaskctr = dir_makeContoursDict(dir_obj, fileimg=fileimg_gal, filecontoursdict=fc_galmaskctr, isocut_rest=isocut_rest/contrastr, isoareallimit=np.inf, update=update)
+
+    c_psfmask = dir_makeContoursDict(dir_obj, fileimg=fileimg_psfmodel, filecontoursdict=fc_psfmask, isocut_rest=isocut_rest/contrastr, isoareallimit=0., update=update)
+
+    # masked contours
+    print "masking contours"
+
+    c_blob_psfresid_galm = dir_makeDiffContoursDict(dir_obj, fc_blob_psfresid, fc_galmask, fc_blob_psfresid_galm, update=update)
+
+    c_blob_psfresid_galm_psfm = dir_makeDiffContoursDict(dir_obj, fc_blob_psfresid_galm, fc_psfmask, fc_blob_psfresid_galm_psfm, update=update)
+
+    c_blob_psfresidctr_galm = dir_makeDiffContoursDict(dir_obj, fc_blob_psfresidctr, fc_galmask, fc_blob_psfresidctr_galm, update=update)
+
+    c_blob_psfresidctr_galm_psfm = dir_makeDiffContoursDict(dir_obj, fc_blob_psfresidctr_galm, fc_psfmask, fc_blob_psfresidctr_galm_psfm, update=update)
+
+    # ==== make iso measurements
+    print "make iso measurements"
+
+    cdicts_tomsr=[c_blob, c_blobctr, c_blob_psfresid, c_blob_psfresidctr, c_galctr, c_galmask, c_galmaskctr, c_psfmask, c_blob_psfresid_galm, c_blob_psfresid_galm_psfm, c_blob_psfresidctr_galm, c_blob_psfresidctr_galm_psfm, ]
+
+    for cdict in cdicts_tomsr:
+        dir_MeasureImgIso_fromContoursDict(dir_obj, cdict, towritetab=True, toplot=toplot, update=update)
 
 
-    # measure isoshape of lineblob
-    dir_MeasureImgIso_fromContoursDict(dir_obj, cdict_linblob, towritetab=True, toplot=toplot, update=update)
+def dir_makeDiffContoursDict(dir_obj, fcdict1, fcdict2, fcdict_diff, update=True):
+    """
+    write difference of contour dict to file
+    """
+    c1 = read_pickle(dir_obj+fcdict1)
+    c2 = read_pickle(dir_obj+fcdict2)
 
-    # plot isoshape of galmask
-    dir_MeasureImgIso_fromContoursDict(dir_obj, cdict_galmask, towritetab=False, toplot=toplot, update=update)
+    if not os.path.isfile(dir_obj+fcdict_diff) or update:
+        cdiff = shapelytools.diffcontoursdict(c1, c2, fcdict_diff)
+        write_pickle(cdiff, dir_obj+fcdict_diff)
+    else: 
+        cdiff = read_pickle(dir_obj+fcdict_diff)
 
-    # mask galmask from linblob -> linblob_galm
-    if not os.path.isfile(dir_obj+fcdict_linblob_galm) or update:
-        cdict_linblob_galm = shapelytools.diffcontoursdict(cdict_linblob, cdict_galmask, fcdict_linblob_galm)
-        write_pickle(cdict_linblob_galm, dir_obj+fcdict_linblob_galm)
-
-    # measure isoshape from lineblob_galm
-    dir_MeasureImgIso_fromContoursDict(dir_obj, cdict_linblob_galm, towritetab=True, toplot=toplot, update=update)
-
-    # measure iso for psfmodel to make psfmask -- optional
-    kwargs = {'fileimg': fileimg_psfmodel,
-              'filecontoursdict':fcdict_psfmask, 
-              'isocut_rest': isocut_rest,
-              'isoareallimit': 0,
-              'update': update}
-    dir_MeasureImgIso(dir_obj, **kwargs)
-
-    # measure iso for psf residual 
-    kwargs = {'fileimg': fileimg_line_psfresid,
-              'filecontoursdict':fcdict_linblob_psfresid, 
-              'isocut_rest': isocut_rest,
-              'isoareallimit': isoareallimit,
-              'update': update}
-    dir_MeasureImgIso(dir_obj, **kwargs)
-
-
-    # mask galmask from linblob_psfresid -> linblob_psfresid_galm
-    cdict_linblob_psfresid = read_pickle(dir_obj+fcdict_linblob_psfresid)
-    if not os.path.isfile(dir_obj+fcdict_linblob_psfresid_galm) or update:
-        cdict_linblob_psfresid_galm = shapelytools.diffcontoursdict(cdict_linblob_psfresid, cdict_galmask, fcdict_linblob_psfresid_galm)
-        write_pickle(cdict_linblob_psfresid_galm, dir_obj+fcdict_linblob_psfresid_galm)
-
-    # measure iso for psf residual galm
-    cdict_linblob_psfresid_galm = read_pickle(dir_obj+fcdict_linblob_psfresid_galm)
-    dir_MeasureImgIso_fromContoursDict(dir_obj, cdict_linblob_psfresid_galm, towritetab=True, toplot=toplot, update=update)
-
+    return cdiff
 
 
 def read_pickle(filename):
@@ -111,10 +144,10 @@ def read_pickle(filename):
         result = pickle.load(handle)
     return result
 
+
 def write_pickle(result, filename):
     with open(filename, 'wb') as handle:
         pickle.dump(result, handle)
-
 
 
 def dir_makeContoursDict(dir_obj, fileimg='stamp-lOIII5008_I_norm.fits', filecontoursdict=None, isocut_rest=3.e-15*u.Unit('erg / (arcsec2 cm2 s)'), isoareallimit=0, update=False):
@@ -132,7 +165,10 @@ def dir_makeContoursDict(dir_obj, fileimg='stamp-lOIII5008_I_norm.fits', filecon
     filein=dir_obj+fileimg
     # set up contour filenames
     tagisocut='_iso'+'%.0e'%isocut_rest.value
-    tagalim='_alim'+str(int(isoareallimit))
+    if np.isinf(isoareallimit):
+        tagalim='_alim'+'inf'
+    else:
+        tagalim='_alim'+str(int(isoareallimit))
     fileimg_base=os.path.splitext(fileimg)[0] 
     if filecontoursdict is None:
         filecontoursdict='contoursdict_'+fileimg_base+tagisocut+tagalim+'.pkl'
@@ -159,6 +195,7 @@ def dir_makeContoursDict(dir_obj, fileimg='stamp-lOIII5008_I_norm.fits', filecon
 
     return contoursdict
 
+
 def dir_getIsothreshold(dir_obj, fileimg='stamp-lOIII5008_I_norm.fits', isocut_rest=3.e-15*u.Unit('erg / (arcsec2 cm2 s)')):
     """
     calculate isothreshold in native image units from isocut_rest
@@ -179,6 +216,7 @@ def dir_getIsothreshold(dir_obj, fileimg='stamp-lOIII5008_I_norm.fits', isocut_r
     isocut_obs=isocut_rest*(1.+z)**-4
     isothreshold=(isocut_obs/imgunit).to(u.dimensionless_unscaled).value
     return isothreshold
+
 
 def dir_MeasureImgIso_fromContoursDict(dir_obj, contoursdict, towritetab=True, toplot=True, update=True):
     """
@@ -251,8 +289,6 @@ def dir_MeasureImgIso_fromContoursDict(dir_obj, contoursdict, towritetab=True, t
             plotIsoMsr_fromContoursDict(dir_obj, fileplot+'.pdf', contoursdict=contoursdict, dictisoshape=dictisoshape)
     else: 
         print "skip dir_MeasureImgIso_fromContoursDict() as file exists "+fileout+'.ecsv'
-
-
 
     
 def dir_MeasureImgIso(dir_obj, fileimg='stamp-lOIII5008_I_norm.fits', filecontoursdict=None, isocut_rest=3.e-15*u.Unit('erg / (arcsec2 cm2 s)'), isoareallimit=0, towritetab=True, toplot=True, update=True):
@@ -331,20 +367,23 @@ def plotIsoMsr_fromContoursDict(dir_obj, fileplot, contoursdict, dictisoshape=No
 
     plotIsoMsr(fileplot, img, isothreshold, contours, dictisoshape=dictisoshape)
 
+
 def makeParamsuTable_from_Dict(paramsdict, useunits=True, pixelsize=0.396, pixunit=u.Unit('arcsec'), imgunit=1.e-15*u.Unit('erg s-1 cm-2 arcsec-2')):
     """
     transform params dictionary to table with the correct units conversion. 
     """
     # setting
     pixscale= pixelsize * (pixunit)
-    scalings={'theta':u.Unit('degree'),
+    scalings={'theta': u.Unit('degree'),
               'flux': imgunit*pixscale**2 ,
-              'area':(pixscale**2),
-              'xc':pixscale,'yc':pixscale,
-              'a':pixscale,'b':pixscale,
-              'dferetmax':pixscale,'rferetmax':pixscale,
-              'theta_dferetmax':u.Unit('degree'),
-              'theta_rferetmax':u.Unit('degree'),
+              'area': (pixscale**2),
+              'xc': pixscale, 'yc': pixscale,
+              'a': pixscale, 'b': pixscale,
+              'dferetmax': pixscale, 'rferetmax': pixscale, 
+              'dferetper': pixscale, 
+              'theta_dferetmax': u.Unit('degree'),
+              'theta_rferetmax': u.Unit('degree'),
+              'theta_dferetper': u.Unit('degree')
               }
 
     # operation
@@ -677,3 +716,84 @@ def measureparams(img, method='moment', sigma=0., isothreshold=0., isoareallimit
 
     # # measure iso for psf masked galaxy masked line blob
     # dir_MeasureImgIso_fromContoursDict(dir_obj, cdict_linblob_galm_psfm, towritetab=True, toplot=True, update=update)
+
+# def dir_doIsos(dir_obj, isocut_rest=3.e-15*u.Unit('erg / (arcsec2 cm2 s)'),  isoareallimit=10, contrastr=0.1, update=True, toplot=True): 
+#     """
+#     do the following operations: 
+#         find/store isocut contour on denoised line map as linblob
+#         measure isoshape on the lineblob
+#         find/store isocut/contrastr contour on continuum map as galmask
+#         subtract galmask from lineblob as lineblobmasked
+#         measure isoshape on the lineblobmasked
+#     """
+#     fileimg_line = 'stamp-lOIII5008_I_norm_denoised.fits'
+#     fileimg_line_psfresid = 'stamp-lOIII5008_I_norm_psfresidual_denoised.fits'
+#     fileimg_gal = 'stamp-conti-onOIIIscale_I_norm.fits'
+#     fileimg_psfmodel = 'stamp-lOIII5008_I_norm_psfmodel.fits'
+
+#     prefix_cdict='contoursdict_'
+#     fcdict_linblob = prefix_cdict+'linblob.pkl'
+#     fcdict_galmask = prefix_cdict+'galmask.pkl'
+#     fcdict_galmaskctr = prefix_cdict+'galmaskctr.pkl'
+#     fcdict_psfmask = prefix_cdict+'psfmask.pkl'
+
+#     fcdict_linblob_galm = prefix_cdict+'linblob_galmasked.pkl'
+#     fcdict_linblob_galm_psfm = prefix_cdict+'linblob_galmasked_psfmasked.pkl'
+#     fcdict_linblob_psfresid =  prefix_cdict+'linblob_psfresid.pkl'
+#     fcdict_linblob_psfresid_galm =  prefix_cdict+'linblob_psfresid_galmasked.pkl'
+
+#     # # start temporary codes
+#     # cdict_galmask = read_pickle(dir_obj+fcdict_galmask)
+#     # cdict_linblob = read_pickle(dir_obj+fcdict_linblob)
+
+#     # # end temporary codes
+
+#     # get contour of line blob
+#     cdict_linblob=dir_makeContoursDict(dir_obj, fileimg=fileimg_line, filecontoursdict=fcdict_linblob,isocut_rest=isocut_rest, isoareallimit=isoareallimit, update=update)
+
+#     # get contour of galaxy mask
+#     cdict_galmask=dir_makeContoursDict(dir_obj, fileimg=fileimg_gal, filecontoursdict=fcdict_galmask, isocut_rest=isocut_rest/contrastr, isoareallimit=0, update=update)
+
+#     cdict_galmaskctr = dir_makeContoursDict(dir_obj, fileimg=fileimg_gal, filecontoursdict=fcdict_galmaskctr, isocut_rest=isocut_rest/contrastr, isoareallimit=64*64, update=update)
+
+
+#     # measure isoshape of lineblob
+#     dir_MeasureImgIso_fromContoursDict(dir_obj, cdict_linblob, towritetab=True, toplot=toplot, update=update)
+
+#     # plot isoshape of galmask
+#     dir_MeasureImgIso_fromContoursDict(dir_obj, cdict_galmask, towritetab=False, toplot=toplot, update=update)
+
+#     # mask galmask from linblob -> linblob_galm
+#     if not os.path.isfile(dir_obj+fcdict_linblob_galm) or update:
+#         cdict_linblob_galm = shapelytools.diffcontoursdict(cdict_linblob, cdict_galmask, fcdict_linblob_galm)
+#         write_pickle(cdict_linblob_galm, dir_obj+fcdict_linblob_galm)
+
+#     # measure isoshape from lineblob_galm
+#     dir_MeasureImgIso_fromContoursDict(dir_obj, cdict_linblob_galm, towritetab=True, toplot=toplot, update=update)
+
+#     # measure iso for psfmodel to make psfmask -- optional
+#     kwargs = {'fileimg': fileimg_psfmodel,
+#               'filecontoursdict':fcdict_psfmask, 
+#               'isocut_rest': isocut_rest,
+#               'isoareallimit': 0,
+#               'update': update}
+#     dir_MeasureImgIso(dir_obj, **kwargs)
+
+#     # measure iso for psf residual 
+#     kwargs = {'fileimg': fileimg_line_psfresid,
+#               'filecontoursdict':fcdict_linblob_psfresid, 
+#               'isocut_rest': isocut_rest,
+#               'isoareallimit': isoareallimit,
+#               'update': update}
+#     dir_MeasureImgIso(dir_obj, **kwargs)
+
+
+#     # mask galmask from linblob_psfresid -> linblob_psfresid_galm
+#     cdict_linblob_psfresid = read_pickle(dir_obj+fcdict_linblob_psfresid)
+#     if not os.path.isfile(dir_obj+fcdict_linblob_psfresid_galm) or update:
+#         cdict_linblob_psfresid_galm = shapelytools.diffcontoursdict(cdict_linblob_psfresid, cdict_galmask, fcdict_linblob_psfresid_galm)
+#         write_pickle(cdict_linblob_psfresid_galm, dir_obj+fcdict_linblob_psfresid_galm)
+
+#     # measure iso for psf residual galm
+#     cdict_linblob_psfresid_galm = read_pickle(dir_obj+fcdict_linblob_psfresid_galm)
+#     dir_MeasureImgIso_fromContoursDict(dir_obj, cdict_linblob_psfresid_galm, towritetab=True, toplot=toplot, update=update)

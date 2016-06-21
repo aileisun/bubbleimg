@@ -22,6 +22,7 @@ import sys
 sys.path.append(external_links.pack_catalogue)
 import catalogue_util
 reload(catalogue_util)
+
 # dir_data_SDSS='/Users/aisun/Documents/Astro/Thesis/bbselection/SDSS/data/SDSS/'
 # dir_data_magellan='/Users/aisun/Documents/Astro/Thesis/bbselection/SDSS/data/magellan/'
 # file_list_magellan='/Users/aisun/Documents/Astro/Thesis/followups/Magellan/2014June/data_v2/analysis/sample/Magellan1406_list.txt'
@@ -175,7 +176,7 @@ class obsobj(object):
 			else: # download xid from sdss
 				print "[obsobj] querying xid from SDSS"
 				c = SkyCoord(self.outer.ra, self.outer.dec, 'icrs', unit='deg')
-				result = SDSS.query_region(c,spectro=True,photoobj_fields=photoobj_defs,specobj_fields=specobj_defs)
+				result = SDSS.query_region(c, spectro=True, photoobj_fields=photoobj_defs, specobj_fields=specobj_defs)
 
 				# Retrieving  sdss ids of the spec sciencePrimary 
 				if result is not None:

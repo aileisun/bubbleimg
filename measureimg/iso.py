@@ -17,14 +17,16 @@ def ShapeParamsdict_from_contours(contours, xc, yc):
     """
     return a dictionary of key:value pairs of ShapeParams measured from contours
     """
-    cols=['area', 'dferetmax', 'theta_dferetmax', 'rferetmax', 'theta_rferetmax']
+    cols=['area', 'dferetmax', 'theta_dferetmax', 'rferetmax', 'theta_rferetmax', 'dferetper', 'theta_dferetper', 'aspectr']
     if len(contours)>0:
-        area=polytools.NetPolygonsArea(contours)
-        dferetmax, theta_dferetmax=polytools.FeretD_max(contours)
-        rferetmax, theta_rferetmax=polytools.FeretR_max(contours, xc, yc)
-        values=[area, dferetmax, theta_dferetmax, rferetmax, theta_rferetmax]
+        area = polytools.NetPolygonsArea(contours)
+        dferetmax, theta_dferetmax = polytools.FeretD_max(contours)
+        rferetmax, theta_rferetmax = polytools.FeretR_max(contours, xc, yc)
+        dferetper, theta_dferetper = polytools.FeretD_max90(contours)
+        aspectr = polytools.FeretAspectRatio(contours)
+        values=[area, dferetmax, theta_dferetmax, rferetmax, theta_rferetmax, dferetper, theta_dferetper, aspectr]
     else: 
-        values=[0., 0., np.nan, 0., np.nan]
+        values=[0., 0., np.nan, 0., np.nan, 0., np.nan, np.nan]
 
     paramsdict=collections.OrderedDict(zip(cols, values))
     return paramsdict

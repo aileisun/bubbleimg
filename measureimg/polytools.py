@@ -56,17 +56,16 @@ def find_isocontours(img, threshold, tocomplete=True, nx=64, ny=64):
     High contours are counter-clockwise points and low contours are clockwise 
     points.
 
-    if tocomplete is True, for contours that end at edges, add corner points 
-    to complete the loop.
+    if tocomplete is True, even contours at edges are always closed. 
     """
-    contours = skmeasure.find_contours(img, threshold, fully_connected='low', positive_orientation='high')
-
+    # negative edge padding to close all contours
     if tocomplete: # to complete contours
-        for i, contour in enumerate(contours):
-            if SignedPolygonArea(contour)>0: contourtype='high'
-            else: contourtype='low'
-            contourcomplete=complete_contouredges(contour, contourtype=contourtype, nx=nx, ny=ny)
-            contours[i]=contourcomplete
+        wpad=2
+        img_pad = np.pad(img, [[wpad, wpad], [wpad, wpad]], mode='constant', constant_values=-1.e300)
+        contours = skmeasure.find_contours(img_pad, threshold, fully_connected='low', positive_orientation='high')
+        contours = [contour-wpad for contour in contours]
+    else: 
+        contours = skmeasure.find_contours(img, threshold, fully_connected='low', positive_orientation='high')
 
     return contours
 
@@ -93,14 +92,26 @@ def select_largecontours(contours, areallimit):
     return largecontours
 
 
-def select_centercontours(contours, xc, yc):
+def select_centercontours(contours, xc, yc, radius=3, areallimit_ctr=3):
     """
-    Find all high contours that center on the centroid xc, yc. 
+    Find all high contours that enclose the centroid xc, yc. +/- radius
+    # if skmeasure.points_in_poly([[yc, xc]], contour):
     """
+    # define neighboring points
+    xns = xc + np.arange(-radius, radius+1, step=1)
+    yns = yc + np.arange(-radius, radius+1, step=1)
+    pns = [[yn, xn] for yn in yns for xn in xns] 
+
     ccontours = []
     for contour in contours:
-        if skmeasure.points_in_poly([[yc, xc]], contour) and SignedPolygonArea(contour) > 0.:
-            ccontours = ccontours+[contour]
+        if SignedPolygonArea(contour) > radius**2:
+            if np.any(skmeasure.points_in_poly(pns, contour)):
+                ccontours = ccontours+[contour]
+        elif SignedPolygonArea(contour) > areallimit_ctr:
+            if np.absolute(contour[:, 0]-yc).min() < radius: 
+                if np.absolute(contour[:, 0]-xc).min() < radius: 
+                    if np.any(skmeasure.points_in_poly(pns, contour)):
+                        ccontours = ccontours+[contour]
     return ccontours
 
 
@@ -227,77 +238,6 @@ def SignedPolygonArea(poly):
         area -= poly[j][0] * poly[i][1]
     area = area / 2.0
     return area
-
-
-def complete_contouredges(contour, contourtype='high', nx=64, ny=64):
-    """
-    if the two ends of the contour are on different edges, add a corner(s) to 
-    complete the loop, such that it will still be a closed high/low contour. 
-    """
-    def point_on_edgei(point, nx=64, ny=64):
-        """
-        return which edge is the point on
-        point = (y, x)
-
-        x = 0 : edgei = 0
-        y = 0 : edgei = 1
-        x = n : edgei = 2
-        y = n : edgei = 3
-
-        x = 0, y = 0 : edgei = -0.1
-        x = n, y = 0 : edgei = -1.1
-        x = n, y = n : edgei = -2.1
-        x = 0, y = n : edgei = -3.1
-
-        otherwise np.nan
-        """
-        y, x = point
-        ex=nx-1
-        ey=ny-1
-
-        if x in [0, ex] or y in [0, ey]:
-            # on edge or corner
-            if x in [0, ex] and y in [0, ey]:
-                # on corner
-                if x == 0 and y == 0: edgei = -0.1
-                elif x == ex and y == 0: edgei = -1.1
-                elif x == ex and y == ey: edgei = -2.1
-                elif x == 0 and y == ey: edgei = -3.1
-            else: 
-                # on edge
-                if x == 0: edgei = 0
-                elif y == 0: edgei = 1
-                elif x == ex: edgei = 2
-                elif y == ey: edgei = 3            
-        else: 
-            # not on edge nor corner
-            edgei=np.nan
-        return edgei
-
-    # start complete_highcontouredges() function
-    if contourtype == 'high':
-        p0, p1 = contour[0], contour[-1]
-    elif contourtype == 'low':
-        p0, p1 = contour[-1], contour[0]
-
-    ei0=point_on_edgei(p0, nx=nx, ny=ny)
-    ei1=point_on_edgei(p1, nx=nx, ny=ny)
-
-    if ei0 >= 0 and ei1 >= 0: # both on edges
-        if ei0 != ei1: # on different edges
-            # initialization
-            corneriruler=[0, 1, 2, 3, 0, 1]
-            pcorner_list=np.array([[0, 0], [0, nx-1], [ny-1, nx-1], [ny-1, 0]])
-            if ei1 < ei0: ei1 = ei1 + 4
-            corneris=corneriruler[ei0:ei1]
-            pcorners_toadd=pcorner_list[corneris]
-            # adding corners
-            contour=np.concatenate((contour,pcorners_toadd),axis=0)
-            return contour
-        else: 
-            return contour
-    else: 
-        return contour
 
 
 def FeretDiameter(sth,theta):
@@ -576,3 +516,96 @@ def mom_ellipseparams_poly(poly):
 #     # define unit vector (r,c)=(y,x) along the direction of theta
 #     unitvec=np.array([np.sin(np.radians(theta)),np.cos(np.radians(theta))])
 #     return np.max(poly.dot(unitvec),axis=0)-np.min(poly.dot(unitvec),axis=0)
+
+# =========== deprecated functions
+# def find_isocontours(img, threshold, tocomplete=True, nx=64, ny=64):
+#     """
+#     Return all isophote contours. Each contours is (N*2) ndarray of double. 
+#     High contours are counter-clockwise points and low contours are clockwise 
+#     points.
+
+#     if tocomplete is True, for contours that end at edges, add corner points 
+#     to complete the loop.
+#     """
+#     contours = skmeasure.find_contours(img, threshold, fully_connected='low', positive_orientation='high')
+
+#     if tocomplete: # to complete contours
+#         for i, contour in enumerate(contours):
+#             if SignedPolygonArea(contour)>0: contourtype='high'
+#             else: contourtype='low'
+#             contourcomplete=complete_contouredges(contour, contourtype=contourtype, nx=nx, ny=ny)
+#             contours[i]=contourcomplete
+
+#     return contours
+
+
+
+# def complete_contouredges(contour, contourtype='high', nx=64, ny=64):
+#     """
+#     if the two ends of the contour are on different edges, add a corner(s) to 
+#     complete the loop, such that it will still be a closed high/low contour. 
+#     """
+#     def point_on_edgei(point, nx=64, ny=64):
+#         """
+#         return which edge is the point on
+#         point = (y, x)
+
+#         x = 0 : edgei = 0
+#         y = 0 : edgei = 1
+#         x = n : edgei = 2
+#         y = n : edgei = 3
+
+#         x = 0, y = 0 : edgei = -0.1
+#         x = n, y = 0 : edgei = -1.1
+#         x = n, y = n : edgei = -2.1
+#         x = 0, y = n : edgei = -3.1
+
+#         otherwise np.nan
+#         """
+#         y, x = point
+#         ex=nx-1
+#         ey=ny-1
+
+#         if x in [0, ex] or y in [0, ey]:
+#             # on edge or corner
+#             if x in [0, ex] and y in [0, ey]:
+#                 # on corner
+#                 if x == 0 and y == 0: edgei = -0.1
+#                 elif x == ex and y == 0: edgei = -1.1
+#                 elif x == ex and y == ey: edgei = -2.1
+#                 elif x == 0 and y == ey: edgei = -3.1
+#             else: 
+#                 # on edge
+#                 if x == 0: edgei = 0
+#                 elif y == 0: edgei = 1
+#                 elif x == ex: edgei = 2
+#                 elif y == ey: edgei = 3            
+#         else: 
+#             # not on edge nor corner
+#             edgei=np.nan
+#         return edgei
+
+#     # start complete_highcontouredges() function
+#     if contourtype == 'high':
+#         p0, p1 = contour[0], contour[-1]
+#     elif contourtype == 'low':
+#         p0, p1 = contour[-1], contour[0]
+
+#     ei0=point_on_edgei(p0, nx=nx, ny=ny)
+#     ei1=point_on_edgei(p1, nx=nx, ny=ny)
+
+#     if ei0 >= 0 and ei1 >= 0: # both on edges
+#         if ei0 != ei1: # on different edges
+#             # initialization
+#             corneriruler=[0, 1, 2, 3, 0, 1]
+#             pcorner_list=np.array([[0, 0], [0, nx-1], [ny-1, nx-1], [ny-1, 0]])
+#             if ei1 < ei0: ei1 = ei1 + 4
+#             corneris=corneriruler[ei0:ei1]
+#             pcorners_toadd=pcorner_list[corneris]
+#             # adding corners
+#             contour=np.concatenate((contour,pcorners_toadd),axis=0)
+#             return contour
+#         else: 
+#             return contour
+#     else: 
+#         return contour
