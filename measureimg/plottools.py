@@ -9,6 +9,7 @@ Contains two functions for plotting: plot_img, overplot_ellipse_fromtab
 """
 
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 import astropy.units as u
 from astropy.table import Table
@@ -16,7 +17,7 @@ from astropy.table import Table
 from .. import standards
 
 
-def plot_img(img,vmin=None,vmax=None):
+def plot_img(img, vmin=None, vmax=None, origin='lower', tocolorbar=True, tosetlim=True, figsize=(6, 4.5)):
     """
     Plot an image with colorbar. No saving is done. The fig and ax is 
     returned to make more modifications to the image. 
@@ -27,19 +28,34 @@ def plot_img(img,vmin=None,vmax=None):
         fig, ax
     """
 
-    plt.clf()
-    fig = plt.figure(0)
+    plt.close('all')
+    fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot(111, aspect='equal')
-    cax=ax.imshow(img,interpolation='nearest',origin='lower left',aspect='equal',cmap='viridis',vmin=vmin,vmax=vmax)#,extent=[0,img.shape[0],0,img.shape[1]])
+    ax_imshow(fig, ax, img, vmin=vmin, vmax=vmax, origin=origin, tocolorbar=tocolorbar, tosetlim=tosetlim)
+    ax.axis('off')    
     
-    fig.colorbar(cax)
-    ax.set_xlim(-0.5,img.shape[0]-0.5)
-    ax.set_ylim(-0.5,img.shape[1]-0.5)
-
     return fig, ax
 
 
-def overplot_contour(ax, contour, color='black', ls='-',lw=3):
+def ax_imshow(fig, ax, img, vmin=None, vmax=None, origin='lower', tocolorbar=True, tosetlim=True, colorlabel = '$I\/[10^{-15}\/\mathrm{erg\/\/s^{-1}\/cm^{-2}\/arcsec^{-2}}]$'):
+    """ for a given "ax" plot image"""
+    im = ax.imshow(img, interpolation='nearest', origin=origin, aspect='equal', cmap='viridis', vmin=vmin, vmax=vmax)
+
+    if tocolorbar:
+        cb = fig.colorbar(im, label=colorlabel, format='%.1f')
+        cb.ax.yaxis.label.set_font_properties(matplotlib.font_manager.FontProperties(size=15))
+        cb.ax.tick_params(labelsize=12) 
+
+    if tosetlim:
+        ax.set_xlim(-0.5, img.shape[0]-0.5)
+        if origin=='lower':
+            ax.set_ylim(-0.5, img.shape[1]-0.5)
+        else: 
+            ax.set_ylim(img.shape[1]-0.5, -0.5)
+    return im
+
+
+def overplot_contour(ax, contour, color='black', ls='-',lw=3, alpha=1., label='__nolabel__'):
     """ 
     overplot a contour on subplot ax. no units interpretation. 
 
@@ -53,10 +69,11 @@ def overplot_contour(ax, contour, color='black', ls='-',lw=3):
 
     color: string 
     """
-    ax.plot(contour[:, 1], contour[:, 0], linewidth=2, color=color,lw=lw)
+    ax.plot(contour[:, 1], contour[:, 0], linewidth=2, color=color,lw=lw, alpha=alpha, label=label)
 
 
-def overplot_contours(ax, contours, color='black',lw=3):
+
+def overplot_contours(ax, contours, color='black', lw=3, alpha=1., label='__nolabel__'):
     """ 
     overplot a set of contours on subplot ax. no units interpretation. 
     counter-clock wise contours will be solid lines while clock-wise contours 
@@ -75,11 +92,11 @@ def overplot_contours(ax, contours, color='black',lw=3):
     from polytools import SignedPolygonArea
     for contour in contours:
         if SignedPolygonArea(contour)>0:
-            overplot_contour(ax, contour, color=color, ls='-',lw=lw)
+            overplot_contour(ax, contour, color=color, ls='-', lw=lw, alpha=alpha, label=label)
         else:
-            overplot_contour(ax, contour, color=color, ls='--',lw=lw-1)
+            overplot_contour(ax, contour, color=color, ls='--', lw=lw-1, alpha=alpha)
 
-def overplot_ellipse(ax, ellipse_params, color='black'):
+def overplot_ellipse(ax, ellipse_params, color='black', label=None, lw=3):
     """ overplot a ellipse on subplot ax. no units interpretation. 
 
     Parameters
@@ -101,17 +118,18 @@ def overplot_ellipse(ax, ellipse_params, color='black'):
     [xc, yc, a, b, theta]=ellipse_params
 
     # define ellipse
-    kwrg = {'facecolor':'none', 'edgecolor':color, 'alpha':1, 'linewidth':2}
+    kwrg = {'facecolor':'none', 'edgecolor':color, 'alpha':1, 'linewidth':lw}
     ellip = Ellipse(xy=[xc,yc], width=2.*a, height=2.*b, angle=theta, **kwrg)
     
     # overplotting and ellipse
-    ax.plot(xc,yc,marker='x',ms=5,mew=2,color=color)
+    ax.plot(xc, yc, marker='x', ms=5, mew=2, color=color)
+    ax.plot(0, 0, marker='', lw=lw, color=color, label=label)
     ax.add_artist(ellip)
 
 
 
 
-def overplot_ellipse_fromtab(ax,img,tab_ellipse,color='black',pixelsize=0.396,useunits=True):
+def overplot_ellipse_fromtab(ax, img, tab_ellipse, color='black', pixelsize=0.396, useunits=True, label=None, lw=3):
     """
     PURPOSE: 
         plot the corresponding ellipse on top of the image given ellipse 
@@ -154,7 +172,7 @@ def overplot_ellipse_fromtab(ax,img,tab_ellipse,color='black',pixelsize=0.396,us
     theta = tab_ellipse['theta'][0]
 
     ellipse_params=[xc, yc, a, b, theta]
-    overplot_ellipse(ax, ellipse_params, color=color)
+    overplot_ellipse(ax, ellipse_params, color=color, label=label, lw=lw)
 
 
 

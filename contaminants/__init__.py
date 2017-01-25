@@ -6,4 +6,4 @@ import contaminants
 reload(contaminants)
 
 from contaminants import dir_find_contaminants
-from contaminants import dir_reduce_contaminantstable
+from contaminants import dir_reduce_contaminantcount

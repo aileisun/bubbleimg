@@ -9,18 +9,17 @@ USAGE:   getObjBandContiFLuxRatio(obj, band1='r', band2='z')
 
 """
 
-import numpy as np
 import os
+import numpy as np
+
 from astropy.table import Table
 from astroquery.sdss import SDSS
 from astropy.io import fits
 import astropy.units as u
 from astropy import constants as const
 
-import sys
-sys.path.append('/Users/aisun/Documents/Astro/Thesis/followups/Magellan/2014June/data_v2/analysis/physical/')
-import contsubi
-# reload(contsubi)
+import getcontspec
+# reload(getcontspec)
 
 from .. import filters
 
@@ -39,6 +38,7 @@ def obj_measure_contiABmags(obj, bands=['u','g','r','i','z']):
 	for band in bands:
 		tabout['contiMag_'+band]=[getObjBandContiABmag(obj,band=band)]
 	return tabout
+
 
 def getObjBandContiABmag(obj,band='r'):
 	"""
@@ -100,7 +100,7 @@ def getObjBandContiRatio_dEdl(obj, band1='r', band2='z'):
 	RETURN f1/f2 (float)
 
 	DESCRIPTION: 
-		using function contsubi.getMedianFilteredConti() to get continuum levels
+		using function getcontspec.getMedianFilteredConti() to get continuum levels
 					   convolveSpecWFilter() to convolve with filter
 		as the spectrum is in units of '1E-17 erg/cm^2/s/Ang', the ratio is of dE/dlambda
 	"""
@@ -125,7 +125,7 @@ def getObjBandContiFluxDensity_dEdl(obj, band='r',wunit=False):
 	RETURN f (flux density quantity in units of '1E-17 erg/cm^2/s/Ang')
 
 	DESCRIPTION: 
-		using function contsubi.getMedianFilteredConti() to get continuum levels
+		using function getcontspec.getMedianFilteredConti() to get continuum levels
 					   convolveSpecWFilter() to convolve with filter
 		flux density in units of '1E-17 erg/cm^2/s/Ang'
 	"""
@@ -136,7 +136,7 @@ def getObjBandContiFluxDensity_dEdl(obj, band='r',wunit=False):
 	except: pass
 
 	# get continuum
-	speccont, lcoordcont = contsubi.getMedianFilteredConti(spec,lcoord,obj.sdss.z,toplot=False)
+	speccont, lcoordcont = getcontspec.getMedianFilteredConti(spec,lcoord,obj.sdss.z,toplot=False)
 
 	# get filter function
 	specfilter, lcoordfilter=filters.getFilterResponseFunc(band=band)#,path=path_filters)
@@ -236,3 +236,5 @@ def getSDSSspeclineratio(obj,line1='H_beta',line2='[O_III] 5007'):
 	f2=table[table['LINENAME']==line2]['LINEAREA'][0]
 
 	return f1/f2
+
+

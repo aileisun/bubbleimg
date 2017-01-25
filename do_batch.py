@@ -21,9 +21,6 @@ reload(denoiseimg)
 import contaminants
 reload(contaminants)
 
-import classify
-reload(classify)
-
 import fitpsf
 
 
@@ -39,78 +36,82 @@ def do_batch(dir_batch, bandline=None, update=True):
     """
     isocut_rest = 3.e-15*u.Unit('erg / (arcsec2 cm2 s)')
 
-    # #==== renoamlize
-    # kwargs={'filename':'stamp-lOIII5008_I.fits','norm':1.e-15,'update':update}
-    # do_mapjob_onbatch(dir_batch, smallfunc.dir_RenormalizeImg_fits,**kwargs)
+    #==== renoamlize
+    kwargs={'filename':'stamp-lOIII5008_I.fits','norm':1.e-15,'update':update}
+    do_mapjob_onbatch(dir_batch, smallfunc.dir_RenormalizeImg_fits,**kwargs)
 
-    # kwargs={'filename':'stamp-conti-onOIIIscale_I.fits','norm':1.e-15,'update':update}
-    # do_mapjob_onbatch(dir_batch, smallfunc.dir_RenormalizeImg_fits,**kwargs)
+    kwargs={'filename':'stamp-conti-onOIIIscale_I.fits','norm':1.e-15,'update':update}
+    do_mapjob_onbatch(dir_batch, smallfunc.dir_RenormalizeImg_fits,**kwargs)
 
-    # #==== calculate noise
-    # kwargs={'filename':'stamp-lOIII5008_I_norm.fits','update':update}
-    # do_mapjob_onbatch(dir_batch, denoiseimg.noiselevel.load_noiselevel,**kwargs)
-    # # compile batch noise table
-    # do_compiletable_onbatch(dir_batch,'noiselevel.csv')
+    #==== calculate noise
+    kwargs={'filename':'stamp-lOIII5008_I_norm.fits','update':update}
+    do_mapjob_onbatch(dir_batch, denoiseimg.noiselevel.load_noiselevel,**kwargs)
+    # compile batch noise table
+    do_compiletable_onbatch(dir_batch, filein='noiselevel.csv')
 
-    # # ==== do psf fitting
-    # kwargs = dict(band=bandline, fileimg='stamp-lOIII5008_I_norm.fits',
-    #               searchradius=5., fixb=True)
-    # do_mapjob_onbatch(dir_batch, fitpsf.dir_fit_psf, **kwargs)
-
-
-    # # #==== denoise
-    # # kwargs={'filename':'stamp-lOIII5008_I_norm.fits','update':update}
-    # # do_mapjob_onbatch(dir_batch, denoiseimg.dir_makedenoised_fits,**kwargs)
-    # kwargs={'filename':'stamp-lOIII5008_I_norm_psfresidual.fits','update':update}
-    # do_mapjob_onbatch(dir_batch, denoiseimg.dir_makedenoised_fits,**kwargs)
-
-    # delete_redundant_files(dir_batch)
-
-    # # ==== make new iso measurements
-    # kwargs = {'isocut_rest': isocut_rest,
-    #           'isoareallimit': 10, 'contrastr': 0.1,
-    #           'update': update, 'toplot': True, 'toclean': True}
-    # do_mapjob_onbatch(dir_batch, measureimg.dir_doIsos, **kwargs)
+    # ==== do psf fitting
+    kwargs = dict(band=bandline, fileimg='stamp-lOIII5008_I_norm.fits',
+                  searchradius=5., fixb=True)
+    do_mapjob_onbatch(dir_batch, fitpsf.dir_fit_psf, **kwargs)
 
 
-    # # ==== compile tables
-    # kwargs = dict(filein='measureimg_iso.ecsv',
-    #               selectkey='filecontoursdict',
-    #               selectvalues=['contours_blob.pkl',
-    #                             'contours_blobctr.pkl',
-    #                             'contours_blob_psfresid.pkl',
-    #                             'contours_galctr.pkl',
-    #                             'contours_galmask.pkl',
-    #                             'contours_galmaskctr.pkl',
-    #                             'contours_psfmask.pkl',
-    #                             'contours_lblob_psfresid_galmasked.pkl',
-    #                             'contours_lblob_psfresid_galmasked_psfmasked.pkl',],)
-    # do_compiletables_onbatch(dir_batch, **kwargs)
+    # #==== denoise
+    kwargs={'filename':'stamp-lOIII5008_I_norm.fits','update':update}
+    do_mapjob_onbatch(dir_batch, denoiseimg.dir_makedenoised_fits,**kwargs)
+    kwargs={'filename':'stamp-lOIII5008_I_norm_psfresidual.fits','update':update}
+    do_mapjob_onbatch(dir_batch, denoiseimg.dir_makedenoised_fits,**kwargs)
+
+    delete_redundant_files(dir_batch)
+
+    # ==== make new iso measurements
+    kwargs = {'isocut_rest': isocut_rest,
+              'isoareallimit': 10, 'contrastr': 0.1,
+              'update': update, 'toplot': True, 'toclean': False}
+    do_mapjob_onbatch(dir_batch, measureimg.dir_doIsos, **kwargs)
+
+
+    # ==== compile tables
+    kwargs = dict(filein='measureimg_iso.ecsv',
+                  selectkey='filecontoursdict',
+                  selectvalues=['contours_blob.pkl',
+                                'contours_blob_psfresid.pkl',
+                                'contours_blob_psfresid_galmasked.pkl',
+                                'contours_blob_psfresid_galmasked_psfmasked.pkl',
+                                'contours_blobctr.pkl',
+                                'contours_blob_psfresidctr.pkl',
+                                'contours_blob_psfresidctr_galmasked.pkl',
+                                'contours_blob_psfresidctr_galmasked_psfmasked.pkl',
+                                'contours_galctr.pkl',
+                                'contours_psf.pkl',
+                                'contours_galmask.pkl',
+                                'contours_galmaskctr.pkl',
+                                'contours_psfmask.pkl',],)
+    do_compiletables_onbatch(dir_batch, **kwargs)
 
     # # # ==== join the measurement table with Mullaney table
     # kwargs = dict(filein='measureimg_iso_contours_blob.ecsv', 
     #               fileout='measureimg_iso_matchedmullaney')
-    
-    # smallfunc.matchedmullaney(dir_batch, **kwargs)
+    # smallfunc.batch_matchedmullaney(dir_batch, **kwargs)
 
-    # smallfunc.joinmullaney(dir_batch,filename='measureimg_'+filename+'.ecsv')
+    # # match with wise
+    # kwargs = dict(filein='measureimg_iso_matchedmullaney.ecsv', 
+    #               fileout='measureimg_iso_matchedmullaney_WISE')
 
-    # # write list_final
-    # kwargs = dict(filein='measureimg_iso_contours_blob.ecsv', 
-    #               fileout='list_final')
-    # smallfunc.writeObjnameRaDec(dir_batch, **kwargs)
+    # smallfunc.batch_matchWISE(dir_batch, **kwargs)
 
-    # kwargs = dict(bandmag='r', min_modelMag=21, radius=18*u.arcsec, update=False)
-    # do_mapjob_onbatch(dir_batch, contaminants.dir_find_contaminants, **kwargs)
+    # ==== write list_final
+    kwargs = dict(filein='measureimg_iso_contours_blob.ecsv')
+    smallfunc.batch_write_list_ran(dir_batch, **kwargs)
+
+    # ==== find contaminants
+    kwargs = dict(bandmag='r', min_modelMag=21, radius=25*u.arcsec, update=False)
+    do_mapjob_onbatch(dir_batch, contaminants.dir_find_contaminants, **kwargs)
 
     # compile big contaminants.csv table
-    # do_reducejob_onbatch(dir_batch, contaminants.dir_reduce_contaminantstable, fileout='contaminants.csv')
+    fileout = 'contaminantcount.csv'
+    do_reducejob_onbatch(dir_batch, contaminants.dir_reduce_contaminantcount, fileout=fileout)
 
-    # filein = 'measureimg_iso_contours_blob.csv'
-    # smallfunc.write_list_ran(dir_batch, filein)
-
-    # classify objects
-    classify.batch_classify(dir_batch)
+    # smallfunc.batch_compile_results_physical(dir_batch)
 
 def delete_redundant_files(dir_batch):
     """ deleting redundant files from old versions """
@@ -193,11 +194,13 @@ def do_compiletables_onbatch(dir_batch, filein, selectkey, selectvalues):
         do_compiletable_onbatch(dir_batch, filein, fileout, selectkey=selectkey, selectvalue=selectvalue)        
 
 
-def do_compiletable_onbatch(dir_batch, filein, fileout, selectkey=None, selectvalue=None):
+def do_compiletable_onbatch(dir_batch, filein, fileout='', selectkey=None, selectvalue=None):
     """
     read tables 'filein' in indivisual dir_obj under dir_batch and stack them 
     to a big table 'fileout' under dir_batch. 
     """
+    if fileout == '': 
+        fileout = filein
     print "compiling table "+fileout+" from "+filein
     kwargs = {'filename': filein, 'selectkey': selectkey, 'selectvalue': selectvalue}
     do_reducejob_onbatch(dir_batch, readtable, fileout=fileout, **kwargs)
@@ -271,7 +274,7 @@ def do_reducejob_onbatch(dir_batch, function, fileout, **kwargs):
             tabout = at.vstack([tabout, tabrow])
 
     tabout.write(dir_batch+fileout, format=tableformat)
-    tabout.write(dir_batch+fileout.split('.')[0], format='ascii.csv')
+    tabout.write(dir_batch+fileout.split('.')[0]+'.csv', format='ascii.csv')
 
 
 # def main():
@@ -339,3 +342,9 @@ def do_reducejob_onbatch(dir_batch, function, fileout, **kwargs):
     # # compile measurement table
     # # do_compiletable_onbatch(dir_batch,'measureimg_iso_'+filename+'.ecsv')
     # # do_compiletable_onbatch(dir_batch,'measureimg_iso_'+filename+'.csv')
+
+
+    # # ==== classify objects
+    # filein = 'measureimg_iso_contours_blob.csv'
+    # smallfunc.write_list_ran(dir_batch, filein)
+    # classify.batch_classify(dir_batch)

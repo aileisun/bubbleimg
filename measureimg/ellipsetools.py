@@ -78,7 +78,7 @@ def axes_from_cov(cov):
     # translate to the ellipse proepreties
     sigma_major, sigma_minor = np.sqrt([lambda1,lambda2])
     
-    theta=np.degrees(np.arctan2(v[1],v[0]))
+    theta=-np.degrees(np.arctan2(v[1],v[0]))
     if theta<0.: theta=theta+180.
 
     # eccen=np.sqrt(1-lambda2/lambda1)

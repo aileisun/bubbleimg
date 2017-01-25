@@ -69,10 +69,9 @@ def load_noiselevel(dir_obj,filename,update=True):
         # measure sigma
         data=fits.open(file_img)[0].data
         sigma=getnoiselevel_gaussfit(data,dir_obj=dir_obj)
-        if update:
-            print "writing noise level"    
-            tab=Table([[filename],[sigma]],names=['filename','sigma'])
-            tab.write(file_tab,format='ascii.csv')
+        print "writing noise level"    
+        tab=Table([[filename],[sigma]],names=['filename','sigma'])
+        tab.write(file_tab,format='ascii.csv')
         return sigma
             
 

@@ -26,15 +26,24 @@ def main():
 	"""
 	make the following files: 
 	"""
-	for threshold in [0.2, 0.6, 0.8]:
-		filtertools.findFilterBounday(threshold=threshold,toplot=False)
 
-	# write files
-	getzrange_line.findzrange_wline_OIIIs(threshold=0.6)
-	getzrange_line.findzrange_nline_HaNII(threshold=0.2)
-	getzrange_line.findzrange_nline_HaNIISII(threshold=0.2)
+	# survey = 'sdss'
+	# # survey = 'hsc'
+	# # survey = 'cfht'
+
+	# for threshold in [0.2, 0.6, 0.8]:
+	# 	print threshold
+	# 	filtertools.findFilterBounday(threshold=threshold,toplot=False, survey=survey)
+
+	# # write files
+	# getzrange_line.findzrange_wline_OIIIs(threshold=0.6, survey=survey)
+	# getzrange_line.findzrange_wline_HaNII(threshold=0.6, survey=survey)
+	# getzrange_line.findzrange_nline_HaNII(threshold=0.2, survey=survey)
+	# getzrange_line.findzrange_nline_HaNIISII(threshold=0.2, survey=survey)
 	
-	getzrange_batch.write_zranges()
+	survey = 'cfht-hsc-ukirt'
+
+	getzrange_batch.write_zranges(survey=survey, wline='OIII', nline='HaNIISII')
 		
 
 

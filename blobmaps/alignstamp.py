@@ -17,7 +17,7 @@ from astropy.io import fits
 from astropy import wcs
 from scipy.ndimage import interpolation
 from astroquery.sdss import SDSS
-import ds9
+# import ds9
 
 
 def objw_makeall(obj, bands=('u', 'g', 'r', 'i', 'z'), band_rf='r', xwidth=64, ywidth=64, tods9=False, tokeepframe=False, update=False):

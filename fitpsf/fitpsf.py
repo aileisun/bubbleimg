@@ -10,7 +10,7 @@ import copy
 import astropy.table as at
 from astropy.io import fits
 
-from bubblepy import standards
+from .. import standards
 import loadpsf
 
 def fit_psf(img, psf, sigma, searchradius=None, fixb=False):
@@ -43,6 +43,7 @@ def fit_psf(img, psf, sigma, searchradius=None, fixb=False):
 
     return model, residual, params, chisq
 
+
 def fit_psf_params(img, psf, sigma, searchradius=None, fixb=False, verbose=False):
     """
     Find best fit psf model that fits the img within search radius. 
@@ -56,7 +57,7 @@ def fit_psf_params(img, psf, sigma, searchradius=None, fixb=False, verbose=False
     img: 2d np array
     psf: 2d np array
     sigma: float
-    searchradius: float
+    searchradius: float in unit pix
         if set to float, consider psf only within a central radius of img. 
         default None - consider all image
     fixb=False: bool

@@ -7,14 +7,16 @@ import main
 import filtertools
 import getzrange_batch
 import getzrange_line
+import getllambda
 
 reload(main)
 reload(filtertools)
 reload(getzrange_batch)
 reload(getzrange_line)
+reload(getllambda)
 
 
 from filtertools import getFilterResponseFunc
-from filtertools import filterwavelengths
+# from filtertools import filterwavelengths
 from filtertools import getlocalpath
 from filtertools import accessFile

@@ -11,10 +11,11 @@ from astropy.coordinates import SkyCoord
 from astroquery.sdss import SDSS
 import astropy.units as u
 
-def dir_reduce_contaminantstable(dir_obj, bandmag='r', min_modelMags=[18, 21]):
+def dir_reduce_contaminantcount(dir_obj, bandmag='r', min_modelMags=[18, 21], max_seps=[3, 6, 18]):
     """
     summarize the contaminants table for do_batch.do_reducejob_onbatch to compile a big table
     """
+    print "running dir_reduce_contaminantcount"
     filein = dir_obj+'contaminants.csv'
     tabin = at.Table.read(filein, format='ascii.csv')
 
@@ -22,25 +23,26 @@ def dir_reduce_contaminantstable(dir_obj, bandmag='r', min_modelMags=[18, 21]):
     tabout = at.Table()
 
     for i, min_modelMag in enumerate(min_modelMags):
-        magtag = '_mag'+bandmag+str(min_modelMag)
+        tag_mag = '_mag'+bandmag+str(min_modelMag)
+        sel_mag = tabin['modelMag_'+bandmag] < min_modelMag
 
-        tabsel = tabin[tabin['modelMag_'+bandmag] < min_modelMag]
+        for j, max_sep in enumerate(max_seps): 
+            tag_sep = '_sep'+str(max_sep)
+            sel_sep = tabin['seperation'] < max_sep
 
-        ncont = len(tabsel)
-        conttypes_list = [str(row['type']) for row in tabsel]
-        conttypes_string = ''.join(np.sort(conttypes_list))
+            # select
+            tabsel = tabin[sel_mag & sel_sep]
+            # count n
+            ncont = len(tabsel)
+            # assemble types
+            conttypes_list = [str(row['type']) for row in tabsel]
+            conttypes_string = ''.join(np.sort(conttypes_list))
 
-        tabnew = at.Table([[ncont], [conttypes_string]], names=['n_contaminants'+magtag, 'types'+magtag])
+            tabnew = at.Table([[ncont], [conttypes_string]], names=['n_contaminants'+tag_mag+tag_sep, 'types'+tag_mag+tag_sep])
 
-        tabout = at.hstack([tabout, tabnew])
+            tabout = at.hstack([tabout, tabnew])
 
     return tabout, 'ascii.csv'
-
-    # ncont = len(tabin)
-    # conttypes_list = [str(row['type']) for row in tabin]
-    # conttypes_string = ''.join(np.sort(conttypes_list))
-
-    # tabout = at.Table([[ncont], [conttypes_string]], names=['n_contaminants', 'types'])
 
 
 
@@ -81,7 +83,7 @@ def dir_find_contaminants(dir_obj, bandmag='r', min_modelMag=21, radius=18*u.arc
         print "skip dir_find_contaminants as file exists"
 
 
-def find_contaminants(ra, dec, bandmag='r', min_modelMag=21, radius=18*u.arcsec):
+def find_contaminants(ra, dec, bandmag='r', min_modelMag=21, radius=25*u.arcsec):
     """
     Find contaminants around coordinate. 
 
@@ -117,13 +119,14 @@ def find_contaminants(ra, dec, bandmag='r', min_modelMag=21, radius=18*u.arcsec)
 
     # find all the other stuffs
     result = SDSS.query_region(c, radius=radius, spectro=False, photoobj_fields=photoobj_fields)
-    # remove itself from contaminant
-    iself = np.where(result == result_self)[0]
-    result.remove_rows(iself)
 
     # select bright primary contaminants
     result = result[result['mode']==1]  # pick primay
     result = result[result['modelMag_'+bandmag]<min_modelMag]  # pick bright 
+
+    # remove itself from contaminant
+    iself = np.where(result == result_self)[0]
+    result.remove_rows(iself)
 
     # add seperation
     if len(result) == 0:

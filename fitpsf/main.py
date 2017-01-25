@@ -13,7 +13,10 @@ import loadpsf
 import fitpsf
 
 
-def dir_fit_psf(dir_obj, band='r', fileimg='stamp-lOIII5008_I_norm.fits', searchradius=5., fixb=False):
+def dir_fit_psf(dir_obj, band='r', fileimg='stamp-lOIII5008_I_norm.fits', searchradius=5., fixb=True):
+    """
+    by default, fit r-band psf to map 'stamp-lOIII5008_I_norm.fits' The model has amplitute fixed to the maximum value within 5 pix of the img center, and the position is constrained to be within 5 pix as well. 
+    """
 
     # define output filenames
     fileimg_base = os.path.splitext(fileimg)[0]

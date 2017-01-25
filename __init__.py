@@ -1,9 +1,9 @@
 # __init__.py
 # ALS 2016/04/22
 
-__all__ = ['class_obsobj', 'blobmaps', 'measureimg', 'filters', 'make_batch', 'do_batch', 'denoiseimg', 'external_links']
+__all__ = ['test', 'class_obsobj', 'blobmaps', 'measureimg', 'filters', 'make_batch', 'do_batch', 'denoiseimg', 'external_links', 'standards', 'visual']
 
-import class_obsobj, blobmaps, measureimg, filters, make_batch, do_batch, denoiseimg, external_links, fitpsf, smallfunc, contaminants, classify
+import test, class_obsobj, blobmaps, measureimg, filters, make_batch, do_batch, denoiseimg, external_links, fitpsf, smallfunc, contaminants, standards, visual
 
 reload(blobmaps)
 reload(measureimg)
@@ -15,6 +15,8 @@ reload(filters)
 reload(fitpsf)
 reload(smallfunc)
 reload(contaminants)
-reload(classify)
+reload(visual)
 
 from class_obsobj import obsobj
+from make_batch import make_batch
+from do_batch import do_batch

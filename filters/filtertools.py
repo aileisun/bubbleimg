@@ -1,41 +1,60 @@
 # filtertools.py
 # ALS 2016/05/02
 
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 
 from astropy.io import fits
 import astropy.units as u
 
-from astropy.table import Table
+import astropy.table as at
 
 from scipy.interpolate import UnivariateSpline
 from scipy.interpolate import interp1d
 from scipy.optimize import fsolve
 
 
-filterwavelengths={'u': 3551.*u.AA, 'g': 4686.*u.AA, 'r': 6166.*u.AA, 'i': 7480.*u.AA, 'z': 8932.*u.AA}
+# filterwavelengths={'u': 3551.*u.AA, 'g': 4686.*u.AA, 'r': 6166.*u.AA, 'i': 7480.*u.AA, 'z': 8932.*u.AA}
+
+surveybands = {
+                'sdss':['u','g','r','i','z'], 
+                'hsc': ['g','r','i','z','y'],
+                'ukirt': ['j', 'h', 'k'],
+                'cfht': ['u']
+                }
 
 
-def findFilterBounday(threshold=0.6,toplot=True):
+
+def findFilterBounday(threshold=0.6, toplot=True, survey='sdss'):
     """
     PURPOSE: write file filterboundary.txt to record filter boundary defined by 80% of maximum throughput
+
     PARAMETERS:
-            threshold=0.6 (float)
-            toplot=True
+            threshold=0.6: (float)
+            toplot=True: (bool)
+            survey='sdss': (string)
+                    one of the following: sdss, hsc, ukirt
     """
 
     # fileout
-    fileout='filterboundary_'+'%.1f'%threshold+'.txt'
+    localpath = getlocalpath()
+    fileout=localpath+survey+'/'+'filterboundary_'+'%.1f'%threshold+'.txt'
 
-    tabout=Table([[],[],[],],names=('band','w1','w2'),dtype=('string','int','int'))
+    # set up
+    bands = surveybands[survey]
 
-    for band in ['u','g','r','i','z']:
+
+    tabout=at.Table([[],[],[],],names=('band','w1','w2'),dtype=('string','int','int'))
+
+    for band in bands:
         # readin filter function
-        spec,lcoord=getFilterResponseFunc(band=band)
+        spec,lcoord=getFilterResponseFunc(band=band, survey=survey)
 
+        x = lcoord
+        y = spec/max(spec)-threshold
 
-        spl=UnivariateSpline(lcoord, spec/max(spec)-threshold,s=0)
+        spl=UnivariateSpline(x, y,s=0)
         roots=spl.roots()
         # print roots
 
@@ -61,6 +80,73 @@ def findFilterBounday(threshold=0.6,toplot=True):
             fig.savefig(band+'_'+'%.1f'%threshold+'.pdf')
 
     tabout.write(fileout,format='ascii.fixed_width',delimiter='')
+
+
+
+def getFilterResponseFunc(band='r', survey='sdss'):
+    """
+    PURPOSE: 
+        Returning filter response funciton given band, which includes extinction through 
+        an airmass of 1.3 at Apache Point Observatory. Note that these are not complete
+        filter curves, as they do not include the full system response from atmosphere 
+        to detector.
+
+        See http://www.sdss.org/instruments/camera/#Filters
+    PAREMATER: 
+        band='r' (string) band has to be one of ['u','g','r','i','z','y','j','h','k'] depending on the survey
+        survey = 'sdss' (string): among sdss, hsc, ukirt
+
+    RETURN: 
+        resp      (array) response funciton
+        wavelength (array) [AA]
+    """
+    # read filter funciton
+    if survey == 'sdss': 
+        filename=getlocalpath()+survey+'/'+'filter_curves.fits'
+        hdulist=fits.open(filename)
+
+        # selecting filter funciton
+        bands=np.array(['u','g','r','i','z'])
+        ib=np.where(bands==band)[0]
+
+        if ib.size != 1: raise ValueError("input band not recognized")
+        else: ib=ib[0]
+        if not hdulist[ib+1].header['EXTNAME']==band.capitalize(): raise ValueError("Error in matching band")
+
+        R=hdulist[ib+1].data['respt']
+        l=hdulist[ib+1].data['wavelength']
+        return R, l
+    elif survey == 'hsc': 
+        filename=getlocalpath()+survey+'/'+'filter_curves/'+'HSC-'+band+'.txt'
+        tab = at.Table.read(filename, format='ascii')
+        R = np.array(tab['col2'])
+        l = np.array(tab['col1']*10)
+
+        if l[1] < l[0]: 
+            R = R[::-1]
+            l = l[::-1]
+        return R, l
+    elif survey == 'ukirt':
+        filename=getlocalpath()+survey+'/'+'filter_curves/'+'ukirt-'+band+'.txt'
+        tab = at.Table.read(filename, format='ascii', comment='#')
+        R = np.array(tab['R'])
+        l = np.array(tab['l']*10)
+        if l[1] < l[0]: 
+            R = R[::-1]
+            l = l[::-1]
+        return R, l
+    elif survey == 'cfht':
+        filename=getlocalpath()+survey+'/'+'filter_curves/'+'cfht-'+band+'.txt'
+        tab = at.Table.read(filename, format='ascii', comment='#')
+        l = np.array(tab['col1'])
+        R = np.array(tab['col2'])
+        if l[1] < l[0]: 
+            R = R[::-1]
+            l = l[::-1]
+        return R, l
+    else: 
+        raise NameError('survey name not recognized. ')
+
 
 
 def intRoverldl(band='r'):
@@ -94,46 +180,36 @@ def getlocalpath():
 
 
 
-def accessFile(filename='OIIIredshiftrange0.6.txt'):
+def accessFile(filename='OIIIredshiftrange0.6.txt', survey='sdss', joinsurveys=True):
     """
     access files in filters/ such as:
         HaNIIredshiftrange0.2.txt
         OIIIredshiftrange0.6.txt
+
+    PARAMS
+    ---------
+    filename='OIIIredshiftrange0.6.txt'
+    survey='sdss': (string)
+            for joined surveys use '-', e.g., hsc-ukirt
+    joinsurveys=True (string)
+            if true then if survey/filename does not exist, for joined surveys go into each directories/files and merge file
     """
-    pathlocal=getlocalpath()
-    return Table.read(pathlocal+filename,format='ascii')
+
+    filepath = getlocalpath()+survey+'/'+filename
+    if os.path.isfile(filepath):
+        tab = at.Table.read(filepath, format='ascii')
+    elif ('-' in survey) and joinsurveys: 
+        surveys = survey.split('-')
+        tab = at.Table()
+        for s in surveys:
+            filepath = getlocalpath()+s+'/'+filename
+            tabnew = at.Table.read(filepath, format='ascii')
+            tab = at.vstack([tab, tabnew])
+    else:
+        raise NameError('File does not exist')
+
+    return tab
+
     
 
-
-def getFilterResponseFunc(band='r'):
-    """
-    PURPOSE: 
-        Returning filter response funciton given band, which includes extinction through 
-        an airmass of 1.3 at Apache Point Observatory. Note that these are not complete
-        filter curves, as they do not include the full system response from atmosphere 
-        to detector.
-
-        See http://www.sdss.org/instruments/camera/#Filters
-    PAREMATER: 
-        band='r' (string) band has to be one of ['u','g','r','i','z']
-
-    RETURN: 
-        respt      (array) response funciton
-        wavelength (array) [AA]
-    """
-    # read filter funciton
-    filename=getlocalpath()+'filter_curves.fits'
-    hdulist=fits.open(filename)
-
-    # selecting filter funciton
-    bands=np.array(['u','g','r','i','z'])
-    ib=np.where(bands==band)[0]
-
-    if ib.size != 1: raise ValueError("input band not recognized")
-    else: ib=ib[0]
-    if not hdulist[ib+1].header['EXTNAME']==band.capitalize(): raise ValueError("Error in matching band")
-
-    R=hdulist[ib+1].data['respt']
-    l=hdulist[ib+1].data['wavelength']
-    return R, l
 

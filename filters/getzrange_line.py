@@ -4,55 +4,72 @@
 """
 find zrange for lines to be in/out the band. 
 """
+
 import numpy as np
 from astropy.table import Table, Row
 
-def findzrange_wline_OIIIs(threshold=0.6):
+import filtertools
+import getllambda
+
+
+def findzrange_wline_OIIIs(threshold=0.6, survey='sdss'):
     """
     Find the right red shift range such that both [OIII] 4960 and 5008 are within 
     throughput > 0.6*max range of r band. 
     """
-    fileprefix='OIII'
-    l1=getllambda(ion='OIII',lid=4960,vacuum=True) 
-    l2=getllambda(ion='OIII',lid=5008,vacuum=True) 
+    fileprefix = 'OIII'
+    l1 = getllambda.getllambda(ion='OIII',lid=4960,vacuum=True) 
+    l2 = getllambda.getllambda(ion='OIII',lid=5008,vacuum=True) 
 
-    lmin=min(l1,l2)
-    lmax=max(l1,l2)
-    findzrange_line(fileprefix,lmin,lmax,threshold=threshold)
+    lmin = min(l1,l2)
+    lmax = max(l1,l2)
+    findzrange_line(fileprefix,lmin,lmax,threshold=threshold, survey=survey)
 
 
 
-def findzrange_nline_HaNII(threshold=0.2):
+def findzrange_wline_HaNII(threshold=0.6, survey='sdss'):
+    """
+    Find the right red shift range such that all of Ha + 2 NII are in the band
+    """
+    fileprefix = 'HaNII'
+    l1 = getllambda.getllambda(ion='Ha')[0]
+    l2,l3 = getllambda.getllambda(ion='NII')
+
+    lmin = min(l1,l2,l3)
+    lmax = max(l1,l2,l3)
+    findzrange_line(fileprefix,lmin,lmax,threshold=threshold, survey=survey)
+
+
+
+def findzrange_nline_HaNII(threshold=0.2, survey='sdss'):
+    """
+    Find the right red shift range such that none of Ha + 2 NII are in the band
+    """
+    fileprefix = 'HaNII'
+    l1 = getllambda.getllambda(ion='Ha')[0]
+    l2,l3 = getllambda.getllambda(ion='NII')
+
+    lmin = min(l1,l2,l3)
+    lmax = max(l1,l2,l3)
+    findzrange_line(fileprefix,lmin,lmax,threshold=threshold,inside=False, survey=survey)
+
+
+def findzrange_nline_HaNIISII(threshold=0.2, survey='sdss'):
     """
     Find the right red shift range such that both [OIII] 4960 and 5008 are within 
     throughput > 0.6*max range of r band. 
     """
-    fileprefix='HaNII'
-    l1=getllambda(ion='Ha')[0]
-    l2,l3=getllambda(ion='NII')
+    fileprefix = 'HaNIISII'
+    l1 = getllambda.getllambda(ion='Ha')[0]
+    l2,l3 = getllambda.getllambda(ion='NII')
+    l4,l5 = getllambda.getllambda(ion='SII')[1:]
 
-    lmin=min(l1,l2,l3)
-    lmax=max(l1,l2,l3)
-    findzrange_line(fileprefix,lmin,lmax,threshold=threshold,inside=False)
-
-
-
-def findzrange_nline_HaNIISII(threshold=0.2):
-    """
-    Find the right red shift range such that both [OIII] 4960 and 5008 are within 
-    throughput > 0.6*max range of r band. 
-    """
-    fileprefix='HaNIISII'
-    l1=getllambda(ion='Ha')[0]
-    l2,l3=getllambda(ion='NII')
-    l4,l5=getllambda(ion='SII')[1:]
-
-    lmin=min(l1, l2, l3, l4, l5)
-    lmax=max(l1, l2, l3, l4, l5)
-    findzrange_line(fileprefix,lmin,lmax,threshold=threshold,inside=False)
+    lmin = min(l1, l2, l3, l4, l5)
+    lmax = max(l1, l2, l3, l4, l5)
+    findzrange_line(fileprefix, lmin, lmax, threshold=threshold, inside=False,  survey=survey)
 
 
-def findzrange_line(linelist, l0, l1, inside=True, threshold=0.2):
+def findzrange_line(linelist, l0, l1, inside=True, threshold=0.2, survey='sdss'):
     """
     Find the right red shift range such that lines are inside/outside of
     throughput > treshold*max range of band. 
@@ -74,30 +91,45 @@ def findzrange_line(linelist, l0, l1, inside=True, threshold=0.2):
         otherwise the range that have non of the lines in the band. 
     """
 
-    # setups
+    # setup file paths
+    localpath = filtertools.getlocalpath()
+    filefb = localpath+survey+'/'+'filterboundary_'+str(threshold)+'.txt'
     if inside: 
-        fileout='zrange_wline_'+linelist+'_'+'%.1f'%threshold+'.txt'
+        fileout = localpath+survey+'/'+'zrange_wline_'+linelist+'_'+'%.1f'%threshold+'.txt'
     else:
-        fileout='zrange_nline_'+linelist+'_'+'%.1f'%threshold+'.txt'
+        fileout = localpath+survey+'/'+'zrange_nline_'+linelist+'_'+'%.1f'%threshold+'.txt'
 
-    lmin, lmax = np.sort(np.array([l0,l1]))
+    # setup params
+    if survey == 'sdss': 
+        bands = ['u','g','r','i','z']
+    elif survey == 'hsc': 
+        bands = ['g','r','i','z','y']
+    elif survey == 'ukirt': 
+        bands = ['j', 'h', 'k']
+    elif survey == 'cfht': 
+        bands = ['u']
+    else:
+        raise NameError('survey not recognized')
+
 
     # make table
-    tabout=Table([[],[],[],],names=('band','z0','z1'),dtype=('string','float','float'))
+    lmin, lmax = np.sort(np.array([l0,l1]))
 
-    for band in ['u','g','r','i','z']:
+    tabout = Table([[],[],[],], names=('band','z0','z1'), dtype=('string', 'float', 'float'))
+
+    for band in bands:
 
         # get filter boundary
-        fb=Table.read('filterboundary_'+str(threshold)+'.txt',format='ascii')
-        w1,w2=fb[fb['band']==band]['w1','w2'][0]
+        fb = Table.read(filefb,format='ascii')
+        w1,w2 = fb[fb['band']==band]['w1','w2'][0]
 
         # calculate corresponding redshift
         if inside:
-            z0=w1/lmin-1.
-            z1=w2/lmax-1.
+            z0 = w1/lmin-1.
+            z1 = w2/lmax-1.
         else: 
-            z0=w2/lmin-1.
-            z1=w1/lmax-1.
+            z0 = w2/lmin-1.
+            z1 = w1/lmax-1.
 
         tabout.add_row([band,z0,z1])
 
@@ -106,34 +138,4 @@ def findzrange_line(linelist, l0, l1, inside=True, threshold=0.2):
     return tabout
 
 
-def getllambda(ion='OIII',lid=0,vacuum=True):
-    """
-    PURPOSE: Get the vaccum or air wavelength of a line in Angstrom. 
-
-    INPUT:  getllambda(ion='OIII',lid=0,vacuum=True)
-        ion: e.g., ion='OIII'
-        lid:  e.g., lid=5008. If lid not specified then all lines of that ion will be returned. 
-        vacuum: True if want vacuum wavelength, false if want air. 
-
-    OUTPUT: line wavelengths in Angstrom
-    """
-    lid=int(lid)
-    # e.g. ion='OIII', lid=5008
-    linelist=Table.read('linelist.txt',format='ascii',delimiter='\t')
-    if lid ==0:
-        lam=linelist[linelist['Line']==ion]['Wavelength'].data
-    else:
-        if (linelist['Line']==ion).sum()==1:
-            lam=linelist[linelist['Line']==ion]['Wavelength'].data
-        elif (linelist['Line']==ion).sum()>1:
-            lam=linelist[np.all([linelist['Line']==ion,linelist['Identifier']==lid],axis=0)]['Wavelength'].data
-        else:
-            raise NameError("[llambda] no line found")
-
-    if vacuum:
-        return lam
-    else:
-        from PyAstronomy import pyasl
-        return pyasl.vactoair2(lam)
-
-
+    

@@ -8,8 +8,8 @@ fit bivariate Gaussian distribution to image.
 import numpy as np
 import astropy.units as u
 from astropy.table import Table
-import ellipsetools
 
+import ellipsetools
 
 def gaussfit_ellipseparams(img, sigma, tofitoffset=False):
     """
@@ -73,9 +73,9 @@ def img2DGaussian_cov(m0, xc, yc, cov, offset=0., nx=64, ny=64):
     """
     from scipy.stats import multivariate_normal
     # make an 2d array of [y,x] 
-    yx=np.array([[[i,j] for i in range(int(ny))] for j in range(int(nx))]) 
+    xy=np.array([[[i,j] for i in range(int(nx))] for j in range(int(ny))]) 
     # make image
-    img =offset+m0* multivariate_normal.pdf(yx, mean=[xc,yc], cov=cov)
+    img =offset+m0* multivariate_normal.pdf(xy, mean=[xc, yc], cov=cov)
     return img
 
 def img2DGaussian_axes(m0, xc, yc, a, b, theta, offset=0., nx=64, ny=64):

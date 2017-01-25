@@ -58,7 +58,7 @@ class obsobj(object):
 			self.dec=listin['DEC']
 
 		#== get SDSS Name
-		self.sdssname=catalogue_util.getSDSSName_fromlist(listin)
+		self.sdssname=catalogue_util.getSDSSName_fromRADEC(self.ra, self.dec)
 
 		#== match wit magellan 
 		if catalog=='magellan':
@@ -97,7 +97,7 @@ class obsobj(object):
 			else:
 				self.dir_obj=dir_parent+self.sdssname+'/'
 
-		# print self.dir_obj
+		print self.dir_obj
 		if towriteID:
 			if not os.path.isdir(self.dir_obj):
 				os.mkdir(self.dir_obj)

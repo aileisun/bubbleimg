@@ -6,8 +6,8 @@ make 2nd moment measurements
 """
 
 import numpy as np
-import ellipsetools
 
+import ellipsetools
 
 def mom_ellipseparams(img):
     """

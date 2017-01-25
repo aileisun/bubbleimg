@@ -8,10 +8,10 @@ Make and return isophotal measurements
 import numpy as np
 import astropy.units as u
 from astropy.table import Table
+import collections
 
 import polytools
-
-import collections
+from .. import standards
 
 def ShapeParamsdict_from_contours(contours, xc, yc):
     """
@@ -31,44 +31,43 @@ def ShapeParamsdict_from_contours(contours, xc, yc):
     paramsdict=collections.OrderedDict(zip(cols, values))
     return paramsdict
 
-# def iso_ShapeParams(img, threshold, areallimit):
-#     """
-#     Make shape measurements to the iso contours. The contour at the center 
-#     and the contours larger than an area of areallimit are considered. 
 
-#     Parameters
-#     ------
-#     img (2d np array)
-#     threshold (float): threshold of the isophote
+def iso_ShapeParams(img, threshold, areallimit):
+    """
+    Make shape measurements to the iso contours. The contour at the center 
+    and the contours larger than an area of areallimit are considered. 
 
-#     Returns
-#     ------
-#     params: list
-#         area: net area in the centroid "isophote" (minus the holes). 
-#         dferetmax: maximum feret's diameter
-#         theta_dferetmax: orientation of the dferetmax in degree y of x
+    Parameters
+    ------
+    img (2d np array)
+    threshold (float): threshold of the isophote
 
-#         rferetmax: maximum radius measured from center
-#         theta_rferetmax: orientation of the rferetmax in degree y of x
+    Returns
+    ------
+    paramsdict: dictionary
+    ---
+    area:            net area in the centroid "isophote" (minus the holes). 
+    dferetmax:       maximum feret's diameter
+    theta_dferetmax: orientation of the dferetmax in degree y of x
+    rferetmax:       maximum radius measured from center
+    theta_rferetmax: orientation of the rferetmax in degree y of x
+    dferetper:       feret's diameter perpendicular to dferetmax
+    theta_dferetper: orientation of the dferetper in degree y of x
+    aspectr:         aspect ratio
+    
+    DESCRIPTION
+    ------
+    see polytools. ShapeParamsdict_from_contours.
+    """
+    xc, yc = standards.get_img_xycenter(img)
 
-#     DESCRIPTION
-#     ------
-#     see polytools
-#     """
-#     xc, yc = 0.5*(np.array(img.shape)-1.)
+    # find contour
+    contours=polytools.find_realisocontours(img, threshold, areallimit)
+    # calculate
+    paramsdict = ShapeParamsdict_from_contours(contours, xc, yc)
+    return paramsdict
 
-#     # find contour
-#     contours=polytools.find_realisocontours(img, threshold, areallimit)
 
-#     # calculate
-#     if len(contours)>0:
-#         area=polytools.NetPolygonsArea(contours)
-#         dferetmax, theta_dferetmax=polytools.FeretD_max(contours)
-#         rferetmax, theta_rferetmax=polytools.FeretR_max(contours, xc, yc)
-
-#         return [area, dferetmax, theta_dferetmax, rferetmax, theta_rferetmax]
-#     else: 
-#         return [0, 0, 0, 0, 0]
 
 
 

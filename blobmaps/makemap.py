@@ -216,9 +216,9 @@ def objw_stamp_lOIII5008_F(obj, bandline='r',bandconti='z'):
 
 	# sanity check - z range
 	# the redshift must be within valid range where both [OIII] lines lie within r band (>60% of peak throughput)
-	zranges=filters.filtertools.accessFile('OIIIredshiftrange0.6.txt')
+	zranges=filters.filtertools.accessFile('zranges_band_wOIII_nHaNIISII.txt')
 	# zranges=Table.read('/Users/aisun/Documents/Astro/Thesis/bbselection/SDSS/algorithm/display/sdssdisp/test_filterrange/OIIIredshiftrange0.6.txt',format='ascii')
-	z1,z2=zranges[zranges['band']==bandline]['z1','z2'][0]
+	z1,z2=zranges[(zranges['bandline']==bandline) & (zranges['bandconti']==bandconti)]['z0','z1'][0]
 	if z < z1 or z > z2: print ("WARNING: Invalid redshift. OIII falls outside filter 60 percent transmission range. ")
 
 	else: 

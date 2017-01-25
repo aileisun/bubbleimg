@@ -59,7 +59,7 @@ def fits_to_image(filenamein,formats='png',saturatebright=0.5,toshow=False):
 		if len(image.shape)!=2: raise ValueError("Input fits file is not an 2D image")
 
 		if formats=='png':
-			scipy.misc.imsave(filnameout, image)
+			scipy.misc.imsave(filenameout, image)
 		else:
 			plt.close('all')
 			plt.figure()
