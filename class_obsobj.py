@@ -3,10 +3,11 @@ WARNING: SDSS.query_region failed
 """
 
 
-from pylab import *
+# from pylab import *
 import os
 import numpy as np
-from astropy.table import Table
+import astropy.table as at
+# from astropy.table import Table
 from astropy.coordinates import SkyCoord
 from astroquery.sdss import SDSS
 from astropy.io import fits
@@ -29,9 +30,9 @@ reload(catalogue_util)
 # dir_data_mullaney='/Users/aisun/Documents/Astro/Thesis/bbselection/SDSS/data/mullaney/'
 # file_list_mullaney='/Users/aisun/Documents/Astro/Thesis/bbselection/SDSS/sample/Mullaney/catalogue/ALPAKA_v1.fits'
 
-list_magellan=Table.read(external_links.file_list_magellan,format='ascii')
+list_magellan=at.Table.read(external_links.file_list_magellan,format='ascii')
 
-list_mullaney=Table.read(external_links.file_list_mullaney,format='fits')
+list_mullaney=at.Table.read(external_links.file_list_mullaney,format='fits')
 
 class obsobj(object):
 	""" 
@@ -63,7 +64,7 @@ class obsobj(object):
 		#== match wit magellan 
 		if catalog=='magellan':
 			print "[obsobj] matching with Magellan 1406 sample"
-			row=list_magellan[all([absolute(list_magellan['RA']-self.ra)<0.001,absolute(list_magellan['DEC']-self.dec)<0.001],axis=0)]
+			row=list_magellan[all([np.absolute(list_magellan['RA']-self.ra)<0.001,np.absolute(list_magellan['DEC']-self.dec)<0.001],axis=0)]
 			if len(row) == 1: 
 				self.galaxy=galaxy.galaxy(row['OBJID'].data[0])
 				# define dir_obj
@@ -170,7 +171,7 @@ class obsobj(object):
 
 			if os.path.isfile(filename): # retrieve xid locally
 				print "[obsobj] reading xid locally"
-				xid=Table.read(filename,format='ascii.csv',comment='#')
+				xid=at.Table.read(filename,format='ascii.csv',comment='#')
 				return xid
 
 			else: # download xid from sdss
@@ -190,7 +191,7 @@ class obsobj(object):
 						cspecs = [SkyCoord(row['ra'], row['dec'], 'icrs', unit='deg') for row in xid]
 						print "[obsobj] science primary object found"
 						a=np.array([c.separation(cspec).value for cspec in cspecs])
-						xid=Table(xid[np.argmin(a)])
+						xid = at.Table(xid[np.argmin(a)])
 						if towriteID and os.path.isdir(os.path.dirname(filename)):
 							xid.write(filename,format='ascii.csv',comment='#')
 					else:
@@ -203,7 +204,7 @@ class obsobj(object):
 
 				# try:
 				# 	xid=result[result['sciencePrimary']==1]
-				# 	# xid=Table(result[len(result)-1])
+				# 	# xid = at.Table(result[len(result)-1])
 				# except:
 				# 	print "[obsobj] no object found"
 				# 	xid=None
@@ -227,24 +228,24 @@ class obsobj(object):
 			towriteID=False: bool
 				whether to save the table
 			"""
-			import  astropy.io.ascii
+			import astropy.io.ascii
 			# define filename
-			filename=self.outer.dir_obj+'PhotoObj.csv'
+			filename = self.outer.dir_obj+'PhotoObj.csv'
 
 			if os.path.isfile(filename): 
 				print "[obsobj] reading photoobj locally"
-				self.photoobj=Table.read(filename,format='ascii.csv',comment='#')
+				self.photoobj = at.Table.read(filename, format='ascii.csv',comment='#')
 			else:
 				print "[obsobj] querying photoobj from SDSS"
 				# load photoobj table and store it in obj.sdss.photoobj
-				sql_query="SELECT p.* FROM PhotoObj AS p WHERE p.objid="+str(self.objid)
-				tabphotoobj=SDSS.query_sql(sql_query)
+				sql_query = "SELECT p.* FROM PhotoObj AS p WHERE p.objid="+str(self.objid)
+				tabphotoobj = SDSS.query_sql(sql_query)
 				# #txt=sqlcl.query(sqlc).readlines()
 				# txt=sqlcl.query(sql).read()
 				# print txt
 				# tabphotoobj=astropy.io.ascii.read(txt)
 				# print tabphotoobj
-				self.photoobj=tabphotoobj
+				self.photoobj = tabphotoobj
 				if towriteID:
 					if os.path.isdir(self.outer.dir_obj):
 						tabphotoobj.write(filename,format='ascii.csv',comment='#')
@@ -302,8 +303,8 @@ class obsobj(object):
 
 				For more informaiton, see http://data.sdss3.org/datamodel/files/BOSS_SPECTRO_REDUX/RUN2D/spectra/PLATE4/spec.html
 			"""
-			filename=self.outer.dir_obj+'spec.fits'
-			if os.path.isfile(filename): sp=fits.open(filename)
+			filename = self.outer.dir_obj+'spec.fits'
+			if os.path.isfile(filename): sp = fits.open(filename)
 			else: 
 				sp = SDSS.get_spectra(matches=self.xid)
 				if len(sp)!=1: raise ValueError("SDSS spec obj not uniquely identified. ")
@@ -323,14 +324,14 @@ class obsobj(object):
 
 			RETURN OUTPUT: spec (nparray), lcoord (nparray)
 			"""
-			spectable=self.load_spectra(self)[1].data
-			spec, lcoord= spectable['flux'], 10.**spectable['loglam']
+			spectable = self.load_spectra(self)[1].data
+			spec, lcoord = spectable['flux'], 10.**spectable['loglam']
 
 			if not wunit:	
 				return spec, lcoord
 			else:	
-				u_spec=1.e-17*u.Unit('erg / (Angstrom cm2 s)')
-				u_lcoord=u.AA
+				u_spec = 1.e-17*u.Unit('erg / (Angstrom cm2 s)')
+				u_lcoord = u.AA
 				return spec*u_spec, lcoord*u_lcoord
 
 

@@ -10,7 +10,7 @@ for a batch (list of objects) download relevent SDSS metadata, spectrum, and ima
 
 import os
 import numpy as np
-from astropy.table import Table, vstack #, join, hstack, vstack
+import astropy.table as at
 import astropy.units as u
 
 
@@ -98,9 +98,9 @@ def batch_writesummary(dir_batch, list_torun, catalog, bandline, bandconti):
 	if 'Z' in list_torun.colnames:
 		z_min=list_torun['Z'].min()
 		z_max=list_torun['Z'].max()
-		tsum = Table([[catalog],[batch],[bandline],[bandconti],[nobj],[z_min],[z_max]], names=['catalog','batch','band_line','bandconti','n_obj','z_min','z_max'])
+		tsum = at.Table([[catalog],[batch],[bandline],[bandconti],[nobj],[z_min],[z_max]], names=['catalog','batch','band_line','bandconti','n_obj','z_min','z_max'])
 	else: 
-		tsum = Table([[catalog],[batch],[bandline],[bandconti],[nobj]], names=['catalog','batch','band_line','bandconti','n_obj'])
+		tsum = at.Table([[catalog],[batch],[bandline],[bandconti],[nobj]], names=['catalog','batch','band_line','bandconti','n_obj'])
 
 	# write
 	tsum.write(filename,format='ascii.fixed_width',delimiter='')
@@ -112,9 +112,9 @@ def batch_makeblobmaps(dir_batch, list_torun, catalog, bandline,  bandconti, upd
 	"""
 
 	if os.path.isfile(dir_batch+'list_exclude.txt'):
-		listexclude = Table.read(dir_batch+'list_exclude.txt',format='ascii')
+		listexclude = at.Table.read(dir_batch+'list_exclude.txt',format='ascii')
 	else: 
-		listexclude = Table(data=[[]], names=['OBJNAME'])
+		listexclude = at.Table(data=[[]], names=['OBJNAME'])
 
 	for i in range(len(list_torun)):
 		objname = list_torun['OBJNAME'][i]
@@ -139,12 +139,12 @@ def	append_list_exclude(dir_batch, sdssname, ra, dec):
  
  	batch=os.path.basename(os.path.normpath(dir_batch))
 
-	tabnew=Table([[batch],[sdssname],[ra],[dec]],names=['batch','OBJNAME','RA','DEC'])
+	tabnew=at.Table([[batch],[sdssname],[ra],[dec]],names=['batch','OBJNAME','RA','DEC'])
 
 	if os.path.isfile(filename):
-		tab=Table.read(filename,format='ascii')
+		tab=at.Table.read(filename,format='ascii')
 		if tabnew[0] not in tab:
-			tabout=vstack([tab,tabnew])
+			tabout=at.vstack([tab,tabnew])
 			tabout.write(filename,format='ascii.fixed_width',delimiter='')
 	else:
 		tabnew.write(filename,format='ascii.fixed_width',delimiter='')

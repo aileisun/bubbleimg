@@ -17,6 +17,6 @@ reload(getllambda)
 
 
 from filtertools import getFilterResponseFunc
-# from filtertools import filterwavelengths
+from filtertools import getFilterCentroids
 from filtertools import getlocalpath
 from filtertools import accessFile

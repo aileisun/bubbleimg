@@ -27,23 +27,21 @@ def main():
 	make the following files: 
 	"""
 
-	# survey = 'sdss'
-	# # survey = 'hsc'
-	# # survey = 'cfht'
+	for survey in ['sdss', 'hsc', 'cfht', 'ukirt']:
+		filtertools.writeFilterCentroids(survey=survey)
+		for threshold in [0.2, 0.6, 0.8]:
+			print threshold
+			filtertools.writeFilterBoundaries(threshold=threshold,toplot=False, survey=survey)
 
-	# for threshold in [0.2, 0.6, 0.8]:
-	# 	print threshold
-	# 	filtertools.findFilterBounday(threshold=threshold,toplot=False, survey=survey)
-
-	# # write files
-	# getzrange_line.findzrange_wline_OIIIs(threshold=0.6, survey=survey)
-	# getzrange_line.findzrange_wline_HaNII(threshold=0.6, survey=survey)
-	# getzrange_line.findzrange_nline_HaNII(threshold=0.2, survey=survey)
-	# getzrange_line.findzrange_nline_HaNIISII(threshold=0.2, survey=survey)
+		# write files
+		getzrange_line.findzrange_wline_OIIIs(threshold=0.6, survey=survey)
+		getzrange_line.findzrange_wline_HaNII(threshold=0.6, survey=survey)
+		getzrange_line.findzrange_nline_HaNII(threshold=0.2, survey=survey)
+		getzrange_line.findzrange_nline_HaNIISII(threshold=0.2, survey=survey)
 	
-	survey = 'cfht-hsc-ukirt'
+	# survey = 'cfht-hsc-ukirt'
 
-	getzrange_batch.write_zranges(survey=survey, wline='OIII', nline='HaNIISII')
+	# getzrange_batch.write_zranges(survey=survey, wline='OIII', nline='HaNIISII')
 		
 
 

@@ -46,5 +46,6 @@ def obj_makeblobmaps(obj, bandline='r',bandconti='z',update=False):
 
     # make color images
     imagedisp_util.objw_HumVIgriimages(obj, update=update)
+    
     # subtract stamps and make OIII maps
     makemap.objw_makeall(obj, bandline=bandline,bandconti=bandconti,update=update)

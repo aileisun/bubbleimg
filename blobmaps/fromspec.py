@@ -66,7 +66,7 @@ def getObjBandContiABmag(obj,band='r'):
 	return m
 
 
-def getObjBandContiRatio_dEdnu(obj, band1='r', band2='z'):
+def getObjBandContiRatio_dEdnu(obj, band1='r', band2='z', survey='sdss'):
 	"""
 	PURPOSE: get the ratio of continuum flux density (dE/dnu) between two bands. 
 
@@ -81,9 +81,14 @@ def getObjBandContiRatio_dEdnu(obj, band1='r', band2='z'):
 		This ratio can be applied to SDSS images in units of 'nanomaggies' (dE/dnu)
 	"""
 
+	print "WARNING: SURVEY ASSUMED TO BE SDSS TO CALC BAND CONTI RATIO"
+
 	ratio12_dEdl=getObjBandContiRatio_dEdl(obj, band1=band1, band2=band2)
 
-	ratio12_dEdnu=(filters.filterwavelengths[band1]/filters.filterwavelengths[band2])**2 * ratio12_dEdl
+	w1 = filters.getFilterCentroids(survey=survey, band=band1, withunit=True)
+	w2 = filters.getFilterCentroids(survey=survey, band=band2, withunit=True)
+
+	ratio12_dEdnu = (w1/w2)**2 * ratio12_dEdl
 	return ratio12_dEdnu.value
 
 

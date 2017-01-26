@@ -24,17 +24,70 @@ surveybands = {
                 'cfht': ['u']
                 }
 
-
-
-def findFilterBounday(threshold=0.6, toplot=True, survey='sdss'):
+def getFilterCentroids(survey='sdss', band='u', withunit=True):
     """
-    PURPOSE: write file filterboundary.txt to record filter boundary defined by 80% of maximum throughput
+    Return the table of filter centroids given the survey
+    """
+    fc = accessFile(filename='filtercentroid.txt', survey='sdss', joinsurveys=True)
+
+    if withunit: 
+        unit = u.AA
+    else:
+        unit = 1.
+
+    return fc['w'][fc['band']==band][0]*unit
+
+
+def writeFilterCentroids(survey='sdss'):
+    """
+    Purpose: write file filtercentroid.txt to record filter centroid defined as transmission weighted average wavelength
+
+    Params
+    ----------
+    survey = 'sdss'
+
+    Return
+    ---------
+    None
+
+    Output
+    ----------
+    filtercentroid.txt
+    """
+    localpath = getlocalpath()
+    fileout=localpath+survey+'/filtercentroid.txt'
+
+    # set up
+    bands = surveybands[survey]
+
+    tabout=at.Table([[],[],],names=('band','w'),dtype=('string','int'))
+
+    for band in bands:
+        # readin filter function
+        spec,lcoord = getFilterResponseFunc(band=band, survey=survey)
+        w = np.average(lcoord, weights=spec)
+
+        tabout.add_row([band, w])
+
+    tabout.write(fileout,format='ascii.fixed_width',delimiter='')
+
+
+def writeFilterBoundaries(threshold=0.6, toplot=True, survey='sdss'):
+    """
+    PURPOSE: write file filterboundary.txt to record filter boundary defined by threshold*100% of maximum throughput
 
     PARAMETERS:
             threshold=0.6: (float)
             toplot=True: (bool)
             survey='sdss': (string)
                     one of the following: sdss, hsc, ukirt
+    Return
+    ---------
+    None
+
+    Output
+    ----------
+    filterboundary.txt
     """
 
     # fileout
