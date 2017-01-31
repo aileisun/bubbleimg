@@ -161,13 +161,20 @@ def do_mapjob_onbatch(dir_batch, function, **kwargs):
     """
     print "doing map "+function.func_name
 
+
     listin=at.Table.read(dir_batch+'list.txt',format='ascii')
-    listexclude=at.Table.read(dir_batch+'list_exclude.txt',format='ascii')
+
+    filepath_listexclude = dir_batch+'list_exclude.txt'
+    if os.path.isfile(filepath_listexclude):
+        listexclude = at.Table.read(filepath_listexclude,format='ascii')
+    else: 
+        print "Ignoring listexclude"
+        listexclude = at.Table([[]], names=['OBJNAME'])
 
     for objname in listin['OBJNAME']:
         if objname not in listexclude['OBJNAME']:
             print objname
-            dir_obj=dir_batch+objname+'/'
+            dir_obj = dir_batch+objname+'/'
             function(dir_obj,**kwargs)
 
 
@@ -251,7 +258,13 @@ def do_reducejob_onbatch(dir_batch, function, fileout, **kwargs):
     # print "doing reduce "+function.func_name
 
     listin=at.Table.read(dir_batch+'list.txt',format='ascii')
-    listexclude=at.Table.read(dir_batch+'list_exclude.txt',format='ascii')
+
+    filepath_listexclude = dir_batch+'list_exclude.txt'
+    if os.path.isfile(filepath_listexclude):
+        listexclude = at.Table.read(filepath_listexclude,format='ascii')
+    else: 
+        print "Ignoring listexclude"
+        listexclude = at.Table([[]], names=['OBJNAME'])
 
     tabout=at.Table()
     tableformat='ascii.csv'
@@ -273,8 +286,8 @@ def do_reducejob_onbatch(dir_batch, function, fileout, **kwargs):
             tabrow = at.hstack([tabheader, tabfunc])
             tabout = at.vstack([tabout, tabrow])
 
-    tabout.write(dir_batch+fileout, format=tableformat)
-    tabout.write(dir_batch+fileout.split('.')[0]+'.csv', format='ascii.csv')
+    tabout.write(dir_batch+fileout, format=tableformat, overwrite=True)
+    tabout.write(dir_batch+fileout.split('.')[0]+'.csv', format='ascii.csv', overwrite=True)
 
 
 # def main():

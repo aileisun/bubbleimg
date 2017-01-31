@@ -287,8 +287,8 @@ def dir_MeasureImgIso_fromContoursDict(dir_obj, contoursdict, towritetab=True, t
                     tabout.remove_rows(np.where(hold==hnew)[0])
             else: 
                 tabout=tabrow
-            tabout.write(fileout+'.ecsv',format='ascii.ecsv')
-            tabout.write(fileout+'.csv',format='ascii.csv')
+            tabout.write(fileout+'.ecsv',format='ascii.ecsv', overwrite=True)
+            tabout.write(fileout+'.csv',format='ascii.csv', overwrite=True)
         if toplot:
             plotIsoMsr_fromContoursDict(dir_obj, fileplot+'.pdf', contoursdict=contoursdict, dictisoshape=dictisoshape)
     else: 

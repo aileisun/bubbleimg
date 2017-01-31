@@ -18,59 +18,57 @@ import bubbleimg.make_batch as make_batch
 
 objname = 'SDSSJ1000+1242/'
 
-# class TestCaseDownloadObj(unittest.TestCase):
+class TestCaseDownloadObj(unittest.TestCase):
 
 
-#     def __init__(self, *args, **kwargs):
-#         super(TestCaseDownloadObj, self).__init__(*args, **kwargs)
-#         self.assertions = assertions(self)
+    def __init__(self, *args, **kwargs):
+        super(TestCaseDownloadObj, self).__init__(*args, **kwargs)
+        self.assertions = assertions(self)
 
-#     @classmethod
-#     def setUpClass(cls):
-#         # setting up paths
-#         cls.dir_test = 'bubbleimg/test/'
-#         cls.dir_sampletemp = cls.dir_test+'temp_sample/'
-#         cls.dir_objmock = cls.dir_test+'mock_sample/'+objname
-#         cls.dir_objtemp = cls.dir_sampletemp+objname
+    @classmethod
+    def setUpClass(cls):
+        # setting up paths
+        cls.dir_test = 'bubbleimg/test/'
+        cls.dir_sampletemp = cls.dir_test+'temp_sample/'
+        cls.dir_objmock = cls.dir_test+'mock_sample/'+objname
+        cls.dir_objtemp = cls.dir_sampletemp+objname
 
-#         # copy sample list from mock_sample/ to temp_sample/ for testing
-#         if not os.path.isdir(cls.dir_sampletemp):
-#             os.mkdir(cls.dir_sampletemp)
+        # copy sample list from mock_sample/ to temp_sample/ for testing
+        if not os.path.isdir(cls.dir_sampletemp):
+            os.mkdir(cls.dir_sampletemp)
 
-#         # copy list file to temp_sample
-#         filefrom = cls.dir_test+'mock_sample/'+'list.txt'
-#         fileto = cls.dir_sampletemp+'list.txt'
-#         shutil.copyfile(filefrom, fileto)
+        # copy list file to temp_sample
+        filefrom = cls.dir_test+'mock_sample/'+'list.txt'
+        fileto = cls.dir_sampletemp+'list.txt'
+        shutil.copyfile(filefrom, fileto)
 
-#         # call make batch
-#         list_torun = at.Table.read(cls.dir_sampletemp+'list.txt', format='ascii')
-#         make_batch.make_batch(dir_batch=cls.dir_sampletemp, list_torun=list_torun, bandline='r', bandconti='z', catalog='mullaney', tosummarize=True)
-
-
-#     @classmethod
-#     def tearDownClass(cls):
-#         # delete the directory 'bubbleimg/test/temp_sample/'
-#         shutil.rmtree(cls.dir_sampletemp)
+        # call make batch
+        list_torun = at.Table.read(cls.dir_sampletemp+'list.txt', format='ascii')
+        make_batch.make_batch(dir_batch=cls.dir_sampletemp, list_torun=list_torun, bandline='r', bandconti='z', catalog='mullaney', tosummarize=True)
 
 
-#     def test_create_obj_folder(self):
-#         # check if obj folder is created
-#         assert (os.path.isdir(self.dir_objtemp))
+    @classmethod
+    def tearDownClass(cls):
+        # delete the directory 'bubbleimg/test/temp_sample/'
+        shutil.rmtree(cls.dir_sampletemp)
 
 
-#     def test_download_xid(self):
-#         self.assertions.assert_tempfile_equalto_mockfile(filename='xid.csv')
-
-#     def test_download_PhotoObj(self):
-#         self.assertions.assert_tempfile_equalto_mockfile(filename='PhotoObj.csv')
-
-#     def test_download_stamp(self):
-#         self.assertions.assert_tempfile_equalto_mockfile(filename='stamp-r.fits')
-
-#     def test_download_spec(self):
-#         self.assertions.assert_tempfile_equalto_mockfile(filename='spec.fits')
+    def test_create_obj_folder(self):
+        # check if obj folder is created
+        assert (os.path.isdir(self.dir_objtemp))
 
 
+    def test_download_xid(self):
+        self.assertions.assert_tempfile_equalto_mockfile(filename='xid.csv')
+
+    def test_download_PhotoObj(self):
+        self.assertions.assert_tempfile_equalto_mockfile(filename='PhotoObj.csv')
+
+    def test_download_stamp(self):
+        self.assertions.assert_tempfile_equalto_mockfile(filename='stamp-r.fits')
+
+    def test_download_spec(self):
+        self.assertions.assert_tempfile_equalto_mockfile(filename='spec.fits')
 
 
 
