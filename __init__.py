@@ -17,6 +17,7 @@ reload(smallfunc)
 reload(contaminants)
 reload(visual)
 reload(test)
+reload(external_links)
 
 from class_obsobj import obsobj
 from make_batch import make_batch

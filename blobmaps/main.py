@@ -10,7 +10,7 @@ import alignstamp
 import imagedisp_util
 import makemap
 
-def obj_makeblobmaps(obj, bandline='r',bandconti='z',update=False):
+def obj_makeblobmaps(obj, bandline='r', bandconti='z', update=False, xwidth=64, ywidth=64):
     """
     For a given obsobj object, make all the images, including: 
 
@@ -42,7 +42,7 @@ def obj_makeblobmaps(obj, bandline='r',bandconti='z',update=False):
     """
 
     # make stamps if they do not exist already
-    alignstamp.objw_makeall(obj, update=update)
+    alignstamp.objw_makeall(obj, update=update, xwidth=xwidth, ywidth=ywidth)
 
     # make color images
     imagedisp_util.objw_HumVIgriimages(obj, update=update)

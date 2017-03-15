@@ -8,6 +8,8 @@ from astropy.io import fits
 import matplotlib.pylab as plt
 import scipy
 
+from .. import external_links
+
 
 def objw_HumVIgriimages(obj,update=False):
 	"""
@@ -19,14 +21,17 @@ def objw_HumVIgriimages(obj,update=False):
 	READ INPUT: 	stamp i,r,g images, e.g., obj.dir_obj+'stamp-i.fits' 
 	WRITE OUTPUT: 	obj.dir_obj+filename
 	"""
-	filename='HumVI_gri.png'
+	filename = 'HumVI_gri.png'
 
-	pathHumVI='/Users/aisun/Documents/Astro/Thesis/bbselection/SDSS/algorithm/display/HumVI/HumVI-master/compose.py'
+	# pathHumVI = '/Users/aisun/Documents/Astro/Thesis/bbselection/SDSS/algorithm/display/HumVI/HumVI-master/compose.py'
 
-	dir_obj=obj.dir_obj
+	pathHumVI = external_links.file_humvi_compose
+	print pathHumVI
+
+	dir_obj = obj.dir_obj
 
 	if (not os.path.isfile(dir_obj+filename)) or update:
-		commandHumVI=pathHumVI+' -s 1.0,1.1,1.0  -p 1.6,1.6  -o '+dir_obj+filename+' '+dir_obj+'stamp-i.fits '+dir_obj+'stamp-r.fits '+dir_obj+'stamp-g.fits'
+		commandHumVI = pathHumVI+' -s 1.0,1.1,1.0  -p 1.6,1.6  -o '+dir_obj+filename+' '+dir_obj+'stamp-i.fits '+dir_obj+'stamp-r.fits '+dir_obj+'stamp-g.fits'
 
 		os.system(commandHumVI)
 

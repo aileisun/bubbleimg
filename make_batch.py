@@ -23,7 +23,7 @@ reload(blobmaps)
 
 
 
-def make_batch(dir_batch, list_torun, bandline='r', bandconti='z', catalog='mullaney', tosummarize=True):
+def make_batch(dir_batch, list_torun, bandline='r', bandconti='z', catalog='mullaney', tosummarize=True, xwidth=64, ywidth=64):
 	""" 
 	Establish batch directory that contains summary, list, and object 
 	directories with line maps.
@@ -61,7 +61,7 @@ def make_batch(dir_batch, list_torun, bandline='r', bandconti='z', catalog='mull
 		batch_writesummary(dir_batch, list_torun, bandline, bandconti, catalog)
 
 	# load images and map line maps
-	batch_makeblobmaps(dir_batch, list_torun, catalog, bandline, bandconti, update=False)
+	batch_makeblobmaps(dir_batch, list_torun, catalog, bandline, bandconti, update=False, xwidth=xwidth, ywidth=ywidth)
 
 
 def batch_loadIDs(dir_batch, list_torun, catalog):
@@ -106,7 +106,7 @@ def batch_writesummary(dir_batch, list_torun, catalog, bandline, bandconti):
 	tsum.write(filename,format='ascii.fixed_width',delimiter='')
 
 
-def batch_makeblobmaps(dir_batch, list_torun, catalog, bandline,  bandconti, update=False):
+def batch_makeblobmaps(dir_batch, list_torun, catalog, bandline,  bandconti, update=False, xwidth=64, ywidth=64):
 	"""
 	PURPOSE: run all blobmaps steps to make all images
 	"""
@@ -124,7 +124,7 @@ def batch_makeblobmaps(dir_batch, list_torun, catalog, bandline,  bandconti, upd
 
 			if obj.sdss.xid is not None:
 				print 'making blob map '+obj.sdssname
-				blobmaps.obj_makeblobmaps(obj, bandline=bandline,bandconti=bandconti,update=update)
+				blobmaps.obj_makeblobmaps(obj, bandline=bandline,bandconti=bandconti,update=update, xwidth=xwidth, ywidth=ywidth)
 				print 'making scaleconti '+obj.sdssname
 				blobmaps.makemap.objw_makecontiscale(obj, bandline=bandline,bandconti=bandconti,update=update)
 			else:

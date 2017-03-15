@@ -15,24 +15,22 @@ import astropy.units as u
 # import sqlcl
 
 import external_links
-import sys
-sys.path.append(external_links.pack_magellan_analysis)
-import galaxy
 
-import sys
-sys.path.append(external_links.pack_catalogue)
-import catalogue_util
-reload(catalogue_util)
+print "WARNING: to update galaxy import"
+# import sys
+# sys.path.append(external_links.pack_magellan_analysis)
+# import galaxy
 
-# dir_data_SDSS='/Users/aisun/Documents/Astro/Thesis/bbselection/SDSS/data/SDSS/'
-# dir_data_magellan='/Users/aisun/Documents/Astro/Thesis/bbselection/SDSS/data/magellan/'
-# file_list_magellan='/Users/aisun/Documents/Astro/Thesis/followups/Magellan/2014June/data_v2/analysis/sample/Magellan1406_list.txt'
-# dir_data_mullaney='/Users/aisun/Documents/Astro/Thesis/bbselection/SDSS/data/mullaney/'
-# file_list_mullaney='/Users/aisun/Documents/Astro/Thesis/bbselection/SDSS/sample/Mullaney/catalogue/ALPAKA_v1.fits'
+# import sys
+# sys.path.append(external_links.pack_catalogue)
+from catalogue import catalogue_util
+# reload(catalogue_util)
 
-list_magellan=at.Table.read(external_links.file_list_magellan,format='ascii')
 
-list_mullaney=at.Table.read(external_links.file_list_mullaney,format='fits')
+print "WARNING: to update implementation of magellan and mullaney lists"
+# list_magellan=at.Table.read(external_links.file_list_magellan,format='ascii')
+
+# list_mullaney=at.Table.read(external_links.file_list_mullaney,format='fits')
 
 class obsobj(object):
 	""" 
