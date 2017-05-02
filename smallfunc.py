@@ -11,6 +11,8 @@ from astropy.io import fits
 import astropy.table as at
 import astropy.units as u
 
+import external_links
+
 def dir_RenormalizeImg_fits(dir_obj,filename='stamp-lOIII5008_I.fits',norm=1.e-15,update=False):
     """
     make 'stamp-lOIII5008_I_norm.fits' which is scaled up by 1.e15
@@ -68,7 +70,7 @@ def dir_fix_units_measureimg_iso(dir_obj):
         print "skip dir_fix_units_measureimg_iso as units are correct"
 
 
-def batch_joinmullaney(dir_batch, filein, fileout=None, filemullaney='/Users/aisun/Documents/Astro/Thesis/bbselection/SDSS/sample/Mullaney/catalogue/ALPAKA_extended.fits'):
+def batch_joinmullaney(dir_batch, filein, fileout=None, filemullaney=None):
     """
     join the table with mullaney table
     """
@@ -77,9 +79,11 @@ def batch_joinmullaney(dir_batch, filein, fileout=None, filemullaney='/Users/ais
     # write out
     if fileout is None:
         fileout = os.path.splitext(filein)[0]+'_joinmullaney'
+    if filemullaney is None:
+        filemullaney = external_links.file_mullaney_extended
  
     # files to join
-    tabin=at.Table.read(dir_batch+filein,format='ascii.ecsv')
+    tabin=at.Table.read(dir_batch+filein,format='ascii')
     tabmullaney=at.Table.read(filemullaney,format='fits')
     tabmullaney.rename_column('SDSSNAME','OBJNAME')
 
@@ -91,15 +95,17 @@ def batch_joinmullaney(dir_batch, filein, fileout=None, filemullaney='/Users/ais
     tabout.write(dir_batch+fileout+'.csv',format='ascii.csv')
 
 
-def batch_matchedmullaney(dir_batch, filein, fileout=None, filemullaney='/Users/aisun/Documents/Astro/Thesis/bbselection/SDSS/sample/Mullaney/catalogue/ALPAKA_extended.fits'):
+def batch_matchedmullaney(dir_batch, filein, fileout=None, filemullaney=None):
     import catalogue
     reload(catalogue)
     # write out
     if fileout is None:
         fileout = os.path.splitext(filein)[0]+'_matchedmullaney'
+    if filemullaney is None:
+        filemullaney = external_links.file_mullaney_extended
 
     # files to join
-    tabin = at.Table.read(dir_batch+filein, format='ascii.ecsv')
+    tabin = at.Table.read(dir_batch+filein, format='ascii')
     tabmullaney = at.Table.read(filemullaney, format='fits')
     tabmullaney.rename_column('SDSSNAME', 'OBJNAME')
 

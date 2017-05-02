@@ -51,13 +51,12 @@ def findzrange_nline_HaNII(threshold=0.2, survey='sdss'):
 
     lmin = min(l1,l2,l3)
     lmax = max(l1,l2,l3)
-    findzrange_line(fileprefix,lmin,lmax,threshold=threshold,inside=False, survey=survey)
+    findzrange_line(fileprefix, lmin, lmax, threshold=threshold, inside=False, survey=survey)
 
 
 def findzrange_nline_HaNIISII(threshold=0.2, survey='sdss'):
     """
-    Find the right red shift range such that both [OIII] 4960 and 5008 are within 
-    throughput > 0.6*max range of r band. 
+    Find the right red shift range such that Halpha NII an SII are outside specified bands
     """
     fileprefix = 'HaNIISII'
     l1 = getllambda.getllambda(ion='Ha')[0]
@@ -67,6 +66,16 @@ def findzrange_nline_HaNIISII(threshold=0.2, survey='sdss'):
     lmin = min(l1, l2, l3, l4, l5)
     lmax = max(l1, l2, l3, l4, l5)
     findzrange_line(fileprefix, lmin, lmax, threshold=threshold, inside=False,  survey=survey)
+
+
+def findzrange_nline_OII(threshold=0.2, survey='sdss'):
+    """
+    Find the right red shift range such that the OII 3727 are outside specified bands
+    """
+    fileprefix = 'OII'
+
+    l1 = getllambda.getllambda(ion='OII')[0]
+    findzrange_line(fileprefix, l1, l1, threshold=threshold, inside=False,  survey=survey)
 
 
 def findzrange_line(linelist, l0, l1, inside=True, threshold=0.2, survey='sdss'):
@@ -100,17 +109,7 @@ def findzrange_line(linelist, l0, l1, inside=True, threshold=0.2, survey='sdss')
         fileout = localpath+survey+'/'+'zrange_nline_'+linelist+'_'+'%.1f'%threshold+'.txt'
 
     # setup params
-    if survey == 'sdss': 
-        bands = ['u','g','r','i','z']
-    elif survey == 'hsc': 
-        bands = ['g','r','i','z','y']
-    elif survey == 'ukirt': 
-        bands = ['j', 'h', 'k']
-    elif survey == 'cfht': 
-        bands = ['u']
-    else:
-        raise NameError('survey not recognized')
-
+    bands = filtertools.surveybands[survey]
 
     # make table
     lmin, lmax = np.sort(np.array([l0,l1]))
@@ -134,7 +133,7 @@ def findzrange_line(linelist, l0, l1, inside=True, threshold=0.2, survey='sdss')
         tabout.add_row([band,z0,z1])
 
     # output
-    tabout.write(fileout,format='ascii.fixed_width',delimiter='')
+    tabout.write(fileout, format='ascii.fixed_width', delimiter='')
     return tabout
 
 

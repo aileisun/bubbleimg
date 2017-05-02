@@ -14,6 +14,8 @@ from scipy.interpolate import UnivariateSpline
 from scipy.interpolate import interp1d
 from scipy.optimize import fsolve
 
+import glob
+
 
 # filterwavelengths={'u': 3551.*u.AA, 'g': 4686.*u.AA, 'r': 6166.*u.AA, 'i': 7480.*u.AA, 'z': 8932.*u.AA}
 
@@ -24,11 +26,11 @@ surveybands = {
                 'cfht': ['u']
                 }
 
-def getFilterCentroids(survey='sdss', band='u', withunit=True):
+def getFilterCentroids(band='u', survey='sdss', withunit=True):
     """
     Return the table of filter centroids given the survey
     """
-    fc = accessFile(filename='filtercentroid.txt', survey='sdss', joinsurveys=True)
+    fc = accessFile(filename='filtercentroid.txt', survey=survey, joinsurveys=True)
 
     if withunit: 
         unit = u.AA
@@ -154,6 +156,7 @@ def getFilterResponseFunc(band='r', survey='sdss'):
         wavelength (array) [AA]
     """
     # read filter funciton
+
     if survey == 'sdss': 
         filename=getlocalpath()+survey+'/'+'filter_curves.fits'
         hdulist=fits.open(filename)
@@ -201,24 +204,25 @@ def getFilterResponseFunc(band='r', survey='sdss'):
         raise NameError('survey name not recognized. ')
 
 
-
-def intRoverldl(band='r'):
+def intRoverldl(band='r', survey='sdss'): 
     """
     For a specified band, calcualte and return the integral 
         s=int{R(l)/l dl}, 
     where R is the filter transmission funciton. 
     s is a dimensionless quantity. 
     """
-    R,l=getFilterResponseFunc(band=band)
+    R, l = getFilterResponseFunc(band=band, survey=survey)
+
     # sanity check - dl constant
-    if len(np.unique(np.diff(l)))==1: dl=np.diff(l)[0]
-    else: raise ValueError("Filter response function not equally spaced in lambda")
+    if len(np.unique(np.diff(l)))==1: 
+        dl=np.diff(l)[0]
+    else: 
+        raise ValueError("Filter response function not equally spaced in lambda")
     # integral
     s=0.
     for i in range(len(R)):
         s=s+R[i]/l[i]*dl
     return s
-
 
 
 def getlocalpath():
@@ -233,7 +237,7 @@ def getlocalpath():
 
 
 
-def accessFile(filename='OIIIredshiftrange0.6.txt', survey='sdss', joinsurveys=True):
+def accessFile(filename='zranges_band_wOIII_nHaNIISII.txt', survey='sdss', joinsurveys=True):
     """
     access files in filters/ such as:
         HaNIIredshiftrange0.2.txt
@@ -264,5 +268,30 @@ def accessFile(filename='OIIIredshiftrange0.6.txt', survey='sdss', joinsurveys=T
     return tab
 
     
+def accessTabZranges(lineconfig = 'wOIII_nHaNIISII', survey='sdss', joinsurveys=True):
+    """
+    access zranges table
 
+    PARAMS
+    ----------
+    lineconfig = 'wOIII_nHaNIISII'
+        if 'all' than all the tables for all the line cofigs available in the survey is combined and returned
+    surver = 'sdss'
+    joinsurveys=True
+    """
 
+    if lineconfig !='all':
+        filenames = ['zranges_band_'+lineconfig+'.txt']
+        tab = accessFile(filename=f, survey=survey, joinsurveys=joinsurveys)
+
+    else:
+        dir_survey = getlocalpath()+survey+'/'
+        filenames = glob.glob(dir_survey+'zranges_band_*.txt')
+        tab = at.Table()
+        for f in filenames:
+            tabnew = at.Table.read(f, format='ascii')
+            tab = at.vstack([tab, tabnew])
+
+        print filenames
+
+    return tab

@@ -24,7 +24,7 @@ reload(contaminants)
 import fitpsf
 
 
-def do_batch(dir_batch, bandline=None, update=True):
+def do_batch(dir_batch, bandline=None, isocut_rest = 3.e-15*u.Unit('erg / (arcsec2 cm2 s)'), update=True):
     """
     Do a bunch of operations on a batch directory:
 
@@ -34,7 +34,6 @@ def do_batch(dir_batch, bandline=None, update=True):
     3. make ISO measurements on the denoised map and compile the batch table
     4. join the measurement table with Mullaney table
     """
-    isocut_rest = 3.e-15*u.Unit('erg / (arcsec2 cm2 s)')
 
     #==== renoamlize
     kwargs={'filename':'stamp-lOIII5008_I.fits','norm':1.e-15,'update':update}
@@ -51,7 +50,7 @@ def do_batch(dir_batch, bandline=None, update=True):
 
     # ==== do psf fitting
     kwargs = dict(band=bandline, fileimg='stamp-lOIII5008_I_norm.fits',
-                  searchradius=5., fixb=True)
+                  searchradius=5., fixb=True, update=update)
     do_mapjob_onbatch(dir_batch, fitpsf.dir_fit_psf, **kwargs)
 
 
@@ -89,9 +88,13 @@ def do_batch(dir_batch, bandline=None, update=True):
     do_compiletables_onbatch(dir_batch, **kwargs)
 
     # # # ==== join the measurement table with Mullaney table
+    # # get mullaney entries of the sample
     # kwargs = dict(filein='measureimg_iso_contours_blob.ecsv', 
-    #               fileout='measureimg_iso_matchedmullaney')
+    #               fileout='measureimg_iso_matchedmullaney',)
     # smallfunc.batch_matchedmullaney(dir_batch, **kwargs)
+
+    # kwargs = dict(filein='measureimg_iso_contours_blobctr.ecsv',)
+    # smallfunc.batch_joinmullaney(dir_batch, **kwargs)
 
     # # match with wise
     # kwargs = dict(filein='measureimg_iso_matchedmullaney.ecsv', 
@@ -100,7 +103,7 @@ def do_batch(dir_batch, bandline=None, update=True):
     # smallfunc.batch_matchWISE(dir_batch, **kwargs)
 
     # ==== write list_final
-    kwargs = dict(filein='measureimg_iso_contours_blob.ecsv')
+    kwargs = dict(filein='measureimg_iso_contours_blob.csv')
     smallfunc.batch_write_list_ran(dir_batch, **kwargs)
 
     # ==== find contaminants

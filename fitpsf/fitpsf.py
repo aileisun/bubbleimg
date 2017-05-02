@@ -112,6 +112,8 @@ def fit_psf_params(img, psf, sigma, searchradius=None, fixb=False, verbose=False
     else: 
         print "skipping fit_psf_params as no signal in img"
         params_out = [0., 0., 0.]
+        chisq = np.nan
+
 
     return params_out, chisq
 

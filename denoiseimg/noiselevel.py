@@ -79,7 +79,8 @@ def load_noiselevel(dir_obj,filename,update=True):
 def getnoiselevel_gaussfit(data,dir_obj,toplot=True):
     """
     return best fit gaussian noise level of the data, by fitting gaussian to
-    the pixel value histogram. 
+    the pixel value histogram. The histogram is medium filtered with a kernel size
+    of 5 in order to mitigate the problem of spiky histogram of zero filled images. 
 
     Parameters:
     ------
@@ -92,16 +93,18 @@ def getnoiselevel_gaussfit(data,dir_obj,toplot=True):
     sigma: float
     """
     from scipy.optimize import curve_fit
+    from scipy.signal import medfilt
 
     # set up
-    nb=1000 # number of bins
+    nb=5000 # number of bins
 
-    histo,bin_edges=np.histogram(data.flatten(),bins=nb)
+    histo, bin_edges=np.histogram(data.flatten(),bins=nb)
 
     bin_centers = bin_edges[0:-1]+np.diff(bin_edges)[0]/2.
+    histo_med = medfilt(histo, kernel_size=5)
 
     p0 = [np.max(histo), 0., np.std(data.flatten())] # A, x0, sigma
-    coeff, var_matrix = curve_fit(gauss, bin_centers, histo, p0=p0)
+    coeff, var_matrix = curve_fit(gauss, bin_centers, histo_med, p0=p0)
     coeff[1:3]=coeff[1:3]
     sigma=np.abs(coeff[2])
 

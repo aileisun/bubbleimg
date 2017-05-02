@@ -38,12 +38,14 @@ def main():
 		getzrange_line.findzrange_wline_HaNII(threshold=0.6, survey=survey)
 		getzrange_line.findzrange_nline_HaNII(threshold=0.2, survey=survey)
 		getzrange_line.findzrange_nline_HaNIISII(threshold=0.2, survey=survey)
+		getzrange_line.findzrange_nline_OII(threshold=0.2, survey=survey)
 	
-	# survey = 'cfht-hsc-ukirt'
-
-	# getzrange_batch.write_zranges(survey=survey, wline='OIII', nline='HaNIISII')
+		getzrange_batch.write_zranges(survey=survey, wline='OIII', nline='HaNIISII')
 		
+	survey = 'hsc'
+	getzrange_batch.write_zranges(survey=survey, wline='OIII', nline='OII')
 
+	print " wOIII nOII combination (usually i-r) has only been implemented on hsc but no other surveys"
 
 
 if __name__ == '__main__':

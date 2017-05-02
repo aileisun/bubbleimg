@@ -5,6 +5,7 @@ import numpy as np
 import astropy.table as at
 import filtertools
 
+
 def write_zranges(filenameout='', wline='OIII', nline='HaNIISII', survey='sdss'):
     """
     write table zranges_batch.csv
@@ -42,13 +43,14 @@ def write_zranges(filenameout='', wline='OIII', nline='HaNIISII', survey='sdss')
     return tabout
 
 
-def getzrange_batch(bandline='r',bandconti='i',wline='OIII',nline='HaNIISII',wthreshold=0.6, nthreshold=0.2, survey='sdss'):
+def getzrange_batch(bandline='r', bandconti='i', wline='OIII', nline='HaNIISII', wthreshold=0.6, nthreshold=0.2, survey='sdss'):
     """
     return the redshift range where
         bandline (r) contains all wline (OIII) and 
         contiband (i) contains non of nline (HaNIISII)
 
     """
+    print "calculating zrange_batch for "+bandline+'-'+bandconti
     filename_wline = 'zrange_wline_'+wline+'_'+'%.1f'%wthreshold+'.txt'
     filename_nline = 'zrange_nline_'+nline+'_'+'%.1f'%nthreshold+'.txt'
 
@@ -99,39 +101,3 @@ def isinside(b, a0, a1):
 
 
 
-
-
-    # bandconfigs = 
-
-    # # define operations
-    # if survey == 'sdss': 
-    #     bandconfigs=[{'bandline':'g','bandconti':'i'},
-    #                 {'bandline':'g','bandconti':'r'},
-    #                 {'bandline':'r','bandconti':'z'},
-    #                 {'bandline':'r','bandconti':'i'},
-    #                 {'bandline':'i','bandconti':'z'},
-    #                 ]
-    # elif survey == 'hsc': 
-    #     bandconfigs=[{'bandline':'g','bandconti':'i'},
-    #                 {'bandline':'g','bandconti':'r'},
-    #                 {'bandline':'r','bandconti':'z'},
-    #                 {'bandline':'r','bandconti':'i'},
-    #                 {'bandline':'i','bandconti':'z'},
-    #                 {'bandline':'z','bandconti':'y'},
-    #                 ]
-    # elif survey == 'cfht-hsc-ukirt': 
-    #     bandconfigs=[
-    #                 {'bandline':'g','bandconti':'i'},
-    #                 {'bandline':'g','bandconti':'r'},
-    #                 {'bandline':'r','bandconti':'z'},
-    #                 {'bandline':'r','bandconti':'y'},
-    #                 {'bandline':'r','bandconti':'i'},
-    #                 {'bandline':'i','bandconti':'y'},
-    #                 {'bandline':'i','bandconti':'z'},
-    #                 {'bandline':'z','bandconti':'j'},
-    #                 {'bandline':'j','bandconti':'k'},
-    #                 {'bandline':'k','bandconti':'j'},
-    #                 ]
-    # else: 
-    #     raise NameError('survey name not recognized. ')
-    

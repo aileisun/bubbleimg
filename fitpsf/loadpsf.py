@@ -12,6 +12,8 @@ import os
 import astropy.table as at
 from astropy.io import fits
 
+from .. import external_links
+
 def dir_load_psf(dir_obj, band):
     """
     load the psf img np.array for band 'band'. download/make files as nessisary. psField.fit file is deleted afterwards as it's too big. 
@@ -37,7 +39,7 @@ def dir_load_psf(dir_obj, band):
 
 def dir_psField_to_psf(dir_obj, band='r'):
     """ for a dir_obj translate psField to psf-(band).fit file given band    """
-    codepath='/Users/aisun/Documents/Astro/codelab/readAtlasImages-v5_4_11/'
+    codepath=external_links.dir_readatlas
     infile=dir_obj+'psField.fit'
     outfile=dir_obj+'psf-'+band+'.fit'
 
@@ -71,9 +73,16 @@ def download_psField(xid, dir_out='./', filenameout=None):
     print "downloading psField file for psf"
 
     def get_urlpsField(run, rerun, camcol, field):
-        urlsdssbase='http://data.sdss3.org/sas/dr12/'
-        urlpsField='boss/photo/redux/'+'%d'%rerun+'/'+'%d'%run+'/objcs/'+'%d'%camcol+'/psField-'+'%06d'%run+'-'+'%d'%camcol+'-'+'%04d'%field+'.fit'
+        """
+        see http://www.sdss.org/dr13/imaging/pipeline/
+        """
+        # urlsdssbase='http://data.sdss3.org/sas/dr12/'
+        urlsdssbase='https://data.sdss.org/sas/dr13/'
+        # urlpsField='boss/photo/redux/'+'%d'%rerun+'/'+'%d'%run+'/objcs/'+'%d'%camcol+'/psField-'+'%06d'%run+'-'+'%d'%camcol+'-'+'%04d'%field+'.fit'
+        urlpsField='eboss/photo/redux/'+'%d'%rerun+'/'+'%d'%run+'/objcs/'+'%d'%camcol+'/psField-'+'%06d'%run+'-'+'%d'%camcol+'-'+'%04d'%field+'.fit'
+
         return urlsdssbase+urlpsField
+
 
     # sanity check
     if not isinstance(xid, at.Table) or len(xid)!=1:

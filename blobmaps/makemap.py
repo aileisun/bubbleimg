@@ -26,7 +26,7 @@ nanomaggy = u.def_unit('nanomaggy', 3.631e-6*u.Jy)
 u.add_enabled_units([nanomaggy])
 u.nanomaggy=nanomaggy
 
-def objw_makeall(obj, bandline='r',bandconti='z',update=False):
+def objw_makeall(obj, bandline='r', bandconti='z', survey='sdss', update=False):
 	"""
 	PURPOSE: make all the image subtraction products. Including: 
 		spec.pdf
@@ -42,33 +42,35 @@ def objw_makeall(obj, bandline='r',bandconti='z',update=False):
 	isfiles=np.all([os.path.isfile(file) for file in files])
 
 	if (not isfiles) or update:
-		fromspec.plotSpecwFilters(obj)
+		fromspec.plotSpecwFilters(obj, survey=survey)
 		# # to compute all possible line minus conti
 		# for band in ['u','g','r','i','z']:
 		# 	if band != bandline:
 		# 		objw_stamp_band_minusconti(obj, band1=bandline, band2=band, savefits=True)
-		objw_stamp_band_minusconti(obj, band1=bandline, band2=bandconti, savefits=True)
-		objw_stamp_lOIII5008_F(obj,bandline=bandline,bandconti=bandconti)
-		objw_stamp_F_to_I(obj, mapname='lOIII5008', toplot=True)
-		# objw_stamp_lOIII5008_I(obj)
+		objw_stamp_band_minusconti(obj, band1=bandline, band2=bandconti, survey=survey, savefits=True)
+		objw_stamp_lOIII5008_F(obj, bandline=bandline, bandconti=bandconti, survey=survey)
+		objw_stamp_F_to_I(obj, mapname='lOIII5008', survey=survey)
+
+		# plotting OIII map as png
+		filein = obj.dir_obj+'stamp-lOIII5008_I.fits'
+		imagedisp_util.fits_to_png(filein, vmin=0., vmax=3.e-14 )
 
 
-
-def objw_makecontiscale(obj, bandline='r', bandconti='z', update=False):
+def objw_makecontiscale(obj, bandline='r', bandconti='z', survey='sdss', update=False):
 	"""
 	automatically make 'stamp-conti-onOIIIscale_F.fits' for obj
 	"""
-	files=[obj.dir_obj+'stamp-conti-onOIIIscale_F.fits',
+	files = [obj.dir_obj+'stamp-conti-onOIIIscale_F.fits',
 			obj.dir_obj+'stamp-conti-onOIIIscale_I.fits']
 	
-	isfiles=np.all([os.path.isfile(file) for file in files])
+	isfiles = np.all([os.path.isfile(file) for file in files])
 
 	if (not isfiles) or update:
-		objw_stamp_contionOIIIscale_F(obj, bandline=bandline,bandconti=bandconti)
-		objw_stamp_F_to_I(obj, mapname='conti-onOIIIscale', toplot=False)
+		objw_stamp_contionOIIIscale_F(obj, bandline=bandline, bandconti=bandconti, survey=survey)
+		objw_stamp_F_to_I(obj, mapname='conti-onOIIIscale', survey=survey)
 
 
-def objw_stamp_band_minusconti(obj, band1='r', band2='z', savefits=True):
+def objw_stamp_band_minusconti(obj, band1='r', band2='z', survey='sdss', savefits=True):
 	"""
 	PURPOSE: subtract continuum in band1 using that scaled from band2
 
@@ -86,18 +88,19 @@ def objw_stamp_band_minusconti(obj, band1='r', band2='z', savefits=True):
 		          e.g., stamp-r-zconti.fits 
 	"""
 	# setup output filename
-	filename=obj.dir_obj+'stamp-'+band1+'-'+band2+'conti'+'.fits'
+
+	filename = obj.dir_obj+'stamp-'+band1+'-'+band2+'conti'+'.fits'
 
 	# get continuum ratio
-	ratio12=fromspec.getObjBandContiRatio_dEdnu(obj, band1=band1, band2=band2)
+	ratio12 = fromspec.getObjBandContiRatio_dEdnu(obj, band1=band1, band2=band2, survey=survey)
 	# subtract image
-	img=subtractStampImg(obj, band1=band1, band2=band2, a1=1., a2=ratio12, savefits=True)
+	img = subtractStampImg(obj, band1=band1, band2=band2, a1=1., a2=ratio12, savefits=True)
 
 	# construct fits file
-	header=fits.getheader(obj.dir_obj+'stamp-'+band1+'.fits')
-	header['HISTORY']='Band continuum subtracted by ALS, see CONTIBAND, CONTIRTIO'
-	header['CONTBAND']=band2
-	header['CONTRTIO']=ratio12
+	header = fits.getheader(obj.dir_obj+'stamp-'+band1+'.fits')
+	header['HISTORY'] = 'Band continuum subtracted by ALS, see CONTIBAND, CONTIRTIO'
+	header['CONTBAND'] = band2
+	header['CONTRTIO'] = ratio12
 
 	# write output
 	prihdu = fits.PrimaryHDU(img, header=header)
@@ -105,8 +108,6 @@ def objw_stamp_band_minusconti(obj, band1='r', band2='z', savefits=True):
 
 	return img
 	# d.set_np2arr(img)
-
-
 
 
 def subtractStampImg(obj, band1='r', band2='z', a1=1., a2=1., savefits=True):
@@ -142,7 +143,8 @@ def subtractStampImg(obj, band1='r', band2='z', a1=1., a2=1., savefits=True):
 
 	return imagesub
 
-def objw_stamp_contionOIIIscale_F(obj, bandline='r',bandconti='z'):
+
+def objw_stamp_contionOIIIscale_F(obj, bandline='r', bandconti='z', survey='sdss'):
 	"""
 	make a scaled continuum map from the bandconti, the scaling is such that 
 	1 unit flux of continuum in this map has the same signal on the 
@@ -152,26 +154,26 @@ def objw_stamp_contionOIIIscale_F(obj, bandline='r',bandconti='z'):
 	"""
 
 	# get z
-	z=obj.sdss.z
-	filein=obj.dir_obj+'stamp-'+bandconti+'.fits'
-	fileout=obj.dir_obj+'stamp-conti-onOIIIscale_F.fits'
+	z = obj.sdss.z
+	filein = obj.dir_obj+'stamp-'+bandconti+'.fits'
+	fileout = obj.dir_obj+'stamp-conti-onOIIIscale_F.fits'
 
 	# read in data
-	hdu=fits.open(filein)
-	img_bc=hdu[0].data*u.Unit(hdu[0].header['BUNIT'])
+	hdu = fits.open(filein)
+	img_bc = hdu[0].data*u.Unit(hdu[0].header['BUNIT'])
 
 	# scale to the continuum level at the line band
-	ratio12=fromspec.getObjBandContiRatio_dEdnu(obj, band1=bandline, band2=bandconti)
-	img_bl=img_bc*ratio12
+	ratio12 = fromspec.getObjBandContiRatio_dEdnu(obj, band1=bandline, band2=bandconti, survey=survey)
+	img_bl = img_bc*ratio12
 
 	# scale to the OIII5007 line intensity
-	intR=filters.filtertools.intRoverldl(band=bandline)
+	intR = filters.filtertools.intRoverldl(band=bandline, survey=survey)
 	# get line ratios and wavelengths
-	lOIII5008=5008.24*u.AA
-	ROIII5007=fromspec.R_lambda(lOIII5008*(1.+z),band=bandline)
+	lOIII5008 = 5008.24*u.AA
+	ROIII5007 = fromspec.R_lambda(lOIII5008*(1.+z), band=bandline, survey=survey)
 
-	img_scale=img_bl*intR*const.c/(ROIII5007*lOIII5008)
-	contimap=img_scale.to(u.erg * u.s**-1 * u.cm**-2)
+	img_scale = img_bl*intR*const.c/(ROIII5007*lOIII5008)
+	contimap = img_scale.to(u.erg * u.s**-1 * u.cm**-2)
 
 	# construct fits file
 	hdu[0].data=contimap.value
@@ -185,7 +187,7 @@ def objw_stamp_contionOIIIscale_F(obj, bandline='r',bandconti='z'):
 	hdu.writeto(fileout, clobber=True)
 
 
-def objw_stamp_lOIII5008_F(obj, bandline='r',bandconti='z'):
+def objw_stamp_lOIII5008_F(obj, bandline='r',bandconti='z', survey='sdss'):
 	"""
 	PURPOSE: infer OIIIl5007 flux map [erg cm-2 s-1] from r-z subtracted images. 
 	         and write file as obj.dir_obj+'stamp-lOIII5008_F.fits'
@@ -210,35 +212,37 @@ def objw_stamp_lOIII5008_F(obj, bandline='r',bandconti='z'):
 	"""
 	from astropy.table import Table
 	# setup
-	filein=obj.dir_obj+'stamp-'+bandline+'-'+bandconti+'conti.fits'
-	fileout=obj.dir_obj+'stamp-lOIII5008_F.fits'
-	z=obj.sdss.z
+	filein = obj.dir_obj+'stamp-'+bandline+'-'+bandconti+'conti.fits'
+	fileout = obj.dir_obj+'stamp-lOIII5008_F.fits'
+	z = obj.sdss.z
 
 	# sanity check - z range
 	# the redshift must be within valid range where both [OIII] lines lie within r band (>60% of peak throughput)
-	zranges=filters.filtertools.accessFile('zranges_band_wOIII_nHaNIISII.txt')
-	# zranges=Table.read('/Users/aisun/Documents/Astro/Thesis/bbselection/SDSS/algorithm/display/sdssdisp/test_filterrange/OIIIredshiftrange0.6.txt',format='ascii')
-	z1,z2=zranges[(zranges['bandline']==bandline) & (zranges['bandconti']==bandconti)]['z0','z1'][0]
+	zranges = filters.filtertools.accessTabZranges(lineconfig='all', survey=survey, joinsurveys=True)
+
+	# filters.filtertools.accessFile('zranges_band_wOIII_nHaNIISII.txt', survey=survey)
+	
+	z1, z2 = zranges[(zranges['bandline']==bandline) & (zranges['bandconti']==bandconti)]['z0','z1'][0]
 	if z < z1 or z > z2: print ("WARNING: Invalid redshift. OIII falls outside filter 60 percent transmission range. ")
 
 	else: 
 		# read image of r-zconti with it's unit [nanomaggie]
-		hdu=fits.open(filein)
-		img=hdu[0].data*u.Unit(hdu[0].header['BUNIT'])
+		hdu = fits.open(filein)
+		img = hdu[0].data*u.Unit(hdu[0].header['BUNIT'])
 
 		# calculate integral{R(l) dl/l}
-		intR=filters.filtertools.intRoverldl(band=bandline)
+		intR = filters.filtertools.intRoverldl(band=bandline, survey=survey)
 		# get line ratios and wavelengths
-		lHb, lOIII4959, lOIII5008=4862.68*u.AA, 4959.295*u.AA, 5008.24*u.AA
-		rHb_OIII5007= fromspec.getSDSSspeclineratio(obj,line1='H_beta',line2='[O_III] 5007')
+		lHb, lOIII4959, lOIII5008 = 4862.68*u.AA, 4959.295*u.AA, 5008.24*u.AA
+		rHb_OIII5007 = fromspec.getSDSSspeclineratio(obj, line1='H_beta',line2='[O_III] 5007')
 		rOIII4959_OIII5007=1./2.98 # Theoretical calculation see Storey & Zeippen 00 2000MNRAS.312..813S
 		# get filter response function at the wavelengths of the lines
-		RHb,ROIII4959,ROIII5007=fromspec.R_lambda(lHb*(1.+z),band=bandline),fromspec.R_lambda(lOIII4959*(1.+z),band=bandline),fromspec.R_lambda(lOIII5008*(1.+z),band=bandline)
+		RHb, ROIII4959, ROIII5007 = fromspec.R_lambda(lHb*(1.+z), band=bandline, survey=survey), fromspec.R_lambda(lOIII4959*(1.+z), band=bandline, survey=survey), fromspec.R_lambda(lOIII5008*(1.+z), band=bandline, survey=survey)
 
 		# calculate line map
-		numerator = img*intR*const.c	
+		numerator = img*intR*const.c
 		denominator = rHb_OIII5007*RHb*lHb*(1.+z)+rOIII4959_OIII5007*ROIII4959*lOIII4959*(1.+z)+ROIII5007*lOIII5008*(1.+z)
-		linemap=(numerator/denominator).to(u.erg * u.s**-1 * u.cm**-2)
+		linemap = (numerator/denominator).to(u.erg * u.s**-1 * u.cm**-2)
 
 		# construct fits file
 		hdu[0].data=linemap.value
@@ -251,7 +255,7 @@ def objw_stamp_lOIII5008_F(obj, bandline='r',bandconti='z'):
 	
 
 
-def objw_stamp_F_to_I(obj, mapname='lOIII5008', toplot=True):
+def objw_stamp_F_to_I(obj, mapname='lOIII5008', survey='sdss'):
 
 	"""
 	PURPOSE: infer OIIIl5007 intensity map [erg cm-2 s-1 arcsec-2] from flux maps stamp_F_lOIII5008 [erg cm-2 s-1]. 
@@ -262,23 +266,26 @@ def objw_stamp_F_to_I(obj, mapname='lOIII5008', toplot=True):
 	WRITE OUTPUT: 
 			obj.dir_obj+'stamp-lOIII5008_I.fits'
 	"""
+
 	# setup
-	filein=obj.dir_obj+'stamp-'+mapname+'_F.fits'
-	fileout=obj.dir_obj+'stamp-'+mapname+'_I.fits'
-	pixsize=0.396 *u.arcsec # SDSS pixsize [arcsec]
+	filein = obj.dir_obj+'stamp-'+mapname+'_F.fits'
+	fileout = obj.dir_obj+'stamp-'+mapname+'_I.fits'
 
 	# operation
 	if os.path.isfile(filein):
-		hdu=fits.open(filein)
-		img_I=hdu[0].data*u.Unit(hdu[0].header['BUNIT'])/pixsize**2
+		hdu = fits.open(filein)
+		header = hdu[0].header
+
+		# get pixel size
+		pixsize = 	(np.sqrt(header['CD1_1']**2 + header['CD1_2']**2)*u.deg).to(u.arcsec)
+		print "pixsize = ", pixsize
+
+		img_I = hdu[0].data*u.Unit(header['BUNIT'])/pixsize**2
 
 		# modifying hdu
-		hdu[0].data=img_I.value
-		hdu[0].header['BUNIT']=img_I.unit.to_string()
+		hdu[0].data = img_I.value
+		hdu[0].header['BUNIT'] = img_I.unit.to_string()
 		hdu.writeto(fileout, clobber=True)
-		if toplot:
-			imagedisp_util.fits_to_image(fileout,formats='pdf',toshow=False)
-			imagedisp_util.fits_to_image(fileout,formats='png',toshow=False)
 	else:
 		print 'skipping making stamp_'+mapname+'_I.fits as input file stamp_'+mapname+'_F.fits does not exist'
 

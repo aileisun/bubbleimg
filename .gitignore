@@ -10,6 +10,19 @@
 # old codes
 /trash/
 /torelocate/
+blobmaps/trash/
 
 # test data
 /measureimg/sandbox.py
+
+# .DS_Store
+.DS_Store
+*/.DS_Store
+
+
+	.DS_Store
+	blobmaps/.DS_Store
+	blobmaps/trash/
+	denoiseimg/.DS_Store
+	fitpsf/psf.py
+	measureimg/.DS_Store

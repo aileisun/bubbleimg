@@ -36,11 +36,11 @@ def obj_measure_contiABmags(obj, bands=['u','g','r','i','z']):
 	tabout=Table()
 
 	for band in bands:
-		tabout['contiMag_'+band]=[getObjBandContiABmag(obj,band=band)]
+		tabout['contiMag_'+band]=[getObjBandContiABmag(obj, band=band)]
 	return tabout
 
 
-def getObjBandContiABmag(obj,band='r'):
+def getObjBandContiABmag(obj, band='r', survey='sdss'):
 	"""
 	PURPOSE: get the AB magnitude of the SDSS spec continuum in a band
 
@@ -55,11 +55,12 @@ def getObjBandContiABmag(obj,band='r'):
 		f_nu = lambda^2 / c * f_lambda
 	"""	
 	# set up
-	u_fnu=u.Unit('erg/cm^2/s/Hz')
+	u_fnu = u.Unit('erg/cm^2/s/Hz')
 
-	fl=getObjBandContiFluxDensity_dEdl(obj, band=band ,wunit=True)
+	fl = getObjBandContiFluxDensity_dEdl(obj, band=band, survey=survey, wunit=True)
 
-	fnu=(filters.filterwavelengths[band]**2/const.c*fl).to(u_fnu)
+	wave_ctr = filters.filtertools.getFilterCentroids(band=band, survey=survey, withunit=True)
+	fnu = (wave_ctr**2/const.c*fl).to(u_fnu)
 
 	m = -2.5 * np.log10(fnu/u_fnu) - 48.600
 
@@ -81,9 +82,7 @@ def getObjBandContiRatio_dEdnu(obj, band1='r', band2='z', survey='sdss'):
 		This ratio can be applied to SDSS images in units of 'nanomaggies' (dE/dnu)
 	"""
 
-	print "WARNING: SURVEY ASSUMED TO BE SDSS TO CALC BAND CONTI RATIO"
-
-	ratio12_dEdl=getObjBandContiRatio_dEdl(obj, band1=band1, band2=band2)
+	ratio12_dEdl = getObjBandContiRatio_dEdl(obj, band1=band1, band2=band2, survey=survey)
 
 	w1 = filters.getFilterCentroids(survey=survey, band=band1, withunit=True)
 	w2 = filters.getFilterCentroids(survey=survey, band=band2, withunit=True)
@@ -92,8 +91,7 @@ def getObjBandContiRatio_dEdnu(obj, band1='r', band2='z', survey='sdss'):
 	return ratio12_dEdnu.value
 
 
-
-def getObjBandContiRatio_dEdl(obj, band1='r', band2='z'):
+def getObjBandContiRatio_dEdl(obj, band1='r', band2='z', survey='sdss'):
 	"""
 	PURPOSE: get the ratio of continuum flux density (dE/dlambda) between two bands. 
 
@@ -110,16 +108,14 @@ def getObjBandContiRatio_dEdl(obj, band1='r', band2='z'):
 		as the spectrum is in units of '1E-17 erg/cm^2/s/Ang', the ratio is of dE/dlambda
 	"""
 	# get flux levels
-	fl1=getObjBandContiFluxDensity_dEdl(obj, band=band1 ,wunit=False)
-	fl2=getObjBandContiFluxDensity_dEdl(obj, band=band2 ,wunit=False)
+	fl1=getObjBandContiFluxDensity_dEdl(obj, band=band1, survey=survey, wunit=False)
+	fl2=getObjBandContiFluxDensity_dEdl(obj, band=band2, survey=survey, wunit=False)
 
 	# return ratio f1/f2
 	return fl1/fl2
 
 
-
-
-def getObjBandContiFluxDensity_dEdl(obj, band='r',wunit=False):
+def getObjBandContiFluxDensity_dEdl(obj, band='r', survey='sdss', wunit=False):
 	"""
 	PURPOSE: get the SDSS spec continuum flux density (dE/dlambda) in a band
 
@@ -144,18 +140,18 @@ def getObjBandContiFluxDensity_dEdl(obj, band='r',wunit=False):
 	speccont, lcoordcont = getcontspec.getMedianFilteredConti(spec,lcoord,obj.sdss.z,toplot=False)
 
 	# get filter function
-	specfilter, lcoordfilter=filters.getFilterResponseFunc(band=band)#,path=path_filters)
+	specfilter, lcoordfilter = filters.getFilterResponseFunc(band=band, survey=survey)
 
 	# convolve to get flux density
-	fl=convolveSpecWFilter(speccont, lcoordcont ,specfilter, lcoordfilter)
+	fl = convolveSpecWFilter(speccont, lcoordcont ,specfilter, lcoordfilter)
 
 	# return flux density
 	return fl
 
 
-def R_lambda(wavelength,band='r'):
+def R_lambda(wavelength, band='r', survey='sdss'):
 	"""
-	PURPOSE: Filter response function as a function of wavelength [AA] given band
+	PURPOSE: Interpolated filter response function as a function of wavelength [AA] given band
 	PAREMATERS: 
 		wavelength (float or array) [AA]
 		band='r'   (string)
@@ -164,7 +160,7 @@ def R_lambda(wavelength,band='r'):
 	"""
 	from scipy.interpolate import interp1d
 	# read filter response fuction
-	specfilter, lcoordfilter=filters.getFilterResponseFunc(band=band)#,path=path_filters)
+	specfilter, lcoordfilter=filters.getFilterResponseFunc(band=band, survey=survey)
 	f = interp1d(lcoordfilter, specfilter,kind='linear',bounds_error=False,fill_value=0.)
 	return f(wavelength)
 
@@ -194,7 +190,7 @@ def convolveSpecWFilter(spec, lcoord ,specfilter, lcoordfilter):
 
 
 
-def plotSpecwFilters(obj):
+def plotSpecwFilters(obj, survey='sdss'):
 	"""
 
 	PURPOSE: Overplot filter response function on top of spectrum, to see what lines are in what bands. 
@@ -216,13 +212,13 @@ def plotSpecwFilters(obj):
 	plt.plot(0.,0.,ls='',color='black',label='z='+'%.3f'%obj.sdss.z)
 	plt.plot(lcoord,spec/max(spec),color='black',lw=2)
 
-	for band in ['u','g','r','i','z']:
-		specfilter, lcoordfilter=filters.getFilterResponseFunc(band=band)#,path=path_filters)
+	for band in filters.filtertools.surveybands[survey]:
+		specfilter, lcoordfilter=filters.getFilterResponseFunc(band=band, survey=survey)
 		plt.plot(lcoordfilter,specfilter/max(specfilter),label=band)
 
 	plt.legend(loc='upper right')
-	plt.xlim(2980.0,11230.0)
-	plt.ylim(0.,1.)
+	plt.xlim(2980.0, 11230.0)
+	plt.ylim(0., 1.)
 	plt.savefig(fileout)
 
 

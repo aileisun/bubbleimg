@@ -18,7 +18,7 @@ from measureimg import plottools
 
 # to embed fonts in pdf
 import matplotlib
-matplotlib.rc('pdf', fonttype=42)
+# matplotlib.rc('pdf', fonttype=42)
 
 # dir_obj = '/Users/aisun/Documents/Astro/Thesis/bbselection/SDSS/data/mullaney/allT2_restricted/batch_rz/SDSSJ1352+6541/'
 
@@ -100,7 +100,7 @@ def dir_makevisualmaps(dir_obj, filepath_out=None, objname=''):
     cbar = fig.colorbar(im, cax=ax3, label='$I\/[10^{-15}\/\mathrm{erg\/\/s^{-1}\/cm^{-2}\/arcsec^{-2}}]$', format='%i')
     ax3.set_aspect(20)
     # setting and saving
-    matplotlib.rc('pdf', fonttype=42)
+    # matplotlib.rc('pdf', fonttype=42)
     fig.savefig(filepath_out, format='pdf')
 
 
@@ -216,7 +216,7 @@ def dir_makesmallvisualmaps(dir_obj, filepath_out=None, objname='', totitle=Fals
     plottools.ax_imshow(fig, ax1, img_lmap, vmin=vmin, vmax=vmax, tocolorbar=False, tosetlim=True)
 
     # setting and saving
-    matplotlib.rc('pdf', fonttype=42)
+    # matplotlib.rc('pdf', fonttype=42)
     
     fig.savefig(filepath_out, format='pdf')
 

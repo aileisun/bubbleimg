@@ -185,9 +185,9 @@ def getalignedImages(obj, bands=('g','r','i'), band_rf='r'):
 
 
 
-def cutstampImage(image, xcenter, ycenter, xwidth, ywidth):
+def cutstampImage(image, xcenter, ycenter, xwidth, ywidth, fill_value=0.):
 	"""
-	Cut out a stamp image from image
+	Cut out a stamp image from image. If the stamp goes outside the image the edge is filled with fill_value. 
 
 	Parameters
 	------
@@ -196,6 +196,7 @@ def cutstampImage(image, xcenter, ycenter, xwidth, ywidth):
 			ycenter (int):    y center of the stamp 
 			xwidth  (int):    x width of the stamp
 			ywidth  (int):    y width of the stamp
+			fill_value (float): value filing the edge if stamp goes outside the image
 
 	Return
 	------
@@ -206,27 +207,45 @@ def cutstampImage(image, xcenter, ycenter, xwidth, ywidth):
 	If xwidth, ywidth are even numbers, the center is on [xwidth/2., ywidth/2.]
 	of the stamp image. Otherwise if odd, the center is on [(xwidth-1)/2.,(ywidth-1)/2.]
 	"""
-	dx=(xwidth)/2.
-	dy=(ywidth)/2.
+	dx = np.absolute((xwidth)/2.)
+	dy = np.absolute((ywidth)/2.)
+
+	xwidth_img, ywidth_img = image.shape
 
 	if (xwidth % 2 == 0) and (ywidth % 2 == 0):
 		epsilon = 0.
 	elif (xwidth % 2 == 1) and (ywidth % 2 == 1):
 		epsilon = 0.5
-		stampimage = image[xcenter-dx:xcenter+dx+1, ycenter-dy:ycenter+dy+1]
 	else: 
 		raise NameError("alignstamp.cutstampImage: xwdith and ywidth have different parity")
 
-	x0=xcenter-dx+epsilon
-	x1=xcenter+dx+epsilon
-	y0=ycenter-dy+epsilon
-	y1=ycenter+dy+epsilon
+	# set stamp cut boundary in image coordinate
+	x0 = xcenter-dx+epsilon
+	x1 = xcenter+dx+epsilon
+	y0 = ycenter-dy+epsilon
+	y1 = ycenter+dy+epsilon
+
+	# determine the pixel range to be passed over
+	x_min_stp = max(0, -x0)
+	x_max_stp = min(xwidth, xwidth - (x1 - image.shape[0]))
+	y_min_stp = max(0, -y0)
+	y_max_stp = min(ywidth, ywidth - (y1 - image.shape[1]))
+
+	x_min_img = max(0, x0)
+	x_max_img = min(xwidth_img, x1)
+	y_min_img = max(0, y0)
+	y_max_img = min(ywidth_img, y1)
+
 
 	# # check if numbers are integer
 	isintegers=[isInt(val) for val in [x0,x1,y0,y1]]
 	if not all(isintegers):
 		raise NameError("alignstamp.cutstampImage: non-integers received")
-	stampimage=image[int(x0):int(x1), int(y0):int(y1)]
+
+	# stamping
+	stampimage = np.ones([xwidth, ywidth])*fill_value
+
+	stampimage[int(x_min_stp):int(x_max_stp), int(y_min_stp):int(y_max_stp)] = image[int(x_min_img):int(x_max_img), int(y_min_img):int(y_max_img)]
 
 	# return stamp image
 	return stampimage
