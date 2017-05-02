@@ -1,5 +1,7 @@
 # Compiled python modules.
-*.pyc
+bubbleimg/*.pyc
+bubbleimg/*/*.pyc
+bubbleimg/*/*/*.pyc
 
 # Setuptools distribution folder.
 /dist/
@@ -8,21 +10,18 @@
 /*.egg-info
 
 # old codes
-/trash/
-/torelocate/
-blobmaps/trash/
+bubbleimg/trash/
+bubbleimg/torelocate/
+bubbleimg/blobmaps/trash/
 
 # test data
-/measureimg/sandbox.py
+bubbleimg/measureimg/sandbox.py
+bubbleimg/test/
 
 # .DS_Store
 .DS_Store
 */.DS_Store
+*/*/.DS_Store
 
-
-	.DS_Store
-	blobmaps/.DS_Store
-	blobmaps/trash/
-	denoiseimg/.DS_Store
-	fitpsf/psf.py
-	measureimg/.DS_Store
+# issues
+issues.txt
