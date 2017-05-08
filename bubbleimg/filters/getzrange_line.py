@@ -10,6 +10,7 @@ from astropy.table import Table, Row
 
 import filtertools
 import getllambda
+import surveysetup
 
 
 def findzrange_wline_OIIIs(threshold=0.6, survey='sdss'):
@@ -109,7 +110,7 @@ def findzrange_line(linelist, l0, l1, inside=True, threshold=0.2, survey='sdss')
         fileout = localpath+survey+'/'+'zrange_nline_'+linelist+'_'+'%.1f'%threshold+'.txt'
 
     # setup params
-    bands = filtertools.surveybands[survey]
+    bands = surveysetup.surveybands[survey]
 
     # make table
     lmin, lmax = np.sort(np.array([l0,l1]))

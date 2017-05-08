@@ -25,3 +25,11 @@ bubbleimg/test/
 
 # issues
 issues.txt
+
+# sensitive
+bubbleimg/downloadimg/hsc/STARs.py
+
+#__pycache__
+*__pycache__
+
+.cache/

@@ -16,15 +16,7 @@ from scipy.optimize import fsolve
 
 import glob
 
-
-# filterwavelengths={'u': 3551.*u.AA, 'g': 4686.*u.AA, 'r': 6166.*u.AA, 'i': 7480.*u.AA, 'z': 8932.*u.AA}
-
-surveybands = {
-                'sdss':['u','g','r','i','z'], 
-                'hsc': ['g','r','i','z','y'],
-                'ukirt': ['j', 'h', 'k'],
-                'cfht': ['u']
-                }
+from surveysetup import surveybands
 
 def getFilterCentroids(band='u', survey='sdss', withunit=True):
     """
@@ -57,9 +49,7 @@ def writeFilterCentroids(survey='sdss'):
     filtercentroid.txt
     """
     localpath = getlocalpath()
-    fileout=localpath+survey+'/filtercentroid.txt'
-
-    # set up
+    fileout
     bands = surveybands[survey]
 
     tabout=at.Table([[],[],],names=('band','w'),dtype=('string','int'))
@@ -94,9 +84,7 @@ def writeFilterBoundaries(threshold=0.6, toplot=True, survey='sdss'):
 
     # fileout
     localpath = getlocalpath()
-    fileout=localpath+survey+'/'+'filterboundary_'+'%.1f'%threshold+'.txt'
-
-    # set up
+    fileout
     bands = surveybands[survey]
 
 

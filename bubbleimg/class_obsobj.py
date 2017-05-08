@@ -89,7 +89,7 @@ class obsobj(object):
 					self.dir_obj=dir_parent+self.sdssname+'/'
 				print "matched to "+row['NAME'][0]
 			else: raise NameError('no match or duplicate to Mullaney 13 sample')
-		elif catalog=='SDSS' or catalog=='' :
+		elif catalog=='SDSS' or catalog=='sdss' or catalog=='' :
 			# define dir_obj
 			if dir_parent=='':
 				self.dir_obj=external_links.dir_data_SDSS+self.sdssname+'/'
@@ -99,7 +99,7 @@ class obsobj(object):
 		print self.dir_obj
 		if towriteID:
 			if not os.path.isdir(self.dir_obj):
-				os.mkdir(self.dir_obj)
+				os.makedirs(self.dir_obj)
 		#== match wit sdss
 		if tomatchsdss:
 			self.sdss = obsobj.sdss(self, towriteID=towriteID)
