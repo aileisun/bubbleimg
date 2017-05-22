@@ -1,0 +1,214 @@
+""" do sql search on hsc data base"""
+
+# this is modified from hscSspQuery.py version 20160120.1 by ALS on 2017/05/11
+# it can be further improved to be object oriented
+
+import json
+import argparse
+import urllib2
+import time
+import sys
+import csv
+import getpass
+import os
+import os.path
+import re
+import ssl
+
+
+version = 20160120.1
+
+
+class Struct:
+    def __init__(self, **entries):
+        self.__dict__.update(entries)
+
+
+def hscSspQuery(sql, filename_out='results.csv', **kwargs):
+
+    """
+    Params
+    ------
+    required: 
+        sql (string)
+
+    optional:
+        user: specify your STARS account
+            ='sunal'
+        filename_out: path of output filename
+            = 'results.csv'
+        release_version
+            ='dr1'
+        delete_job: 'delete the job you submitted after your downloading'
+            =True
+        out_format: choices=['csv', 'csv.gz', 'sqlite3', 'fits']
+            ='csv'
+        nomail: 'suppress email notice'
+            =True
+        password_env: 'specify the environment variable that has STARS password as its content'
+            ='HSC_SSP_CAS_PASSWORD'
+        preview: 'quick mode (short timeout)'
+            =True
+        skip_syntax_check: 'skip syntax check'
+            =True
+        api_url
+            ='https://hscdata.mtk.nao.ac.jp/datasearch/api/catalog_jobs/'
+    """
+
+    kwargs.setdefault('user', 'sunal')
+    kwargs.setdefault('password_env', 'HSC_SSP_CAS_PASSWORD')
+    kwargs.setdefault('release_version', 'dr1')
+    kwargs.setdefault('delete_job', True)
+    kwargs.setdefault('out_format', 'csv')
+    kwargs.setdefault('nomail', True)
+    kwargs.setdefault('preview', True)
+    kwargs.setdefault('skip_syntax_check', True)
+    kwargs.setdefault('api_url', 'https://hscdata.mtk.nao.ac.jp/datasearch/api/catalog_jobs/')
+
+    args = Struct(**kwargs)
+
+    credential = {'account_name': args.user, 'password': getPassword(args)}
+    # sql = args.__dict__['sql-file'].read()
+
+    job = None
+
+    try:
+        if args.preview:
+            with open(filename_out, 'wb') as out:
+                preview(credential, sql, out, args)
+        else:
+            job = submitJob(credential, sql, args)
+            blockUntilJobFinishes(credential, job['id'], args)
+            with open(filename_out, 'wb') as out:
+                download(credential, job['id'], out, args)
+            if args.delete_job:
+                deleteJob(credential, job['id'], args)
+    except urllib2.HTTPError, e:
+        if e.code == 401:
+            print >> sys.stderr, 'invalid id or password.'
+        if e.code == 406:
+            print >> sys.stderr, e.read()
+        else:
+            print >> sys.stderr, e
+    except QueryError, e:
+        print >> sys.stderr, e
+    except KeyboardInterrupt:
+        if job is not None:
+            jobCancel(credential, job['id'], args)
+        raise KeyboardInterrupt
+
+
+class QueryError(Exception):
+    pass
+
+
+def httpJsonPost(url, data):
+    data['clientVersion'] = version
+    postData = json.dumps(data)
+    return httpPost(url, postData, {'Content-type': 'application/json'})
+
+
+def httpPost(url, postData, headers):
+    req = urllib2.Request(url, postData, headers)
+    skipVerifying = None
+    try:
+        skipVerifying = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+    except AttributeError:
+        pass
+    if skipVerifying:
+        res = urllib2.urlopen(req, context=skipVerifying)
+    else:
+        res = urllib2.urlopen(req)
+    return res
+
+
+def submitJob(credential, sql, args):
+    url = args.api_url + 'submit'
+    catalog_job = {
+        'sql'                     : sql,
+        'out_format'              : args.out_format,
+        'include_metainfo_to_body': True,
+        'release_version'         : args.release_version,
+    }
+    postData = {'credential': credential, 'catalog_job': catalog_job, 'nomail': args.nomail, 'skip_syntax_check': args.skip_syntax_check}
+    res = httpJsonPost(url, postData)
+    job = json.load(res)
+    return job
+
+
+def jobStatus(credential, job_id, args):
+    url = args.api_url + 'status'
+    postData = {'credential': credential, 'id': job_id}
+    res = httpJsonPost(url, postData)
+    job = json.load(res)
+    return job
+
+
+def jobCancel(credential, job_id, args):
+    url = args.api_url + 'cancel'
+    postData = {'credential': credential, 'id': job_id}
+    httpJsonPost(url, postData)
+
+
+def preview(credential, sql, out, args):
+    url = args.api_url + 'preview'
+    catalog_job = {
+        'sql'             : sql,
+        'release_version' : args.release_version,
+    }
+    postData = {'credential': credential, 'catalog_job': catalog_job}
+    res = httpJsonPost(url, postData)
+    result = json.load(res)
+
+    writer = csv.writer(out)
+    # writer.writerow(result['result']['fields'])
+    for row in result['result']['rows']:
+        writer.writerow(row)
+
+    if result['result']['count'] > len(result['result']['rows']):
+        raise QueryError, 'only top %d records are displayed !' % len(result['result']['rows'])
+
+
+def blockUntilJobFinishes(credential, job_id, args):
+    max_interval = 5 * 60 # sec.
+    interval = 1
+    while True:
+        time.sleep(interval)
+        job = jobStatus(credential, job_id, args)
+        if job['status'] == 'error':
+            raise QueryError, 'query error: ' + job['error']
+        if job['status'] == 'done':
+            break
+        interval *= 2
+        if interval > max_interval:
+            interval = max_interval
+
+
+def download(credential, job_id, out, args):
+    url = args.api_url + 'download'
+    postData = {'credential': credential, 'id': job_id}
+    res = httpJsonPost(url, postData)
+    bufSize = 64 * 1<<10 # 64k
+    while True:
+        buf = res.read(bufSize)
+        out.write(buf)
+        if len(buf) < bufSize:
+            break
+
+
+def deleteJob(credential, job_id, args):
+    url = args.api_url + 'delete'
+    postData = {'credential': credential, 'id': job_id}
+    httpJsonPost(url, postData)
+
+
+def getPassword(args):
+    password_from_envvar = os.environ.get(args.password_env, '')
+    if password_from_envvar != '':
+        return password_from_envvar
+    else:
+        return getpass.getpass('password? ')
+
+
+if __name__ == '__main__':
+    main()

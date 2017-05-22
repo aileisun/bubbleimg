@@ -1,0 +1,286 @@
+# sdssobj.py
+# ALS 2017/05/11
+
+"""
+define class sdssobj, which can check whether there is such an object and load xid 
+"""
+
+import os
+from astropy.coordinates import SkyCoord
+import astroquery
+import astropy.table as at
+from astropy.io import fits
+import astropy.units as u
+
+from catalogue.catalogue_util import getSDSSName_fromRADEC
+
+
+from ..plainobj import plainObj
+
+class SDSSObj(plainObj):
+	def __init__(self, **kwargs):
+		"""
+		load sdss.xid and sdss.photoboj and write files 'sdss_xid.csv', 'photoobj.csv' automatically.
+		if successful, sdss.status == True
+
+		Params
+		------
+		ra (float)
+		dec (float)
+		/either
+			dir_obj (string)
+		/or 
+			dir_parent (string): attr dir_obj is set to dir_parent+'SDSSJXXXX+XXXX/'
+		toload_photoobj=True (bool): whether to download toload_photoobj
+		writefile=True (bool): whether to write xid ( and photoobj if toload_photoobj=True)
+
+
+		Attributes
+		----------
+		ra (float)
+		dec (float)
+		dir_obj (string)
+		sdssname (string)
+		status (whether the xid and photoboj query were successful)
+
+		optional attr (if querry successful):
+			xid
+			photoboj
+		
+		"""
+		super(self.__class__, self).__init__(**kwargs)
+		writefile = kwargs.pop('writefile', True)
+		toload_photoobj = kwargs.pop('toload_photoobj', True)
+
+		statusxid = self.load_xid(writefile=writefile)
+
+		if toload_photoobj:
+			statusphotoobj = self.load_photoobj(writefile=writefile)
+
+		self.sdssname = getSDSSName_fromRADEC(self.ra, self.dec)
+		self.status = statusxid
+
+
+	def load_xid(self, writefile=True):
+		"""
+		load xid either locally or remotely and add it as attribute self.xid
+
+		Params
+		------
+		self 
+		writefile=True: 
+			if true then write loaded xid to file self.dir_obj/'xid.csv', if it does not already exists
+
+		Return
+		------
+		status (bool): if true then the loading was successful, false if not
+		"""
+		xid = self._get_xid(writefile=writefile)
+
+		if xid is not None:
+			self.xid = xid
+			for col in xid.colnames: 
+				# setting xid attributes 
+				# ra,dec,objid,run,rerun,camcol,field,z,plate,mjd,fiberID,specobjid,run2d,instrument
+				setattr(self, col, xid[col][0])
+			return True
+		else: 
+			return False
+
+
+	def _get_xid(self, writefile=True):
+		"""
+		return xid.
+		Read xid locally if self.dir_obj+'xid.csv' exist. Otherwise query sdss. 
+
+		Parameters
+		------
+		self: obj
+			contains: 
+			self.dir_obj, self.ra, self.dec
+		writefile=True
+
+		Returns:
+		------
+		xid: table
+
+		Write Output: (optional)
+		------
+		self.dir_obj+'xid.csv'
+		"""
+		# set up
+		photoobj_defs = ['ra', 'dec', 'objid', 'run', 'rerun', 'camcol', 'field']
+		specobj_defs=['z', 'plate', 'mjd', 'fiberID', 'specobjid', 'run2d', 'instrument','sciencePrimary']
+
+		# define filename
+		filename = self.dir_obj+'sdss_xid.csv'
+
+		if os.path.isfile(filename): # retrieve xid locally
+			print "[sdssobj] reading xid locally"
+			xid = at.Table.read(filename,format='ascii.csv',comment='#')
+
+			# sanity check
+			diffra = (round(xid['ra'], 2) != round(self.ra, 2))
+			diffdec = (round(xid['dec'], 2) != round(self.dec, 2))
+			if diffra or diffdec:
+				raise ValueError("local sdss_xid inconsistent with object")
+
+			return xid
+
+		else: # download xid from sdss
+			print "[sdssobj] querying xid from SDSS"
+			c = SkyCoord(self.ra, self.dec, 'icrs', unit='deg')
+			result = astroquery.sdss.SDSS.query_region(c, spectro=True, photoobj_fields=photoobj_defs, specobj_fields=specobj_defs)
+
+			# Retrieving  sdss ids of the spec sciencePrimary 
+			if result is not None:
+				xid=result[result['sciencePrimary']==1]
+				if len(xid)==1:
+					print "[sdssobj] science primary object found"
+				elif len(xid)>1:
+					print "[sdssobj] multiple science primary object found, choose the closest one"
+					cspecs = [SkyCoord(row['ra'], row['dec'], 'icrs', unit='deg') for row in xid]
+					print "[sdssobj] science primary object found"
+					a=np.array([c.separation(cspec).value for cspec in cspecs])
+					xid = at.Table(xid[np.argmin(a)])
+				else:
+					print "[sdssobj] no science primary found or duplicate"
+					xid = None
+			else:
+				print "[sdssobj] no object found"
+				xid = None
+
+			# write xid
+			if (xid is not None) and writefile:
+				self.make_dir_obj()
+				xid.write(filename,format='ascii.csv',comment='#')
+			return xid
+
+
+	def load_photoobj(self, writefile=True):
+		"""
+		If self.dir_obj/PhotoObj.csv exist, load table locally. Otherwise
+		download from SDSS and save it locally. 
+
+		Parameters
+		-------
+		writefile=False: bool
+			whether to save the table
+
+		Return 
+		------
+		status: true if photoobj successfully loaded as self.photoobj
+		"""
+		import astropy.io.ascii
+		# define filename
+		filename = self.dir_obj+'sdss_photoobj.csv'
+
+		if not hasattr(self, 'xid'):
+			xidstatus = self.load_xid(writefile=writefile)
+		else: 
+			xidstatus = True
+
+		if xidstatus:
+			if os.path.isfile(filename): 
+				print "[sdssobj] reading photoobj locally"
+				self.photoobj = at.Table.read(filename, format='ascii.csv',comment='#')
+			else:
+				print "[sdssobj] querying photoobj from SDSS"
+				# load photoobj table and store it in obj.sdss.photoobj
+				sql_query = "SELECT p.* FROM PhotoObj AS p WHERE p.objid="+str(self.objid)
+				tabphotoobj = astroquery.sdss.SDSS.query_sql(sql_query)
+				self.photoobj = tabphotoobj
+
+				if writefile:
+					self.make_dir_obj()
+					tabphotoobj.write(filename, format='ascii.csv',comment='#')
+
+			if hasattr(self, 'photoobj') and isinstance(self.photoobj, at.Table):
+				return True
+			else: 
+				return False
+		else: 
+			return False
+
+
+
+	def get_spectra(self, writefile=True):
+		"""
+		If self.dir_obj/spec.fits exist, load spec locally. Otherwise
+		download from SDSS and save it locally. 
+
+		Examples
+		------
+		spectable=obj.sdss.get_spectra(obj)[1].data
+		spec, lcoord= spectable['flux'], 10.**spectable['loglam']
+
+		Parameters
+		------
+		obj (object of obsobs)
+		writefile (bool)
+
+		Returns
+		------
+		sp (hdulist)
+
+		Write Outputs
+		------
+		obj.dir_obj+'spec.fits'
+			----- HDUList ---- 
+			HDU 0  : Header info from spPlate
+		    HDU 1  : Coadded spectrum from spPlate   <--- ((THIS IS WHAT I NEED))
+		    		 Columns: ['flux', 'loglam', 'ivar', 'and_mask', 'or_mask', 'wdisp', 'sky', 'model']
+		    HDU 2  : Summary metadata copied from spAll
+		    HDU 3  : Line fitting metadata from spZline
+		    HDU 4+ : [Optional] Individual spCFrame spectra [B, R for each exposure]
+
+			For more informaiton, see http://data.sdss3.org/datamodel/files/BOSS_SPECTRO_REDUX/RUN2D/spectra/PLATE4/spec.html
+		"""
+		filename = self.dir_obj+'spec.fits'
+
+		if not hasattr(self, 'xid'):
+			xidstatus = self.load_xid(writefile=writefile)
+		else: 
+			xidstatus = True
+
+		if xidstatus:
+			if os.path.isfile(filename): 
+				sp = fits.open(filename)
+			else: 
+				sp = astroquery.sdss.SDSS.get_spectra(matches=self.xid)
+				if len(sp)!=1: 
+					raise ValueError("SDSS spec obj not uniquely identified. ")
+				else: 
+					sp=sp[0]
+				if writefile: 
+					self.make_dir_obj()
+					sp.writeto(filename)
+			return sp
+		else:
+			return False
+
+
+	def get_speclcoord(self, wunit=False):
+		"""
+		PURPOSE: retrieve SDSS spec of and obj as spec and lcoord arrays.
+
+		EXAMPLES: 					
+				spec, lcoord = get_spec_lcoord(obj)
+
+		PARAMETERS:		obj (object of obsobs)
+						wunit (bool)  to attach unit or not
+
+		RETURN OUTPUT: spec (nparray), lcoord (nparray)
+		"""
+		spectable = self.get_spectra()[1].data
+		spec, lcoord = spectable['flux'], 10.**spectable['loglam']
+
+		if not wunit:	
+			return spec, lcoord
+		else:	
+			u_spec = 1.e-17*u.Unit('erg / (Angstrom cm2 s)')
+			u_lcoord = u.AA
+			return spec*u_spec, lcoord*u_lcoord
+
+
+

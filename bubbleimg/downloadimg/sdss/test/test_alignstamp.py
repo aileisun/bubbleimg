@@ -8,7 +8,7 @@ test sets for alignstamplpy
 """
 
 import numpy as np
-import alignstamp
+from .. import alignstamp
 
 
 def test_cutstampImage_upperright():

@@ -2,6 +2,7 @@
 bubbleimg/*.pyc
 bubbleimg/*/*.pyc
 bubbleimg/*/*/*.pyc
+bubbleimg/*/*/*/*.pyc
 
 # Setuptools distribution folder.
 /dist/
@@ -16,7 +17,7 @@ bubbleimg/blobmaps/trash/
 
 # test data
 bubbleimg/measureimg/sandbox.py
-bubbleimg/test/
+bubbleimg/test_old/
 
 # .DS_Store
 .DS_Store
@@ -26,8 +27,8 @@ bubbleimg/test/
 # issues
 issues.txt
 
-# sensitive
-bubbleimg/downloadimg/hsc/STARs.py
+# credential
+bubbleimg/downloadimg/hsc/stars_credential.py
 
 #__pycache__
 *__pycache__

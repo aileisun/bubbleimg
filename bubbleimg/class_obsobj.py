@@ -124,12 +124,12 @@ class obsobj(object):
 			if self.xid is not None:
 				self.load_photoobj(towriteID)
 
-		def load_xid(self,towriteID=True):
+		def load_xid(self, towriteID=True):
 			"""
 			assign xid (table) an its columns to self as attributes. 
 			see get_xid
 			"""
-			xid=self.get_xid(towriteID=towriteID)
+			xid = self.get_xid(towriteID=towriteID)
 
 			if xid is not None:
 				for col in xid.colnames: 
@@ -137,7 +137,7 @@ class obsobj(object):
 					# ra,dec,objid,run,rerun,camcol,field,z,plate,mjd,fiberID,specobjid,run2d,instrument
 					setattr(self, col, xid[col][0])
 
-			self.xid=xid
+			self.xid = xid
 
 		def get_xid(self,towriteID=True):
 			"""

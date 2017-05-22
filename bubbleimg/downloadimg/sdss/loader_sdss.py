@@ -4,10 +4,12 @@
 import numpy as np
 import os
 from astroquery.sdss import SDSS
+from astropy.io import fits
 
 from ..loader import imgLoader
 from ...filters import surveysetup
 import alignstamp
+import psf
 
 class SDSSimgLoader(imgLoader):
 
@@ -37,32 +39,102 @@ class SDSSimgLoader(imgLoader):
 
 		Params
 		----------
-		band (string) = 'r'
 		overwrite (boolean) = False
 
 		band_rf='r': reference band
 		tokeepframe=True: if True to keep frame images, if False delete frame images
-		"""
-		for band in self.bands:
-			self._make_frame(band=band)
 
+		Return
+		------
+		status: True if all stamp-(band).fits exist
+		"""
+		# make frame images
+		for band in self.bands:
+			self._make_frame(band=band, overwrite=overwrite)
+
+		# make stamp images from frame
 		isstampfiles = np.all([os.path.isfile(self.get_stamp_filepath(b)) for b in self.bands])
 
 		if (not isstampfiles) or overwrite:
-			alignstamp.getalignedstampImages(obj=self.obj, bands=self.bands, band_rf=band_rf, xwidth=self.img_width_pix.value, ywidth=self.img_height_pix.value, savefits=True, clipnegative=False)
+			alignstamp.write_alignedstampImages(obj=self.obj, bands=self.bands, band_rf=band_rf, xwidth=self.img_width_pix.value, ywidth=self.img_height_pix.value, clipnegative=False, overwrite=True)
 
 		if not tokeepframe:
 			for band in self.bands:
-				os.remove(self.get_frame_filepath(band))
+				os.remove(self._get_frame_filepath(band))
 
 		isstampfiles = np.all([os.path.isfile(self.get_stamp_filepath(b)) for b in self.bands])
 		return isstampfiles
 
 
-	def _make_frame(self, band='r'):
+	def get_stamp(self, band='r'):
+		"""
+		read and return stamp-(band).fits, and calls make_stamps if file does not exist. If all fail, returns false. 
+		"""
+
+		fn = self.dir_obj+'stamp-'+band+'.fits'
+
+		if os.path.isfile(fn):
+			return fits.getdata(fn)
+		else: 
+			status = self.make_stamps()
+			if status: 
+				return fits.getdata(fn)
+			else: 
+				return False
+
+
+	def make_psfs(self, overwrite=False, tokeepfield=False):
+		"""
+		make psfs of all the bands of the object. takes care of overwrite with argument 'overwrite'. Default: do not overwrite. 
+
+		Params
+		----------
+		overwrite (boolean) = False
+		tokeepfield = True: if True to keep psField.fit, if False delete psField.fit
+
+		Return
+		------
+		status: True if all psf-(band).fits exist
+		"""
+		# make psField.fit
+		filename_psfield = 'psField.fits'
+		if not os.path.isfile(self.dir_obj+filename_psfield) or overwrite:
+			psf.download_psField(xid=self.obj.sdss.xid, dir_out=self.dir_obj, filename=filename_psfield)
+
+	
+		# make psf-(band).fit from psField.fit
+		ispsffiles = np.all([os.path.isfile(self.get_psf_filepath(b)) for b in self.bands])
+
+		if (not ispsffiles) or overwrite:
+			psf.psField_to_psfs(dir_obj=self.dir_obj, photoobj=self.obj.sdss.photoobj, bands=['u', 'g', 'r', 'i', 'z'])
+
+		if not tokeepfield:
+			os.remove(self.dir_obj+filename_psfield)
+
+		ispsffiles = np.all([os.path.isfile(self.get_psf_filepath(b)) for b in self.bands])
+		return ispsffiles
+		
+
+	def get_psf(self, band='r'):
+		"""
+		read and return psf-(band).fits, and calls make_psfs if file does not exist. If all fail, returns false. 
+		"""
+
+		fn = self.dir_obj+'psf-'+band+'.fits'
+
+		if os.path.isfile(fn):
+			return fits.getdata(fn)
+		else: 
+			status = self.make_psfs()
+			if status: 
+				return fits.getdata(fn)
+			else: 
+				return False
+
+
+	def _make_frame(self, band='r', overwrite=True):
 		""" 
 		download frame image if it does not exist
-		WARNING: frame image is never overwritten
 
 		Params
 		-------
@@ -72,19 +144,19 @@ class SDSSimgLoader(imgLoader):
 		-------
 		status (bool): True if successful, False if not
 		"""
-		file = self.get_frame_filepath(band)
+		file = self._get_frame_filepath(band)
 
-		if not os.path.isfile(file):
+		if (not os.path.isfile(file)) or overwrite:
 			print "[SDSSimgLoader] downloading frame image band {0}".format(band)
 			im = SDSS.get_images(matches=self.obj.sdss.xid, band=band)
-			im[0].writeto(file)
+			im[0].writeto(file, overwrite=True)
 		else: 
 			print "[SDSSimgLoader] skip downloading frame image band {0}".format(band)
 
 		return os.path.isfile(file)
 
 
-	def get_frame_filepath(self, band):
+	def _get_frame_filepath(self, band):
 		return self.dir_obj+'frame-{0}.fits'.format(band)
 
 

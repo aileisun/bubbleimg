@@ -56,6 +56,8 @@ class imgLoader(object):
 
 		"""
 		#===== unparse input
+		print "WARNING: to reorganize loader init using plainobj"
+		
 		if 'obj' in kwargs: 
 			self.obj = kwargs.pop('obj')
 			self.ra = self.obj.ra
@@ -63,10 +65,10 @@ class imgLoader(object):
 			self.dir_obj = self.obj.dir_obj
 			
 		else: 
-			self.ra = kwargs.pop('ra', np.nan)
-			self.dec = kwargs.pop('dec', np.nan)
+			self.ra = kwargs.pop('ra', None)
+			self.dec = kwargs.pop('dec', None)
 			if 'dir_obj' in kwargs:
-				self.dir_obj = kwargs.pop('dir_obj', '')
+				self.dir_obj = kwargs.pop('dir_obj', None)
 			elif 'dir_parent' in kwargs:
 				sdssname = getSDSSName_fromRADEC(self.ra, self.dec)
 				dir_parent = kwargs.pop('dir_parent', '')
@@ -76,15 +78,15 @@ class imgLoader(object):
 
 		self.img_width = kwargs.pop('img_width', 20*u.arcsec)
 		self.img_height = kwargs.pop('img_height', 20*u.arcsec)
-		self.user = kwargs.pop('user', "")
-		self.password = kwargs.pop('password', "")
+		self._user = kwargs.pop('user', "")
+		self._password = kwargs.pop('password', "")
 
 		to_make_obj_sdss = kwargs.pop('to_make_obj_sdss', False)
 
 		if kwargs:
 			raise TypeError('Unexpected **kwargs: %r' % kwargs)
 
-		if np.isnan(self.ra) or np.isnan(self.dec) or (self.dir_obj==''):
+		if (self.ra is None) or (self.dec is None) or (self.dir_obj is None):
 			raise TypeError('ra or dec or dir_obj not specified')
 		#===== 
 
@@ -102,12 +104,25 @@ class imgLoader(object):
 		raise NotImplementedError("Subclass must implement abstract method")
 
 
+	@abc.abstractmethod
+	def make_psfs(self, **kwargs):
+		raise NotImplementedError("Subclass must implement abstract method")
+
+
 	def get_stamp_filepath(self, band):
-		return self.dir_obj+'stamp-{0}.fits'.format(band)
+		return self.dir_obj+self.get_stamp_filename(band)
 
 
 	def get_stamp_filename(self, band):
 		return 'stamp-{0}.fits'.format(band)
+
+
+	def get_psf_filepath(self, band):
+		return self.dir_obj+self.get_psf_filename(band)
+
+
+	def get_psf_filename(self, band):
+		return 'psf-{0}.fits'.format(band)
 
 
 	def _imgLoader__make_stamp_core(self, func_download_stamp, **kwargs):

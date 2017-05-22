@@ -18,6 +18,7 @@ import os
 import pytest
 from astropy.io import fits
 import filecmp
+import glob
 
 from loader_hsc import HSCimgLoader
 from ...class_obsobj import obsobj
@@ -203,8 +204,8 @@ def test_header_w_BUNIT(L_radec):
 	L.make_stamp(band='r')
 
 	header = fits.getheader(L.dir_obj+'stamp-r.fits')
-	assert header['BUNIT'] == 'nanomaggy'
-	assert 'FLUXMAG0' not in header
+	assert header['BUNIT'] == '1.58479740e-02 nanomaggy'
+	# assert 'FLUXMAG0' not in header
 
 
 
@@ -230,4 +231,30 @@ def test_unit_conversion(L_radec):
 
 	assert round(dataout[0, 0],3) == 10.**9
 	assert headerout['BUNIT'] == 'nanomaggy'
+
+
+
+def test_make_stamp_not_tokeepraw(L_radec):
+	L = L_radec
+	
+	if os.path.isdir(L.dir_obj):
+		shutil.rmtree(L.dir_obj)
+
+	L.make_stamp(band='r', tokeepraw=False, overwrite=True)
+
+	a = glob.glob(L.dir_obj+'cutout*.fits')
+	assert len(a) == 0
+
+
+
+def test_make_stamp_tokeepraw(L_radec):
+	L = L_radec
+	
+	if os.path.isdir(L.dir_obj):
+		shutil.rmtree(L.dir_obj)
+
+	L.make_stamp(band='r', tokeepraw=True, overwrite=True)
+
+	a = glob.glob(L.dir_obj+'cutout*.fits')
+	assert len(a) > 0
 

@@ -5,11 +5,7 @@
 """
 PURPOSE: make aligned stamp multi-band images of an SDSS object. 
 
-Usage:   alignstamp(obj, bands=('u','g','r','i','z'), band_rf='r', xwidth=64, ywidth=64)
-
 """
-
-# from pylab import *
 
 import os
 import numpy as np
@@ -17,78 +13,11 @@ from astropy.io import fits
 from astropy import wcs
 from scipy.ndimage import interpolation
 from astroquery.sdss import SDSS
-# import ds9
 
 
-# def objw_makeall(obj, bands=('u', 'g', 'r', 'i', 'z'), band_rf='r', xwidth=64, ywidth=64, tods9=False, tokeepframe=False, update=False):
-# 	"""
-# 	PURPOSE: make aligned stamp multi-band images of an SDSS object. 
-
-# 	DESCRIPTION: 
-# 			automatically download SDSS frame fits files to obj.dir_obj
-# 			and save aligned stamp images to the same directories. 
-
-# 	INPUT: 
-# 		obj (obj of class obsobj): an object containing information like RA, Dec, and SDSS PhotoObj. 
-# 			Used attributes:  obj.dir_obj, obj.sdss.ra, obj.sdss.dec, obj.sdss.photoobj
-# 		bands=('u','g','r','i','z'): list of bands to use
-# 		band_rf='r':         the reference band. All the other band have images shifted (interpolated) to align with the reference band. 
-# 							 (WARNING: It can only be r band)
-# 		xwidth=64 (int):	 width of the image
-# 		ywidth=64 (int):	 height of the image
-
-# 	WRITE OUTPUT: 
-# 		No overwrite: 
-# 		1) Frame fits files		dir_obj+'frame-'+band+'.fits'
-# 		2) photoobj table		dir_obj+'PhotoObj.csv'
-
-# 		overwrite:
-# 		1) Stamp fits files		obj.dir_obj+'stamp-'+bands[nb]+'.fits'
-# 		2) Stamp image array	dir_obj+'images_stamp.npy'
-
-# 	"""
-# 	dir_obj=obj.dir_obj
-# 	# check if end product exists
-# 	isfiles=np.all([os.path.isfile(dir_obj+'stamp-'+str(b)+'.fits') for b in bands])
-
-# 	if (not isfiles) or update:
-# 		# saving sdss frame images
-# 		print "[alignstamp] loading frame images"
-# 		for band in bands:
-# 			filename=dir_obj+'frame-'+band+'.fits'
-# 			if not os.path.isfile(filename):
-# 				im = SDSS.get_images(matches=obj.sdss.xid, band=band)
-# 				im[0].writeto(filename)
-# 		print "[alignstamp] frame images loaded"
-
-
-# 		# saving aligned stamps to both .fits files of individual bands and .npy file of all the bands. 
-# 		print "[alignstamp] aligning and stamping images"
-# 		filename=dir_obj+'images_stamp.npy'
-# 		images_stamp=getalignedstampImages(obj,bands=bands, band_rf=band_rf,xwidth=xwidth,ywidth=ywidth,savefits=True)
-# 		np.save(filename,images_stamp)
-
-# 		if tods9:
-# 			# display images
-# 			d=ds9.ds9('ac17039e:61908')
-# 			for i in range(len(stampbands)):
-# 				print "band ", stampbands[i]
-# 				d.set_np2arr(images_stamp[i])
-# 				raw_input('Enter to continue...')
-
-# 		if not tokeepframe:
-# 			# delete frame images
-# 			for band in bands:
-# 				filename=dir_obj+'frame-'+band+'.fits'
-# 				if os.path.isfile(filename): os.remove(filename)
-
-
-# #===== primary functions
-
-
-def getalignedstampImages(obj, bands=('g','r','i'), band_rf='r', xwidth=64, ywidth=64, savefits=True,clipnegative=False):
+def write_alignedstampImages(obj, bands=('g','r','i'), band_rf='r', xwidth=64, ywidth=64, clipnegative=False, overwrite=True):
 	"""
-	PURPOSE: Return aligned stamp images of an SDSS object
+	PURPOSE: write aligned stamp images of an SDSS object
 
 	INPUT: 
 		obj (obj of class obsobj): an object containing information like RA, Dec, and SDSS PhotoObj. 
@@ -97,7 +26,6 @@ def getalignedstampImages(obj, bands=('g','r','i'), band_rf='r', xwidth=64, ywid
 		band_rf='r':         the reference band. All the other band have images shifted (interpolated) to align with the reference band. 
 		xwidth=64 (int):	 width of the image
 		ywidth=64 (int):	 height of the image
-		savefits=True (bool): whether to savefits to file obj.dir_obj+'stamp-'+bands[nb]+'.fits'
 		clipnegative=False (bool): whether to set negative values to zero
 
 	READ INPUT: 
@@ -105,9 +33,6 @@ def getalignedstampImages(obj, bands=('g','r','i'), band_rf='r', xwidth=64, ywid
 
 	WRITE OUTPUT: 
 		obj.dir_obj+'stamp-'+bands[nb]+'.fits'
-
-	RETURN OUTPUT: 
-		images_aligned_stamp (array)
 
 	DESCRIPTION: 
 		The header of the stamp fits file is taken from the frame fits files, with updated wcs of the reference frame. 
@@ -124,27 +49,23 @@ def getalignedstampImages(obj, bands=('g','r','i'), band_rf='r', xwidth=64, ywid
 	if clipnegative:
 		images_aligned_stamp=np.amax([images_aligned_stamp,np.zeros(images_aligned_stamp.shape)],axis=0)
 	# store fits file
-	#w_ref=getstampwcs(obj,band_rf,xwidth,ywidth)
-	#header = w_ref.to_header()
-	if savefits:
-		images_aligned_stamp_fits=np.swapaxes(images_aligned_stamp,1,2)
-		for nb in range(len(bands)):
-			header=getstampheader(obj,bands[nb],band_rf,xwidth,ywidth)
-			filename=obj.dir_obj+'stamp-'+bands[nb]+'.fits'
-			prihdu = fits.PrimaryHDU(images_aligned_stamp_fits[nb], header=header)
-			if os.path.isfile(filename):
-				os.remove(filename)
-				prihdu.writeto(filename)
-			else:
-				prihdu.writeto(filename)
-	return images_aligned_stamp #.swapaxes(0,1).swapaxes(1,2)
+	images_aligned_stamp_fits=np.swapaxes(images_aligned_stamp,1,2)
+	for nb in range(len(bands)):
+		header=getstampheader(obj,bands[nb],band_rf,xwidth,ywidth)
+		filename=obj.dir_obj+'stamp-'+bands[nb]+'.fits'
+		prihdu = fits.PrimaryHDU(images_aligned_stamp_fits[nb], header=header)
+		if os.path.isfile(filename):
+			os.remove(filename)
+			prihdu.writeto(filename, overwrite=overwrite)
+		else:
+			prihdu.writeto(filename, overwrite=overwrite)
 
 
 
 def getalignedImages(obj, bands=('g','r','i'), band_rf='r'):
 	"""
 	PURPOSE: Return n-band aligned frame images of an SDSS object. 
-			 This function is used by getalignedstampImages() as an intermediate 
+			 This function is used by write_alignedstampImages() as an intermediate 
 			 step to get aligned stamp images. 
 
 	NOTE: 

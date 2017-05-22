@@ -7,6 +7,8 @@ PURPOSE: Download and store SDSS spectrum of objects,
 
 USAGE:   getObjBandContiFLuxRatio(obj, band1='r', band2='z')
 
+!!! WARNING !!! to be refactored into object oriented code
+
 """
 
 import os
@@ -149,6 +151,63 @@ def getObjBandContiFluxDensity_dEdl(obj, band='r', survey='sdss', wunit=False):
 	return fl
 
 
+def getObjBandABmag(obj, band='r', survey='sdss'):
+	"""
+	PURPOSE: get the AB magnitude of the SDSS spec in a band
+
+	PAREMATERS: 
+		obj (obsobj) : obsobj instance
+		band='r' (string)
+
+	RETURN m  AB magnitude
+
+	DESCRIPTION: 
+		m_AB = -2.5 * log_10(f_nu/ (erg/s/cm2/Hz) ) - 48.600
+		f_nu = lambda^2 / c * f_lambda
+	"""	
+	# set up
+	u_fnu = u.Unit('erg/cm^2/s/Hz')
+
+	fl = getObjBandFluxDensity_dEdl(obj, band=band, survey=survey, wunit=True)
+
+	wave_ctr = filters.filtertools.getFilterCentroids(band=band, survey=survey, withunit=True)
+	fnu = (wave_ctr**2/const.c*fl).to(u_fnu)
+
+	m = -2.5 * np.log10(fnu/u_fnu) - 48.600
+
+	return m
+
+
+def getObjBandFluxDensity_dEdl(obj, band='r', survey='sdss', wunit=False):
+	"""
+	PURPOSE: get the SDSS spec flux density (dE/dlambda) in a band
+
+	PAREMATERS: 
+		obj (obsobj) : obsobj instance
+		band='r' (string)
+
+	RETURN f (flux density quantity in units of '1E-17 erg/cm^2/s/Ang')
+
+	DESCRIPTION: 
+		using function convolveSpecWFilter() to convolve with filter
+		flux density in units of '1E-17 erg/cm^2/s/Ang'
+	"""
+
+	# load SDSS spectrum
+	spec, lcoord=obj.sdss.get_speclcoord(wunit=wunit)
+	try: lcoord=lcoord.value
+	except: pass
+
+	# get filter function
+	specfilter, lcoordfilter = filters.getFilterResponseFunc(band=band, survey=survey)
+
+	# convolve to get flux density
+	fl = convolveSpecWFilter(spec, lcoord ,specfilter, lcoordfilter)
+
+	# return flux density
+	return fl
+
+
 def R_lambda(wavelength, band='r', survey='sdss'):
 	"""
 	PURPOSE: Interpolated filter response function as a function of wavelength [AA] given band
@@ -232,7 +291,7 @@ def getSDSSspeclineratio(obj,line1='H_beta',line2='[O_III] 5007'):
 
 	DESCRIPTION: the flux used is the area under the best fit Gaussian, so may differ from true flux if line shape deviates from Gaussian. 
 	"""
-	table=obj.sdss.load_spectra(obj)[3].data
+	table=obj.sdss.get_spectra(obj)[3].data
 	f1=table[table['LINENAME']==line1]['LINEAREA'][0]
 	f2=table[table['LINENAME']==line2]['LINEAREA'][0]
 

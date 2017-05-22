@@ -15,8 +15,8 @@ import pytest
 from astropy.io import fits
 import filecmp
 
-from loader_sdss import SDSSimgLoader
-from ...class_obsobj import obsobj
+from ..loader_sdss import SDSSimgLoader
+# from ...class_obsobj import obsobj
 
 ra = 150.0547735
 dec = 12.7073027
@@ -150,3 +150,12 @@ def test_make_stamps_correctcontent(L_radec_64pix):
 		file_totest = dir_obj+f
 		file_verification = './test_verification_data_64pix/SDSSJ1000+1242/'+f
 		assert filecmp.cmp(file_totest, file_verification)
+
+
+def test_get_stamp(L_radec_64pix):
+	L = L_radec_64pix
+
+	data = L.get_stamp(band='r')
+
+	assert data.shape == (64, 64) 
+	assert np.sum(data) > 0 

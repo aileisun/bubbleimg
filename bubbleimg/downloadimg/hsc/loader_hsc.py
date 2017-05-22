@@ -33,10 +33,19 @@ class HSCimgLoader(imgLoader):
 		self.pixsize = surveysetup.pixsize[self.survey]
 		self._add_attr_img_width_pix_arcsec()
 
-		if self.user == "" or self.password == "":
-			self.user = raw_input("STARs username:")
-			self.password = getpass.getpass("Password:")
+		if self._user == "" or self._password == "":
+			try: 
+				from stars_credential import user, password
+			except:
+				self._user = raw_input("STARs username:")
+				self._password = getpass.getpass("Password:")
+			else: 
+				self._user = user
+				self._password = password
 
+
+	def make_psfs(self):
+		pass
 
 	def make_stamp(self, band='r', overwrite=False, **kwargs):
 		"""
@@ -61,9 +70,9 @@ class HSCimgLoader(imgLoader):
 		return self._imgLoader__make_stamps_core(self._download_stamp, overwrite=overwrite, **kwargs)
 
 
-	def _download_stamp(self, band='r', imgtype='coadd', tract='', rerun=''):
+	def _download_stamp(self, band='r', imgtype='coadd', tract='', rerun='', tokeepraw=False):
 		"""
-		download hsc cutout image
+		download hsc cutout image and convert it to stamp images. 
 
 		ra, dec can be decimal degrees (12.345) or sexagesimal (1:23:35)
 
@@ -76,13 +85,12 @@ class HSCimgLoader(imgLoader):
 		imgtype='coadd'
 		tract=''
 		rerun=''
+		tokeepraw=False (bool): whether to keep the downloaded raw HSC image, which has four extensions. 
 
 		Return
 		----------
 		status: True if downloaded, False if download fails
 
-		!!! WARNING !!! 
-		The original fits downloaded have four hdu, but only the second one is useful. To go around this problem. I save it and open it as astropy fits, keeping the image hdu and save it again. There are probably smarter ways of doing this without saving and reading. 
 		"""
 
 		# setting 
@@ -99,10 +107,13 @@ class HSCimgLoader(imgLoader):
 
 		# query, download, and convert to new unit
 		# writing two files (if successful): raw img file and stamp img file. 
-		rqst = requests.get(url, auth=(self.user, self.password))
+		rqst = requests.get(url, auth=(self._user, self._password))
 		if rqst.status_code == 200:
 			filepath_raw = self._write_request_to_file(rqst)
-			self._write_fits_unit_converted_to_nanomaggy(filein=filepath_raw, fileout=filepath_out)
+			self._write_fits_unit_specified_in_nanomaggy(filein=filepath_raw, fileout=filepath_out)
+
+			if not tokeepraw:
+				os.remove(filepath_raw)
 
 			return True
 		else:  
@@ -132,13 +143,13 @@ class HSCimgLoader(imgLoader):
 		return filepath_raw
 
 
-	def _make_hsc_cutout_url(sefl, ra, dec, band='i', sw='5asec', sh='5asec', imgtype='coadd', tract='', rerun=''):
+	def _make_hsc_cutout_url(sefl, ra, dec, band='i', sw='5asec', sh='5asec', imgtype='coadd', tract='', rerun='', mask='on', variance='on'):
 		"""
 		see hsc query manual
 		https://hscdata.mtk.nao.ac.jp/das_quarry/manual.html 
 		"""
 
-		url = 'https://hscdata.mtk.nao.ac.jp:4443/das_quarry/cgi-bin/quarryImage?ra={0}&dec={1}&sw={2}&sh={3}&type={4}&image=on&filter=HSC-{5}&tract={6}&rerun={7}'.format(ra, dec, sw, sh, imgtype, band.capitalize(), tract, rerun)
+		url = 'https://hscdata.mtk.nao.ac.jp:4443/das_quarry/cgi-bin/quarryImage?ra={0}&dec={1}&sw={2}&sh={3}&type={4}&image=on&mask={5}&variance={6}&filter=HSC-{7}&tract={8}&rerun={9}'.format(ra, dec, sw, sh, imgtype, mask, variance, band.capitalize(), tract, rerun)
 
 		return url
 
@@ -146,8 +157,10 @@ class HSCimgLoader(imgLoader):
 
 	def _write_fits_unit_converted_to_nanomaggy(self, filein, fileout):
 		"""
-		convert raw hsc image to stamp image
-		take the second hdu hdu[1] as data
+		!!!!!!! WARNING !!!!!!!! this funciton is not used currently
+
+		Convert raw hsc image to an image with unit nanomaggy, changing the data value. 
+		take only the second hdu hdu[1] as data in output
 
 		read in fits file filein with no bunit but FLUXMAG0 and convert to one fits file with unit nanomaggy, and write to fileout. 
 
@@ -185,4 +198,50 @@ class HSCimgLoader(imgLoader):
 		header_combine.remove(keyword='FLUXMAG0')
 
 		hdu_abbrv = fits.PrimaryHDU(data_nanomaggy, header=header_combine)
+		hdu_abbrv.writeto(fileout, overwrite=True)
+
+
+	def _write_fits_unit_specified_in_nanomaggy(self, filein, fileout):
+		"""
+		Convert a raw hsc image to an image with unit nanomaggy, the data values unchanged. 
+		Take only the second hdu hdu[1] as data in output. 
+
+		read in fits file filein with no bunit but FLUXMAG0 and convert to one fits file with unit nanomaggy, and write to fileout. 
+
+		Notes on Unit conversion
+		-----------
+		HSC fluxmag0 is set such that a pix value of 1 has a magAB of 27 so:
+
+			fluxmag0 = header_combine['FLUXMAG0']
+			# 63095734448.0194
+
+			pixunit = 10.**-19.44 / fluxmag0 * (u.erg * u.s**-1 * u.cm**-2 * u.Hz**-1)
+			# u.Quantity('5.754399373371546e-31 erg / cm2 / Hz / s')
+
+			nanomaggy_per_raw_unit = float((u.nanomaggy/pixunit).decompose()) 
+			# 63.099548091890085
+
+			raw_unit_per_nanomaggy = 1/nanomaggy_per_raw_unit
+			# 0.015847974038478506
+
+		But this function should work even with other fluxmag 0, as we set 		
+			nanomaggy_per_raw_unit = fluxmag0 * 10**-9
+
+		"""
+		hdu = fits.open(filein)
+		header_combine = hdu[1].header+hdu[0].header
+
+		# sanity check
+		if header_combine['FLUXMAG0'] != 63095734448.0194: 
+			raise ValueError("HSC FLUXMAG0 different from assumed")
+		
+		if 'BUNIT' in header_combine: 
+			raise ValueError("Input fits file should not have BUNIT")
+		
+		bunit = '1.58479740e-02 nanomaggy'
+		header_combine.set(keyword='BUNIT', value=bunit, comment="1 nanomaggy = 3.631e-6 Jy")
+		header_combine['COMMENT'] = "Unit specified in nanomaggy by ALS"
+
+		data = hdu[1].data
+		hdu_abbrv = fits.PrimaryHDU(data, header=header_combine)
 		hdu_abbrv.writeto(fileout, overwrite=True)

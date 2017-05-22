@@ -17,9 +17,9 @@ import os
 
 import pytest
 
-from loader_sdss import SDSSimgLoader
+from ..loader_sdss import SDSSimgLoader
 
-from ...class_obsobj import obsobj
+from ....class_obsobj import obsobj
 
 
 ra = 150.0547735
@@ -196,8 +196,8 @@ def test_transform_img_widthheight_unit_to_pix(L_radec):
 
 	sdsspixsize = 0.396*u.arcsec/u.pix
 
-	assert L.img_width_pix == (L.img_width/sdsspixsize)
-	assert L.img_height_pix == (L.img_height/sdsspixsize)
+	assert L.img_width_pix == np.floor((L.img_width/sdsspixsize).to(u.pix))
+	assert L.img_height_pix == np.floor((L.img_height/sdsspixsize).to(u.pix))
 
 
 def test_SDSSimgLoader_get_img_width_pix(L_radec): 
