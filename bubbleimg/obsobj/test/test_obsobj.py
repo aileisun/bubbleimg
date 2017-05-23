@@ -33,6 +33,14 @@ def obj_dirobj():
 	return obsObj(ra=ra, dec=dec, dir_obj = dir_obj)
 
 
+@pytest.fixture
+def obj_hscobj():
+	ra = 140.099341430207
+	dec = 0.580162492432517
+	dir_obj = './test/SDSSJ0920+0034/'
+	return obsObj(ra=ra, dec=dec, dir_obj=dir_obj)
+
+
 def test_obsObj_init_dir_obj(obj_dirobj):
 
 	obj = obj_dirobj
@@ -72,3 +80,29 @@ def test_obsObj_add_sdss_fail():
 	assert status == False
 
 	assert obj.sdss.status == False
+
+
+def test_obsObj_add_hsc(obj_hscobj):
+	obj = obj_hscobj
+
+	status = obj.add_hsc()
+
+	assert status
+	assert round(obj.hsc.ra, 2) == round(obj.ra, 2)
+	assert round(obj.hsc.dec, 2) == round(obj.dec, 2)
+	assert hasattr(obj.hsc, 'xid')
+	assert hasattr(obj.hsc, 'tract')
+	assert hasattr(obj.hsc, 'patch')
+
+
+def test_obsObj_add_hsc_fail():
+
+	ra = 0.
+	dec = -89.
+	obj = obsObj(ra=ra, dec=dec, dir_parent = dir_parent)
+
+	status = obj.add_hsc()
+	assert status == False
+
+	assert obj.hsc.status == False
+

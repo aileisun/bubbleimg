@@ -1,7 +1,36 @@
-""" do sql search on hsc data base"""
+""" 
+do sql search on hsc data base
 
-# this is modified from hscSspQuery.py version 20160120.1 by ALS on 2017/05/11
-# it can be further improved to be object oriented
+this is modified from hscSspQuery.py version 20160120.1 by ALS on 2017/05/11
+it can be further improved to be object oriented
+
+
+  --------------------------------------------------------------------------------
+  Original Instructions:
+  https://hscdata.mtk.nao.ac.jp/hsc_ssp/dr1/common/cas_script.html
+  https://hsc-gitlab.mtk.nao.ac.jp/snippets/13
+  --------------------------------------------------------------------------------
+  usage:
+
+  $ echo "SELECT now();" > test.sql
+  $ python hscSspQuery.py test.sql -u "your_STARS_account" > result.csv
+  password? (input your STARS password)
+
+  OR
+
+  bash)
+  ### input your STARS username and password
+  $ export HSC_SSP_CAS_USERNAME
+  $ read -s HSC_SSP_CAS_USERNAME
+  $ export HSC_SSP_CAS_PASSWORD
+  $ read -s HSC_SSP_CAS_PASSWORD
+
+  $ python hscSspQuery.py test1.sql -u "your_STARS_account" > result1.csv
+  $ python hscSspQuery.py test2.sql -u "your_STARS_account" > result2.csv
+  $ python hscSspQuery.py test3.sql -u "your_STARS_account" > result3.csv
+  --------------------------------------------------------------------------------
+
+"""
 
 import json
 import argparse
@@ -33,8 +62,6 @@ def hscSspQuery(sql, filename_out='results.csv', **kwargs):
         sql (string)
 
     optional:
-        user: specify your STARS account
-            ='sunal'
         filename_out: path of output filename
             = 'results.csv'
         release_version
@@ -45,7 +72,9 @@ def hscSspQuery(sql, filename_out='results.csv', **kwargs):
             ='csv'
         nomail: 'suppress email notice'
             =True
-        password_env: 'specify the environment variable that has STARS password as its content'
+        username_env: 'specify the environment variable that stores STARS username'
+            ='HSC_SSP_CAS_USERNAME'
+        password_env: 'specify the environment variable that stores STARS password'
             ='HSC_SSP_CAS_PASSWORD'
         preview: 'quick mode (short timeout)'
             =True
@@ -55,7 +84,7 @@ def hscSspQuery(sql, filename_out='results.csv', **kwargs):
             ='https://hscdata.mtk.nao.ac.jp/datasearch/api/catalog_jobs/'
     """
 
-    kwargs.setdefault('user', 'sunal')
+    kwargs.setdefault('username_env', 'HSC_SSP_CAS_USERNAME')
     kwargs.setdefault('password_env', 'HSC_SSP_CAS_PASSWORD')
     kwargs.setdefault('release_version', 'dr1')
     kwargs.setdefault('delete_job', True)
@@ -67,7 +96,7 @@ def hscSspQuery(sql, filename_out='results.csv', **kwargs):
 
     args = Struct(**kwargs)
 
-    credential = {'account_name': args.user, 'password': getPassword(args)}
+    credential = {'account_name': getUsername(args), 'password': getPassword(args)}
     # sql = args.__dict__['sql-file'].read()
 
     job = None
@@ -161,7 +190,7 @@ def preview(credential, sql, out, args):
     result = json.load(res)
 
     writer = csv.writer(out)
-    # writer.writerow(result['result']['fields'])
+    writer.writerow(result['result']['fields'])
     for row in result['result']['rows']:
         writer.writerow(row)
 
@@ -207,7 +236,15 @@ def getPassword(args):
     if password_from_envvar != '':
         return password_from_envvar
     else:
-        return getpass.getpass('password? ')
+        return getpass.getpass('STARs password: ')
+
+
+def getUsername(args):
+    username_from_envvar = os.environ.get(args.username_env, '')
+    if username_from_envvar != '':
+        return username_from_envvar
+    else:
+        return getpass.getpass('STARs username? ')
 
 
 if __name__ == '__main__':

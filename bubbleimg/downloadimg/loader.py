@@ -9,7 +9,8 @@ import abc
 from catalogue.catalogue_util import getSDSSName_fromRADEC
 
 from ..filters import surveysetup
-from ..class_obsobj import obsobj
+from ..obsobj.sdss import SDSSObj
+# from ..class_obsobj import obsobj
 
 
 class imgLoader(object):
@@ -249,7 +250,9 @@ class imgLoader(object):
 			dir_parent = '/'.join(self.dir_obj.split('/')[0:-2])+'/'
 			tab = at.Table([[self.ra], [self.dec]], names=['ra', 'dec'])
 
-			obj = obsobj(tab, catalog='sdss', dir_parent=dir_parent, towriteID=True)
+			obj = SDSSObj(ra=self.ra, dec=self.dec, dir_parent=dir_parent)
+
+			# obj = obsobj(tab, catalog='sdss', dir_parent=dir_parent, towriteID=True)
 
 			self.obj = obj
 

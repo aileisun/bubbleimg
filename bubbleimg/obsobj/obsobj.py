@@ -7,6 +7,7 @@ define class obsObj
 
 from plainobj import plainObj
 from sdss.sdssobj import SDSSObj
+from hsc.hscobj import HSCObj
 
 class obsObj(plainObj):
 	def __init__(self, **kwargs):
@@ -40,5 +41,7 @@ class obsObj(plainObj):
 		return self.sdss.status
 
 
-	def add_hsc(self, load_xid=True):
-		pass	
+	def add_hsc(self, **kwargs):
+		self.hsc = HSCObj(ra=self.ra, dec=self.dec, dir_obj=self.dir_obj, **kwargs)
+
+		return self.hsc.status

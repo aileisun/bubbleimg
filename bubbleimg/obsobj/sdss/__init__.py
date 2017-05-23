@@ -3,7 +3,4 @@
 
 __all__ = ['sdssobj']
 
-import sdssobj
-
-reload(sdssobj)
-
+from sdssobj import SDSSObj

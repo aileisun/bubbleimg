@@ -19,10 +19,9 @@ class SDSSimgLoader(imgLoader):
 		force to_make_obj_sdss=True such that self.obj.sdss.xid is always loaded 
 		add attributes self.img_width_pix, self.img_height_pix
 		"""
-		kwargs['to_make_obj_sdss'] = True
+		kwargs['to_make_obj_sdss'] = True		# to make self.obj.sdss
 		super(SDSSimgLoader, self ).__init__(**kwargs)
 
-		# make sure there is self.obj.sdss.xid
 		self.survey = 'sdss'
 		self.bands = surveysetup.surveybands[self.survey]
 		self.pixsize = surveysetup.pixsize[self.survey]
@@ -71,7 +70,7 @@ class SDSSimgLoader(imgLoader):
 		read and return stamp-(band).fits, and calls make_stamps if file does not exist. If all fail, returns false. 
 		"""
 
-		fn = self.dir_obj+'stamp-'+band+'.fits'
+		fn = self.get_stamp_filepath(band=band)
 
 		if os.path.isfile(fn):
 			return fits.getdata(fn)
@@ -120,7 +119,7 @@ class SDSSimgLoader(imgLoader):
 		read and return psf-(band).fits, and calls make_psfs if file does not exist. If all fail, returns false. 
 		"""
 
-		fn = self.dir_obj+'psf-'+band+'.fits'
+		fn = self.get_psf_filepath(band=band)
 
 		if os.path.isfile(fn):
 			return fits.getdata(fn)
