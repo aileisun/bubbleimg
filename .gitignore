@@ -34,3 +34,6 @@ bubbleimg/downloadimg/hsc/stars_credential.py
 *__pycache__
 
 .cache/
+
+# too big
+bubbleimg/downloadimg/hsc/test/test_verification_data_128pix/SDSSJ0920+0034/calexp-r.fits

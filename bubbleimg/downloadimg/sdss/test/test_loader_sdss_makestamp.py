@@ -23,13 +23,13 @@ dec = 12.7073027
 img_width = 20*u.arcsec
 img_height = 20*u.arcsec
 
-dir_obj = './test/SDSSJ1000+1242/'
-dir_parent = './test/'
+dir_obj = './testing/SDSSJ1000+1242/'
+dir_parent = './testing/'
 
 
 @pytest.fixture(scope="module", autouse=True)
 def setUp_tearDown():
-	""" rm ./test/ and ./test2/ before and after test"""
+	""" rm ./testing/ and ./test2/ before and after test"""
 
 	# setup
 	if os.path.isdir(dir_parent):
@@ -146,7 +146,7 @@ def test_make_stamps_correctcontent(L_radec_64pix):
 		file_verification = './test_verification_data_64pix/SDSSJ1000+1242/'+f
 		assert filecmp.cmp(file_totest, file_verification)
 
-	for f in ['xid.csv', 'PhotoObj.csv']:
+	for f in ['sdss_xid.csv', 'sdss_photoobj.csv']:
 		file_totest = dir_obj+f
 		file_verification = './test_verification_data_64pix/SDSSJ1000+1242/'+f
 		assert filecmp.cmp(file_totest, file_verification)

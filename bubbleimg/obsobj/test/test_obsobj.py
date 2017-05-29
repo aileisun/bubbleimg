@@ -10,13 +10,13 @@ from ..obsobj import obsObj
 ra = 150.0547735
 dec = 12.7073027
 
-dir_obj = './test/SDSSJ1000+1242/'
-dir_parent = './test/'
+dir_obj = './testing/SDSSJ1000+1242/'
+dir_parent = './testing/'
 
 
 @pytest.fixture(scope="module", autouse=True)
 def setUp_tearDown():
-	""" rm ./test/ and ./test2/ before and after test"""
+	""" rm ./testing/ and ./test2/ before and after testing"""
 
 	# setup
 	if os.path.isdir(dir_parent):
@@ -37,7 +37,7 @@ def obj_dirobj():
 def obj_hscobj():
 	ra = 140.099341430207
 	dec = 0.580162492432517
-	dir_obj = './test/SDSSJ0920+0034/'
+	dir_obj = './testing/SDSSJ0920+0034/'
 	return obsObj(ra=ra, dec=dec, dir_obj=dir_obj)
 
 
@@ -47,6 +47,12 @@ def test_obsObj_init_dir_obj(obj_dirobj):
 
 	assert isinstance(obj, obsObj)
 	assert obj.dir_obj == dir_obj
+	assert hasattr(obj, 'ra')
+	assert hasattr(obj, 'dir_obj')
+	assert hasattr(obj, 'name')
+
+	assert obj.name == obj.dir_obj.split('/')[-2]
+
 
 
 def test_obsObj_init_dir_parent():

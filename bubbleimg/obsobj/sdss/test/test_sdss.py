@@ -8,12 +8,12 @@ from ..sdssobj import SDSSObj
 ra = 150.0547735
 dec = 12.7073027
 
-dir_obj = './test/SDSSJ1000+1242/'
-dir_parent = './test/'
+dir_obj = './testing/SDSSJ1000+1242/'
+dir_parent = './testing/'
 
 @pytest.fixture(scope="module", autouse=True)
 def setUp_tearDown():
-	""" rm ./test/ and ./test2/ before and after test"""
+	""" rm ./testing/ and ./test2/ before and after testing"""
 
 	# setup
 	if os.path.isdir(dir_parent):
@@ -93,7 +93,7 @@ def test_SDSSObj_xid_conflicting_dir_obj():
 	ra = 150.0547735
 	dec = 12.7073027
 
-	dir_obj = './test/SDSSJ9999+9999/'
+	dir_obj = './testing/SDSSJ9999+9999/'
 
 	with pytest.raises(Exception):
 		obj = SDSSObj(ra=ra, dec=dec, dir_obj=dir_obj)
@@ -125,7 +125,9 @@ def test_SDSSObj_photoobj_fails():
 	assert not os.path.isfile(fn)
 
 
-def test_SDSSObj_get_spec_writefile(obj_dirobj):
+
+
+def test_SDSSObj_make_spec_writefile(obj_dirobj):
 	obj = obj_dirobj
 	fn = obj.dir_obj+'spec.fits'
 
@@ -133,7 +135,7 @@ def test_SDSSObj_get_spec_writefile(obj_dirobj):
 		os.remove(fn)
 	assert not os.path.isfile(fn)
 
-	spec = obj.get_spectra(writefile=True)
+	spec = obj.make_spec(overwrite=True)
 	assert os.path.isfile(fn)
 
 
@@ -144,3 +146,10 @@ def test_SDSSObj_get_speclcoord(obj_dirobj):
 	assert len(spec) > 0
 	assert len(spec) == len(lcoord)
 	assert sum(spec) > 0
+
+
+def test_SDSSObj_get_spec(obj_dirobj):
+	obj = obj_dirobj
+	spechdu = obj.get_spec()
+
+	assert len(spechdu[1].data['flux']) > 1

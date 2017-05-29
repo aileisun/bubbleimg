@@ -15,9 +15,9 @@ import os
 
 import pytest
 
-from loader import imgLoader
+from ..loader import imgLoader
 
-from ..class_obsobj import obsobj
+from ...class_obsobj import obsobj
 
 
 ra = 150.0547735
@@ -25,13 +25,13 @@ dec = 12.7073027
 img_width = 20*u.arcsec
 img_height = 20*u.arcsec
 
-dir_obj = './test/SDSSJ1000+1242/'
-dir_parent1 = './test/'
-dir_parent2 = './test2/'
+dir_obj = './testing/SDSSJ1000+1242/'
+dir_parent1 = './testing/'
+dir_parent2 = './testing2/'
 
 @pytest.fixture(scope="module", autouse=True)
 def setUp_tearDown():
-	""" rm ./test/ and ./test2/ before and after test"""
+	""" rm ./testing/ and ./test2/ before and after test"""
 
 	# setup
 	if os.path.isdir(dir_parent1):

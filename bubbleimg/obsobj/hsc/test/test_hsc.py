@@ -9,13 +9,13 @@ from ..hscobj import HSCObj
 
 ra = 140.099341430207
 dec = 0.580162492432517
-dir_parent = './test/'
-dir_obj = './test/SDSSJ0920+0034/'
+dir_parent = './testing/'
+dir_obj = './testing/SDSSJ0920+0034/'
 
 
 @pytest.fixture(scope="module", autouse=True)
 def setUp_tearDown():
-	""" rm ./test/ and ./test2/ before and after test"""
+	""" rm ./testing/ and ./test2/ before and after testing"""
 
 	# setup
 	if os.path.isdir(dir_parent):
@@ -57,6 +57,11 @@ def test_HSCObj_xid(obj_dirobj):
 	assert np.absolute(obj.xid['ra'][0] - ra) < 0.0003
 	assert 'tract' in obj.xid.colnames
 	assert 'patch' in obj.xid.colnames
+	assert hasattr(obj, 'tract')
+	assert hasattr(obj, 'patch')
+
+	assert obj.tract == 9564
+	assert obj.patch == 703
 
 
 def test_HSCObj_xid_writefile(obj_dirobj):
@@ -82,7 +87,7 @@ def test_HSCObj_xid_writefile(obj_dirobj):
 def test_HSCObj_xid_fails():
 	ra = 0.
 	dec = -89.
-	obj = HSCObj(ra=ra, dec=dec, dir_obj = './test/badobject/')
+	obj = HSCObj(ra=ra, dec=dec, dir_obj = './testing/badobject/')
 
 	status = obj.load_xid(writefile=True)
 
@@ -97,7 +102,7 @@ def test_HSCObj_xid_conflicting_dir_obj():
 	ra = 140.099341430207
 	dec = 0.580162492432517
 
-	dir_obj = './test/SDSSJ9999+9999/'
+	dir_obj = './testing/SDSSJ9999+9999/'
 
 	with pytest.raises(Exception):
 		obj = HSCObj(ra=ra, dec=dec, dir_obj=dir_obj)
@@ -112,7 +117,7 @@ def test_only_one_row(obj_dirobj):
 def test_HSCObj_identical_w_verification(obj_dirobj):
 
 	f = 'hsc_xid.csv'
-	file_totest = './test/SDSSJ0920+0034/'+f
+	file_totest = './testing/SDSSJ0920+0034/'+f
 	file_verification = './test_verification_data/SDSSJ0920+0034/'+f
 
 	assert filecmp.cmp(file_totest, file_verification)

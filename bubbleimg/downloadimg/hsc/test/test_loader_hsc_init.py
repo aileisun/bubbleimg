@@ -22,23 +22,24 @@ import os
 
 import pytest
 
-from loader_hsc import HSCimgLoader
-from ...class_obsobj import obsobj
-from STARs import user, password
+from ..loader_hsc import HSCimgLoader
+from ....obsobj import obsObj
 
-ra = 150.0547735
-dec = 12.7073027
+
+ra     = 140.099364238908123 
+dec    = 0.580160150759375104
+
 img_width = 20*u.arcsec
 img_height = 20*u.arcsec
 
-dir_obj = './test/SDSSJ1000+1242/'
-dir_parent1 = './test/'
-dir_parent2 = './test2/'
+dir_obj = './testing/SDSSJ0920+0034/'
+dir_parent1 = './testing/'
+dir_parent2 = './testing2/'
 
 
 @pytest.fixture(scope="module", autouse=True)
 def setUp_tearDown():
-	""" rm ./test/ and ./test2/ before and after test"""
+	""" rm ./testing/ and ./testing2/ before and after test"""
 
 	# setup
 	if os.path.isdir(dir_parent1):
@@ -59,11 +60,11 @@ def setUp_tearDown():
 @pytest.fixture
 def L_radec():
 	""" returns a HSCimgLoader object initiated with the ra dec above"""
-	return HSCimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=img_width, img_height=img_height, user=user, password=password)
+	return HSCimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=img_width, img_height=img_height)
 
 
 def test_automatically_generate_dir_obj_w_SDSSNAME():
-	L = HSCimgLoader(ra=ra , dec=dec, dir_parent=dir_parent1, img_width=img_width, img_height=img_height, user=user, password=password)
+	L = HSCimgLoader(ra=ra , dec=dec, dir_parent=dir_parent1, img_width=img_width, img_height=img_height)
 	assert L.dir_obj == dir_obj
 
 
@@ -86,10 +87,9 @@ def test_instantiate_HSCimgLoader_obsobj():
 	test that HSCimgLoader can be instantiated with obsobj
 	"""
 	
-	tab = at.Table([[ra], [dec]], names=['ra', 'dec'])
-	obj = obsobj(tab, catalog='SDSS', dir_parent=dir_parent2, towriteID=False)
+	obj = obsObj(ra=ra, dec=dec, dir_parent=dir_parent2)
 
-	L = HSCimgLoader(obj=obj, img_width=img_width, img_height=img_height, user=user, password=password)
+	L = HSCimgLoader(obj=obj, img_width=img_width, img_height=img_height)
 
 	assert isinstance(L, HSCimgLoader)
 	assert L.ra == ra
@@ -105,11 +105,10 @@ def test_instantiate_HSCimgLoader_error_radec_obsobj():
 	test that an error being raised when both obsobj and ra/dec/dir_obj are fed to HSCimgLoader
 	"""
 	
-	tab = at.Table([[ra], [dec]], names=['ra', 'dec'])
-	obj = obsobj(tab, catalog='SDSS', dir_parent=dir_parent2, towriteID=False)
+	obj = obsObj(ra=ra, dec=dec, dir_parent=dir_parent2)
 
-	with pytest.raises(TypeError):
-		L = HSCimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, obj=obj, img_width=img_width, img_height=img_height, user=user, password=password)
+	with pytest.raises(Exception):
+		L = HSCimgLoader(ra=ra , dec=dec, dir_obj=dir_obj+'fortesting/', obj=obj, img_width=img_width, img_height=img_height)
 
 
 def test_instantiate_HSCimgLoader_error():
@@ -118,7 +117,7 @@ def test_instantiate_HSCimgLoader_error():
 	"""
 
 	with pytest.raises(TypeError):
-		L = HSCimgLoader(img_width=img_width, img_height=img_height, user=user, password=password)
+		L = HSCimgLoader(img_width=img_width, img_height=img_height)
 
 
 def test_init_survey(L_radec):
@@ -134,38 +133,59 @@ def test_init_survey(L_radec):
 
 def test_add_obj_sdss(L_radec):
 	"""
-	test that the function _add_obj_sdss adds/updates L.obj property based on L.ra, dec, dir_obj, and also properly downloads xid.csv and photoobj.csv
+	test that the function add_obj_sdss adds/updates L.obj property based on L.ra, dec, dir_obj, and also properly downloads xid.csv and photoobj.csv
 	"""
 	L = L_radec
-	assert not hasattr(L, 'obj')
 
-	L._add_obj_sdss(update=False)
+	status = L.add_obj_sdss(update=False)
+	assert status
 	assert hasattr(L, 'obj')
-	assert L.obj.ra == L.ra
-	assert L.obj.dec == L.dec
+	assert round(L.obj.ra, 3) == round(L.ra, 3)
+	assert round(L.obj.dec, 3) == round(L.dec, 3)
 	assert L.obj.dir_obj == L.dir_obj
 	assert hasattr(L.obj, 'sdss')
 	assert hasattr(L.obj.sdss, 'xid')
-	assert os.path.isfile(L.dir_obj+'xid.csv')
-	assert os.path.isfile(L.dir_obj+'photoobj.csv')
+	assert hasattr(L.obj.sdss, 'camcol')
+	assert os.path.isfile(L.dir_obj+'sdss_xid.csv')
+	assert os.path.isfile(L.dir_obj+'sdss_photoobj.csv')
 	xid = L.obj.sdss.xid
 
 	# check that L.obj can be updated to the right things
 	L.obj = 'testing'
-	L._add_obj_sdss(update=True)
+	L.add_obj_sdss(update=True)
 
-	assert L.obj.ra == L.ra
+	assert round(L.obj.ra, 3) == round(L.ra, 3)
 	assert L.obj.dir_obj == L.dir_obj
 	assert L.obj.sdss.xid == xid
 
 
-def test_make_obj_sdss_xid(L_radec):
-	L = L_radec
-	assert not hasattr(L, 'obj')
 
-	L._make_obj_sdss_xid()
-	assert round(L.obj.sdss.xid['ra'][0], 4) == round(L.ra, 4)
-	assert os.path.isfile(L.dir_obj+'xid.csv')
+def test_add_obj_hsc(L_radec):
+	"""
+	test that the function add_obj_hsc adds/updates L.obj property and also properly downloads hsc_xid.csv
+	"""
+	L = L_radec
+
+	assert L.hsc_status
+	assert hasattr(L, 'obj')
+	assert round(L.obj.ra, 3) == round(L.ra, 3)
+	assert round(L.obj.dec, 3) == round(L.dec, 3)
+	assert L.obj.dir_obj == L.dir_obj
+	assert hasattr(L.obj, 'hsc')
+	assert hasattr(L.obj.hsc, 'xid')
+	assert hasattr(L.obj.hsc, 'tract')
+	assert os.path.isfile(L.dir_obj+'hsc_xid.csv')
+	assert L.obj.hsc.tract == 9564
+
+	xid = L.obj.hsc.xid
+
+	# check that L.obj can be updated to the right things
+	L.obj = 'testing'
+	L.add_obj_hsc(update=True)
+
+	assert round(L.obj.ra, 3) == round(L.ra, 3)
+	assert L.obj.dir_obj == L.dir_obj
+	assert L.obj.hsc.xid == xid
 
 
 def test_instantiate_HSCimgLoader_floatwidth():
@@ -173,7 +193,7 @@ def test_instantiate_HSCimgLoader_floatwidth():
 	test img_width can be input with float (with units assumed to be pix)
 	"""
 
-	L = HSCimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=64., img_height=64, user=user, password=password)
+	L = HSCimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=64., img_height=64)
 
 	assert isinstance(L, HSCimgLoader)
 	assert L.ra == ra
@@ -187,7 +207,7 @@ def test_instantiate_HSCimgLoader_pixwidth():
 	test img_width can be input with float (with units assumed to be pix)
 	"""
 
-	L = HSCimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=64.*u.pix, img_height=64.*u.pix, user=user, password=password)
+	L = HSCimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=64.*u.pix, img_height=64.*u.pix)
 
 	assert isinstance(L, HSCimgLoader)
 	assert L.ra == ra
@@ -214,7 +234,7 @@ def test_HSCimgLoader_get_img_width_pix(L_radec):
 
 def test_HSCimgLoader_get_img_width_arcsec(): 
 	
-	L = HSCimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=120, img_height=120, user=user, password=password)
+	L = HSCimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=120, img_height=120)
 	
 	assert round(L.img_width_arcsec.value, 3) == 20.160
 	assert round(L.img_height_arcsec.value, 3) == 20.160

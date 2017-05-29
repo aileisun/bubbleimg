@@ -15,13 +15,13 @@ from .. import psf
 ra = 150.0547735
 dec = 12.7073027
 
-dir_obj = './test/SDSSJ1000+1242/'
-dir_parent = './test/'
+dir_obj = './testing/SDSSJ1000+1242/'
+dir_parent = './testing/'
 
 
 @pytest.fixture(scope="module", autouse=True)
 def setUp_tearDown():
-	""" rm ./test/ and ./test2/ before and after test"""
+	""" rm ./testing/ and ./test2/ before and after test"""
 
 	# setup
 	if os.path.isdir(dir_parent):

@@ -42,24 +42,23 @@ def write_alignedstampImages(obj, bands=('g','r','i'), band_rf='r', xwidth=64, y
 	print "[alignstamp] aligning and stamping images "+str(bands)
 	xcenter,ycenter = round(obj.sdss.photoobj['colc']), round(obj.sdss.photoobj['rowc'])
 	images_aligned = getalignedImages(obj, bands, band_rf)
-	images_aligned_stamp = np.zeros([len(bands),xwidth,ywidth])
+	images_aligned_stamp = np.zeros([len(bands), xwidth, ywidth])
 	for nb in range(len(bands)):
 		# make stamps
-		images_aligned_stamp[nb]=cutstampImage(images_aligned[nb], xcenter, ycenter, xwidth, ywidth)#.swapaxes(0,1)
+		images_aligned_stamp[nb] = cutstampImage(images_aligned[nb], xcenter, ycenter, xwidth, ywidth)#.swapaxes(0,1)
 	if clipnegative:
-		images_aligned_stamp=np.amax([images_aligned_stamp,np.zeros(images_aligned_stamp.shape)],axis=0)
+		images_aligned_stamp = np.amax([images_aligned_stamp, np.zeros(images_aligned_stamp.shape)], axis=0)
 	# store fits file
-	images_aligned_stamp_fits=np.swapaxes(images_aligned_stamp,1,2)
+	images_aligned_stamp_fits = np.swapaxes(images_aligned_stamp, 1, 2)
 	for nb in range(len(bands)):
-		header=getstampheader(obj,bands[nb],band_rf,xwidth,ywidth)
-		filename=obj.dir_obj+'stamp-'+bands[nb]+'.fits'
-		prihdu = fits.PrimaryHDU(images_aligned_stamp_fits[nb], header=header)
+		header = getstampheader(obj, bands[nb], band_rf, xwidth, ywidth)
+		filename = obj.dir_obj+'stamp-'+bands[nb]+'.fits'
+		prihdu  =  fits.PrimaryHDU(images_aligned_stamp_fits[nb], header=header)
 		if os.path.isfile(filename):
 			os.remove(filename)
 			prihdu.writeto(filename, overwrite=overwrite)
 		else:
 			prihdu.writeto(filename, overwrite=overwrite)
-
 
 
 def getalignedImages(obj, bands=('g','r','i'), band_rf='r'):

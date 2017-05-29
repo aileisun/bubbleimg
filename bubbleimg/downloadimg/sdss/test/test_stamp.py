@@ -1,14 +1,14 @@
-# test_alignstamp.py
+# test_stamp.py
 # ALS 2017/03/17
 
 """
 to be used with pytest
 
-test sets for alignstamplpy
+test sets for stamp
 """
 
 import numpy as np
-from .. import alignstamp
+from .. import stamp
 
 
 def test_cutstampImage_upperright():
@@ -23,9 +23,9 @@ def test_cutstampImage_upperright():
 	ywidth = 3
 	stamp_truth = np.array([[1, 1, 0,], [1, 1, 0,], [0, 0, 0,], ])
 
-	stamp = alignstamp.cutstampImage(image, xcenter, ycenter, xwidth, ywidth)
+	stmp = stamp.cutstampImage(image, xcenter, ycenter, xwidth, ywidth)
 
-	assert np.all(stamp == stamp_truth)
+	assert np.all(stmp == stamp_truth)
 
 
 def test_cutstampImage_lowerleft():
@@ -40,7 +40,7 @@ def test_cutstampImage_lowerleft():
 	ywidth = 3
 	stamp_truth = np.array([[0, 0, 0,], [0, 1, 1,], [0, 1, 1,], ])
 
-	stamp = alignstamp.cutstampImage(image, xcenter, ycenter, xwidth, ywidth)
+	stmp = stamp.cutstampImage(image, xcenter, ycenter, xwidth, ywidth)
 
-	assert np.all(stamp == stamp_truth)
+	assert np.all(stmp == stamp_truth)
 

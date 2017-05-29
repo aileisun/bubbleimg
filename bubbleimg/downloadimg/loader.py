@@ -9,7 +9,7 @@ import abc
 from catalogue.catalogue_util import getSDSSName_fromRADEC
 
 from ..filters import surveysetup
-from ..obsobj.sdss import SDSSObj
+from ..obsobj import obsObj
 # from ..class_obsobj import obsobj
 
 
@@ -37,9 +37,6 @@ class imgLoader(object):
 
 		img_height (angle quantity or int) = 20 * u.arcsec:
 
-		to_make_obj_sdss (bool) = False
-			:if true, then make self.obj.sdss.xid etc and load xid.csv, photoboj.csv
-
 		user = '': account user name for access
 		password = '': account password for access
 
@@ -61,40 +58,38 @@ class imgLoader(object):
 		
 		if 'obj' in kwargs: 
 			self.obj = kwargs.pop('obj')
-			self.ra = self.obj.ra
-			self.dec = self.obj.dec
-			self.dir_obj = self.obj.dir_obj
-			
-		else: 
-			self.ra = kwargs.pop('ra', None)
-			self.dec = kwargs.pop('dec', None)
+			# sanity check
 			if 'dir_obj' in kwargs:
-				self.dir_obj = kwargs.pop('dir_obj', None)
-			elif 'dir_parent' in kwargs:
-				sdssname = getSDSSName_fromRADEC(self.ra, self.dec)
-				dir_parent = kwargs.pop('dir_parent', '')
-				self.dir_obj = dir_parent+sdssname+'/'
-			else:
-				raise TypeError('dir_obj or dir_parent not specified')
+				if self.obj.dir_obj != kwargs.pop('dir_obj'):
+					raise Exception("[loader] conflicting dir_obj entered")
+		else: 
+			self.obj = obsObj(**kwargs)
+		# else:
+		# 	raise TypeError('dir_obj or dir_parent not specified')
+
+		self.ra = self.obj.ra
+		self.dec = self.obj.dec
+		self.dir_obj = self.obj.dir_obj
+
+		# self.ra = kwargs.pop('ra', None)
+		# self.dec = kwargs.pop('dec', None)
+		# if 'dir_obj' in kwargs:
+		# 	self.dir_obj = kwargs.pop('dir_obj', None)
+		# elif 'dir_parent' in kwargs:
+		# 	sdssname = getSDSSName_fromRADEC(self.ra, self.dec)
+		# 	self.dir_parent = kwargs.pop('dir_parent', '')
+		# 	self.dir_obj = self.dir_parent+sdssname+'/'
+		# else:
+		# 	raise TypeError('dir_obj or dir_parent not specified')
 
 		self.img_width = kwargs.pop('img_width', 20*u.arcsec)
 		self.img_height = kwargs.pop('img_height', 20*u.arcsec)
 		self._user = kwargs.pop('user', "")
 		self._password = kwargs.pop('password', "")
 
-		to_make_obj_sdss = kwargs.pop('to_make_obj_sdss', False)
-
-		if kwargs:
-			raise TypeError('Unexpected **kwargs: %r' % kwargs)
-
 		if (self.ra is None) or (self.dec is None) or (self.dir_obj is None):
 			raise TypeError('ra or dec or dir_obj not specified')
-		#===== 
-
-		# add on attributes
-		if to_make_obj_sdss:
-			self._make_obj_sdss_xid()
-
+		
 		self._attach_img_widthheight_unit()
 		self.survey = 'to be overwritten'
 		self.pixsize = -1
@@ -126,49 +121,113 @@ class imgLoader(object):
 		return 'psf-{0}.fits'.format(band)
 
 
-	def _imgLoader__make_stamp_core(self, func_download_stamp, **kwargs):
+	# def _imgLoader__make_stamp_core(self, func_download_stamp, **kwargs):
+	# 	"""
+	# 	make a stamp of self and of band
+	# 	call _download_stamp and takes care of overwrite with argument 'overwrite'. Default: do not overwrite. 
+
+	# 	Params
+	# 	----------
+	# 	func_download_stamp (function)
+	# 	band (string) = 'r'
+	# 	overwrite (boolean) = False
+	# 	**kwargs to be entered into func_download_stamp()
+
+	# 	Return
+	# 	----------
+	# 	status: True if downloaded or skipped, False if download fails
+	# 	"""
+	# 	band = kwargs.pop('band', 'r')
+	# 	overwrite = kwargs.pop('overwrite', False)
+
+	# 	# setting
+	# 	filename = self.get_stamp_filename(band)
+	# 	file = self.get_stamp_filepath(band)
+
+	# 	if not os.path.isdir(self.dir_obj):
+	# 	    os.makedirs(self.dir_obj)
+
+	# 	if (not os.path.isfile(file)) or overwrite:
+	# 		print "download_stamp() ".format(filename)
+	# 		try: 
+	# 			return func_download_stamp(band=band, **kwargs) # if failed then return False
+	# 		except:
+	# 			return False
+	# 	else:
+	# 		print "skip download_stamp() as file {0} exists".format(filename)
+	# 		return True
+
+
+	# def _imgLoader__make_stamps_core(self, func_download_stamp, **kwargs):
+	# 	"""
+	# 	make all stamp images of all survey bands for obj self. 
+
+	# 	Params
+	# 	----------
+	# 	func_download_stamp (function)
+	# 	overwrite (boolean) = False
+	# 	**kwargs to be entered into func_download_stamp()
+
+	# 	Return
+	# 	----------
+	# 	status: True if all downloaded or skipped, False if any of the downloads fails
+	# 	"""
+	# 	bands = surveysetup.surveybands[self.survey]
+
+	# 	statuss = np.ndarray(5, dtype=bool)
+	# 	for i, band in enumerate(bands): 
+	# 		statuss[i] = self._imgLoader__make_stamp_core(func_download_stamp=func_download_stamp, band=band, **kwargs)
+
+	# 	return all(statuss)
+
+
+	def _imgLoader__make_file_core(self, func_download_file, func_naming_file, band='r', overwrite=False, **kwargs):
 		"""
-		make a stamp of self and of band
-		call _download_stamp and takes care of overwrite with argument 'overwrite'. Default: do not overwrite. 
+		make a file of self and of band
+		call _download_file and takes care of overwrite with argument 'overwrite'. Default: do not overwrite. 
 
 		Params
 		----------
-		func_download_stamp (function)
+		func_download_file (function), which takes (self, band) as argument
+		func_naming_file (function), which takes (self, band) as argument
 		band (string) = 'r'
 		overwrite (boolean) = False
-		**kwargs to be entered into func_download_stamp()
+		**kwargs to be entered into func_download_file()
 
 		Return
 		----------
 		status: True if downloaded or skipped, False if download fails
 		"""
-		band = kwargs.pop('band', 'r')
-		overwrite = kwargs.pop('overwrite', False)
 
 		# setting
-		filename = self.get_stamp_filename(band)
-		file = self.get_stamp_filepath(band)
+		filename = func_naming_file(band)
+		filepath = self.dir_obj+filename
 
 		if not os.path.isdir(self.dir_obj):
 		    os.makedirs(self.dir_obj)
 
-		if (not os.path.isfile(file)) or overwrite:
-			print "download_stamp() ".format(filename)
-			return func_download_stamp(band=band, **kwargs) # if failed then return False
+		if (not os.path.isfile(filepath)) or overwrite:
+			print "download_file() ".format(filename)
+			# try: 
+			return func_download_file(band=band, **kwargs) # if failed then return False
+			# except:
+				# return False
+			
 		else:
-			print "skip download_stamp() as file {0} exists".format(filename)
+			print "skip download_file() as file {0} exists".format(filename)
 			return True
 
 
-	def _imgLoader__make_stamps_core(self, func_download_stamp, **kwargs):
+	def _imgLoader__make_files_core(self, func_download_file, func_naming_file, overwrite=False, **kwargs):
 		"""
-		make all stamp images of all survey bands for obj self. 
+		make all file images of all survey bands for obj self. 
 
 		Params
 		----------
-		func_download_stamp (function)
+		func_download_file (function), which takes (self, band) as argument
+		func_naming_file (function), which takes (self, band) as argument
 		overwrite (boolean) = False
-		**kwargs to be entered into func_download_stamp()
+		**kwargs to be entered into func_download_file()
 
 		Return
 		----------
@@ -176,9 +235,9 @@ class imgLoader(object):
 		"""
 		bands = surveysetup.surveybands[self.survey]
 
-		statuss = np.ndarray(5, dtype=bool)
+		statuss = np.ndarray(len(bands), dtype=bool)
 		for i, band in enumerate(bands): 
-			statuss[i] = self._imgLoader__make_stamp_core(func_download_stamp=func_download_stamp, band=band, **kwargs)
+			statuss[i] = self._imgLoader__make_file_core(func_download_file=func_download_file, func_naming_file=func_naming_file, band=band, overwrite=overwrite, **kwargs)
 
 		return all(statuss)
 
@@ -211,51 +270,71 @@ class imgLoader(object):
 
 	def _add_attr_img_width_pix_arcsec(self):
 		""" creating attributes 
-		self.img_width_pix
-		self.img_height_pix
-		self.img_height_arcsec
-		self.img_width_arcsec
+		self.img_width_pix (int)
+		self.img_height_pix (int)
+		self.img_height_arcsec (angular quantity)
+		self.img_width_arcsec (angular quantity)
 		which are self.img_width and img_height but changed to indicated units """
 		survey_pixelscale = u.pixel_scale(self.pixsize/u.pixel)
 
 		if hasattr(self.img_width, 'unit'): 
-			self.img_width_pix = np.floor(self.img_width.to(u.pix, survey_pixelscale))
+			nwpix = (self.img_width.to(u.pix, survey_pixelscale)/u.pix).to(u.dimensionless_unscaled)
+			self.img_width_pix = int(np.floor(nwpix))
 			self.img_width_arcsec = self.img_width.to(u.arcsec, survey_pixelscale)
 		else: 
 			raise ValueError('self.img_width has no angular units')
 
 		if hasattr(self.img_height, 'unit'): 
-			self.img_height_pix = np.floor(self.img_height.to(u.pix, survey_pixelscale))
+			nhpix = (self.img_height.to(u.pix, survey_pixelscale)/u.pix).to(u.dimensionless_unscaled)
+			self.img_height_pix = int(np.floor(nhpix))
 			self.img_height_arcsec = self.img_height.to(u.arcsec, survey_pixelscale)
 		else: 
 			raise ValueError('self.img_height has no angular units')
 
 
-	def _make_obj_sdss_xid(self):
-		"""
-		make sure that self have attributes self.obj.sdss.xid by calling _add_obj_sdss(update=True) when nessisary, and save files xid.csv, photoobj.csv. 
-		"""
-		try:
-			self.obj.sdss.xid
-		except(AttributeError):
-			self._add_obj_sdss(update=True)			
-
-
-	def _add_obj_sdss(self, update=True):
+	def add_obj_sdss(self, update=False):
 		""" 
-		add self.obj with attributes ra, dec, sdss, sdss.xid, sdss.photoobj, etc., 
+		if self.obj does not exist create self.obj as an instance of obsObj
+		if self.obj does not have sdss then call add_sdss(), which makes self.obj.sdss.xid, etc. 
 		download xid.csv, photoobj.csv into directory dir_obj 
+
+		Return
+		------
+		status: True if success, False if not
 		"""
 		if (not hasattr(self, 'obj')) or update:
-			dir_parent = '/'.join(self.dir_obj.split('/')[0:-2])+'/'
-			tab = at.Table([[self.ra], [self.dec]], names=['ra', 'dec'])
+			self.obj = obsObj(ra=self.ra, dec=self.dec, dir_obj=self.dir_obj)
 
-			obj = SDSSObj(ra=self.ra, dec=self.dec, dir_parent=dir_parent)
+		if (not hasattr(self.obj, 'sdss')) or update:
+			status = self.obj.add_sdss()
+		else: 
+			status = True
 
-			# obj = obsobj(tab, catalog='sdss', dir_parent=dir_parent, towriteID=True)
+		# sanity check
+		if self.obj.dir_obj != self.dir_obj: 
+			raise ValueError('self.dir_obj inconsistent with SDSS naming convension')
 
-			self.obj = obj
+		return status
 
-			if self.obj.dir_obj != self.dir_obj: 
-				raise ValueError('self.dir_obj inconsistent with SDSS naming convension')
 
+	def add_obj_hsc(self, update=False, **kwargs):
+		""" 
+		if self.obj does not exist create self.obj as an instance of obsObj
+		if self.obj does not have hsc then call add_hsc(), which makes self.obj.hsc.xid, etc. 
+		download xid.csv, photoobj.csv into directory dir_obj 
+
+		Return
+		------
+		status: True if success, False if not
+		"""
+		if (not hasattr(self, 'obj')) or update:
+			self.obj = obsObj(ra=self.ra, dec=self.dec, dir_obj=self.dir_obj)
+
+		if (not hasattr(self.obj, 'hsc')) or update:
+			status = self.obj.add_hsc(**kwargs)
+
+		# sanity check
+		if self.obj.dir_obj != self.dir_obj: 
+			raise ValueError('self.dir_obj inconsistent with SDSS naming convension')
+
+		return status

@@ -4,15 +4,13 @@
 """
 define class hscobj, which can check whether there is such an object and load xid 
 """
-
+import numpy as np
 import sys 
 import os
 from astropy.coordinates import SkyCoord
 import astropy.table as at
 from astropy.io import fits
 import astropy.units as u
-
-from catalogue.catalogue_util import getSDSSName_fromRADEC
 
 from hscsspquery import hscSspQuery
 from ..plainobj import plainObj
@@ -23,6 +21,15 @@ class HSCObj(plainObj):
 		load sdss.xid write files 'hsc_xid.csv' automatically.
 		if successful, sdss.status == True
 
+		Instruction
+		-----------
+		One has to set HSC_SSP STARs account username and password as environmental variable to access hsc data
+		  $ export HSC_SSP_CAS_USERNAME
+		  $ read -s HSC_SSP_CAS_USERNAME
+		  $ export HSC_SSP_CAS_PASSWORD
+		  $ read -s HSC_SSP_CAS_PASSWORD
+
+
 		Params
 		------
 		ra (float)
@@ -32,7 +39,7 @@ class HSCObj(plainObj):
 		/or 
 			dir_parent (string): attr dir_obj is set to dir_parent+'SDSSJXXXX+XXXX/'
 		
-		layer = 's16a_wide' (string): which data base to search for
+		rerun = 's16a_wide' (string): which data base to search for
 		release_version = 'dr1' (string): which data base to search for
 		writefile=True (bool): whether to write xid 
 
@@ -42,7 +49,7 @@ class HSCObj(plainObj):
 		ra (float)
 		dec (float)
 		dir_obj (string)
-		layer (string): e.g., 's16a_wide'
+		rerun (string): e.g., 's16a_wide'
 		release_version (string): e.g., 'dr1'
 		status (whether the xid and photoboj query were successful)
 
@@ -52,7 +59,7 @@ class HSCObj(plainObj):
 		"""
 		super(self.__class__, self).__init__(**kwargs)
 		writefile = kwargs.pop('writefile', True)
-		self.layer = kwargs.pop('layer', 's16a_wide')
+		self.rerun = kwargs.pop('rerun', 's16a_wide')
 		self.release_version = kwargs.pop('release_version', 'dr1')
 
 		self.status = self.load_xid(writefile=writefile)
@@ -72,7 +79,7 @@ class HSCObj(plainObj):
 		------
 		status (bool): if true then the loading was successful, false if not
 		"""
-		xid = self._get_xid(layer=self.layer, release_version=self.release_version, writefile=writefile)
+		xid = self._get_xid(rerun=self.rerun, release_version=self.release_version, writefile=writefile)
 
 		if xid is not None:
 			self.xid = xid
@@ -84,7 +91,7 @@ class HSCObj(plainObj):
 			return False
 
 
-	def _get_xid(self, layer='s16a_wide', release_version='dr1', writefile=True):
+	def _get_xid(self, rerun='s16a_wide', release_version='dr1', writefile=True):
 		"""
 		return xid.
 		Read xid locally if self.dir_obj+'hsc_xid.csv' exist. Otherwise query. 
@@ -112,7 +119,7 @@ class HSCObj(plainObj):
 		else: # download xid from sdss
 			print "[hscobj] querying xid from server"
 			self.make_dir_obj()	
-			sql = _get_sql(ra=self.ra, dec=self.dec, layer=layer)
+			sql = _get_sql(ra=self.ra, dec=self.dec, rerun=rerun)
 			hscSspQuery(sql, filename_out=fn, release_version=release_version)
 
 		if os.path.isfile(fn): # retrieve xid locally
@@ -160,7 +167,7 @@ class HSCObj(plainObj):
 
 
 
-def _get_sql(ra, dec, radius=2, layer='s16a_wide'):
+def _get_sql(ra, dec, radius=2, rerun='s16a_wide'):
 	"""
 	construct sql query 
 
@@ -169,7 +176,7 @@ def _get_sql(ra, dec, radius=2, layer='s16a_wide'):
 	ra (float): ra in deg decimal
 	dec (float): dec in deg decimal
 	radius (float): search radius in arcsec
-	layer (string): which layer to use
+	rerun (string): which rerun to use
 
 	"""
 
@@ -182,7 +189,7 @@ def _get_sql(ra, dec, radius=2, layer='s16a_wide'):
 
 	with open(fn, 'r') as f:
 		sql_template=f.read()
-	sql = sql_template.format(layer=layer, ra=str(ra), dec=str(dec), radius=str(radius))
+	sql = sql_template.format(rerun=rerun, ra=str(ra), dec=str(dec), radius=str(radius))
 
 	return sql
 

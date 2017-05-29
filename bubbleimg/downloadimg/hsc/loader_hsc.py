@@ -7,11 +7,12 @@ import requests
 import astropy.units as u
 from astropy.io import fits
 import re
-import getpass
-
 
 from ..loader import imgLoader
 from ...filters import surveysetup
+from multibutler import multiButler
+from get_credential import getCrendential
+import psf
 
 nanomaggy = u.def_unit('nanomaggy', 3.631e-6*u.Jy)
 u.add_enabled_units([nanomaggy])
@@ -22,30 +23,57 @@ class HSCimgLoader(imgLoader):
 
 	def __init__(self, **kwargs):
 		""" 
+
 		on top of imgLoader init, set self.survey = 'hsc', 
 		add attributes self.img_width_pix, self.img_height_pix
 		do not load obj.sdss.xid by default unless to_make_obj_sdss= True
+
+
+		Additional Params
+		-----------------
+		environment = 'iaa' (str)
+			: 'iaa', 'sumire', or 'online', chooses how large files are downloaded, see multibutler.py
+		rerun = 's16a_wide' (str)
+		release_version = 'dr1' (str)
+		username (optional) (str): STARs account
+		password (optional) (str): STARs account
+
+
+		Instruction for stars username and password
+		-------------------------------------------
+		1) as arguments 
+			HSCimgLoader(..., username=username, password=password)
+
+		2) as environmental variable 
+		  $ export HSC_SSP_CAS_USERNAME
+		  $ read -s HSC_SSP_CAS_USERNAME
+		  $ export HSC_SSP_CAS_PASSWORD
+		  $ read -s HSC_SSP_CAS_PASSWORD
+
+		3) enter from terminal
+
 		"""
-		super(HSCimgLoader, self ).__init__(**kwargs)
+		super(self.__class__, self).__init__(**kwargs)
+
+		self.environment = kwargs.pop('environment', 'iaa')
+		self.rerun = kwargs.pop('rerun', 's16a_wide')
+		self.semester = self.rerun.split('_')[0]
+		self.release_version = kwargs.pop('release_version', 'dr1')
+
+		self.hsc_status = super(self.__class__, self).add_obj_hsc(update=False, release_version=self.release_version, rerun=self.rerun)
 
 		self.survey = 'hsc'
 		self.bands = surveysetup.surveybands[self.survey]
 		self.pixsize = surveysetup.pixsize[self.survey]
 		self._add_attr_img_width_pix_arcsec()
 
-		if self._user == "" or self._password == "":
-			try: 
-				from stars_credential import user, password
-			except:
-				self._user = raw_input("STARs username:")
-				self._password = getpass.getpass("Password:")
-			else: 
-				self._user = user
-				self._password = password
+		# get stars username ans password
+		self.__username = kwargs.pop('username', '')
+		self.__password = kwargs.pop('password', '')
+		if self.__username == '' or self.__password == '':
+			self.__username = getCrendential("HSC_SSP_CAS_USERNAME", cred_name = 'STARs username')
+			self.__password = getCrendential("HSC_SSP_CAS_PASSWORD", cred_name = 'STARs password')
 
-
-	def make_psfs(self):
-		pass
 
 	def make_stamp(self, band='r', overwrite=False, **kwargs):
 		"""
@@ -61,13 +89,18 @@ class HSCimgLoader(imgLoader):
 		Return
 		----------
 		status: True if downloaded or skipped, False if download fails
-
 		"""
-		return self._imgLoader__make_stamp_core(self._download_stamp, band=band, overwrite=overwrite, **kwargs)
+
+		# return self._imgLoader__make_stamp_core(func_download_stamp=self._download_stamp, band=band, overwrite=overwrite, **kwargs)
+
+		return self._imgLoader__make_file_core(func_download_file=self._download_stamp, func_naming_file=self.get_stamp_filename, band=band, overwrite=overwrite, **kwargs)
 
 
 	def make_stamps(self, overwrite=False, **kwargs):
-		return self._imgLoader__make_stamps_core(self._download_stamp, overwrite=overwrite, **kwargs)
+		"""
+		make stamps of all bands, see make_stamp()
+		"""
+		return self._imgLoader__make_files_core(func_download_file=self._download_stamp, func_naming_file=self.get_stamp_filename, overwrite=overwrite, **kwargs)
 
 
 	def _download_stamp(self, band='r', imgtype='coadd', tract='', rerun='', tokeepraw=False):
@@ -107,7 +140,7 @@ class HSCimgLoader(imgLoader):
 
 		# query, download, and convert to new unit
 		# writing two files (if successful): raw img file and stamp img file. 
-		rqst = requests.get(url, auth=(self._user, self._password))
+		rqst = requests.get(url, auth=(self.__username, self.__password))
 		if rqst.status_code == 200:
 			filepath_raw = self._write_request_to_file(rqst)
 			self._write_fits_unit_specified_in_nanomaggy(filein=filepath_raw, fileout=filepath_out)
@@ -119,6 +152,131 @@ class HSCimgLoader(imgLoader):
 		else:  
 			print "image cannot be retrieved"
 			return False
+
+
+	def make_psf(self, band, overwrite=False, to_keep_calexp=False):
+		"""
+		make psf files by downloading calexp file using selected method depending on self.environment and read psf info from it using psf.py
+
+		Params
+		------
+		band (str): e.g., 'r'
+		overwrite=False: whether to overwrite existing psf file
+		to_keep_calexp=False: whether to keep the calexp file or not after psf files are made
+		"""
+		if self.environment!='iaa':
+			status = self._imgLoader__make_file_core(func_download_file=self._calexp_to_psf, func_naming_file=self.get_psf_filename, band=band, overwrite=overwrite)
+
+			if not to_keep_calexp:
+				fn = self.dir_obj+self.get_calexp_filename(band=band)
+				if os.path.isfile(fn):
+					os.remove(fn)
+		else: 
+			status = self._imgLoader__make_file_core(func_download_file=self._download_psf_at_iaa, func_naming_file=self.get_psf_filename, band=band, overwrite=overwrite)
+
+		return status
+
+
+	def make_psfs(self, overwrite=False, to_keep_calexp=False):
+
+		if self.environment!='iaa':
+			statuss = np.ndarray(5, dtype=bool)
+			for i, band in enumerate(self.bands): 
+				statuss[i] = self.make_psf(band=band, overwrite=overwrite, to_keep_calexp=to_keep_calexp)
+			return all(statuss)
+		else: 
+			missings = [(not os.path.isfile(self.dir_obj+self.get_psf_filename(band))) for band in self.bands]
+			isfilesmissing = np.any(missings)
+
+			if isfilesmissing:
+				return self._download_psfs_at_iaa()
+			else: 
+				print "skip _download_psfs_at_iaa() as file exists"
+				return True
+
+
+	def _download_psf_at_iaa(self, band):
+		if self.environment!='iaa':
+			raise Exception("[HSCimgLoader] _download_psf_at_iaa() can only be called when environment is iaa")
+
+		fn_out = self.dir_obj+self.get_psf_filename(band=band)
+
+		dataId = dict(tract=self.obj.hsc.tract, patch_s=self.obj.hsc.patch_s, filter=self.get_filter_name(band))
+
+		b = multiButler(environment=self.environment, release_version=self.release_version, semester=self.semester, rerun=self.rerun).butler
+
+		with b:
+			status = b.download_psf(fn_out, ra=self.ra, dec=self.dec, **dataId)
+		return status
+
+
+	def _download_psfs_at_iaa(self):
+		if self.environment!='iaa':
+			raise Exception("[HSCimgLoader] _download_psf_at_iaa() can only be called when environment is iaa")
+
+		b = multiButler(environment=self.environment, release_version=self.release_version, semester=self.semester, rerun=self.rerun).butler
+
+		statuss = np.ndarray(len(self.bands), dtype=bool)
+		with b:
+			for i, band in enumerate(self.bands): 
+				fn_out = self.dir_obj+self.get_psf_filename(band=band)
+
+				dataId = dict(tract=self.obj.hsc.tract, patch_s=self.obj.hsc.patch_s, filter=self.get_filter_name(band))
+
+				statuss[i] = b.download_psf(fn_out, ra=self.ra, dec=self.dec, **dataId)
+		return all(statuss)
+
+
+	def _calexp_to_psf(self, band):
+		fn_in = self.dir_obj+self.get_calexp_filename(band=band)
+		fn_out = self.dir_obj+self.get_psf_filename(band=band)
+
+		status_calexp = self.make_calexp(band=band, overwrite=False)
+
+		if status_calexp:
+			psf.exposureF_to_psf(fn_in, fn_out, self.ra, self.dec)
+
+			status = os.path.isfile(fn_out)
+			return status
+		else: False
+
+
+	def make_calexp(self, band='r', overwrite=False):
+		"""
+		make calexp image of the specified band of the object. takes care of overwrite with argument 'overwrite'. Default: do not overwrite. 
+
+		Params
+		----------
+		band (string) = 'r'
+		overwrite (boolean) = False
+
+		Return
+		----------
+		status: True if downloaded or skipped, False if download fails
+		"""
+		return self._imgLoader__make_file_core(func_download_file=self._download_calexp, func_naming_file=self.get_calexp_filename, band=band, overwrite=overwrite)
+
+
+	def make_calexps(self, overwrite=False):
+		"""
+		make calexps of all bands, see make_calexp()
+		"""
+		return self._imgLoader__make_files_core(func_download_file=self._download_calexp, func_naming_file=self.get_calexp_filename, overwrite=overwrite)
+
+
+	def _download_calexp(self, band='r'):
+
+		fn = self.dir_obj+self.get_calexp_filename(band=band)
+
+		dataId = dict(tract=self.obj.hsc.tract, patch_s=self.obj.hsc.patch_s, filter=self.get_filter_name(band))
+
+		b = multiButler(environment=self.environment, release_version=self.release_version, semester=self.semester, rerun=self.rerun).butler
+
+		with b:
+			status = b.download_file(fn, **dataId)
+		return status
+
+
 
 
 	def _write_request_to_file(self, rqst):
@@ -152,7 +310,6 @@ class HSCimgLoader(imgLoader):
 		url = 'https://hscdata.mtk.nao.ac.jp:4443/das_quarry/cgi-bin/quarryImage?ra={0}&dec={1}&sw={2}&sh={3}&type={4}&image=on&mask={5}&variance={6}&filter=HSC-{7}&tract={8}&rerun={9}'.format(ra, dec, sw, sh, imgtype, mask, variance, band.capitalize(), tract, rerun)
 
 		return url
-
 
 
 	def _write_fits_unit_converted_to_nanomaggy(self, filein, fileout):
@@ -245,3 +402,11 @@ class HSCimgLoader(imgLoader):
 		data = hdu[1].data
 		hdu_abbrv = fits.PrimaryHDU(data, header=header_combine)
 		hdu_abbrv.writeto(fileout, overwrite=True)
+
+
+	def get_calexp_filename(self, band):
+		return 'calexp-{0}.fits'.format(band)
+
+
+	def get_filter_name(self, band):
+		return "HSC-{band}".format(band=band.upper())

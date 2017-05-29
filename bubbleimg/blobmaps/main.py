@@ -6,7 +6,7 @@ given obsobj, make all the images
 
 """
 
-import alignstamp
+# import alignstamp
 import imagedisp_util
 import makemap
 

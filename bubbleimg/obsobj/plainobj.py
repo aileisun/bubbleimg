@@ -7,11 +7,11 @@ define class plainObj, which has only ra, dec, and dir_obj as attributes.
 
 import os
 
-from catalogue.catalogue_util import getSDSSName_fromRADEC
+from objnaming import get_obj_name
 
 
 class plainObj(object):
-	def __init__(self, ra, dec, dirnamingsys='sdss', **kwargs):
+	def __init__(self, ra, dec, obj_naming_sys='sdss', **kwargs):
 		"""
 		plainObj
 		a object with only attributes ra, dec, and dir_obj
@@ -28,7 +28,7 @@ class plainObj(object):
 		----------
 		ra (float)
 		dec (float)
-		dirnamingsys = 'sdss' (string)
+		obj_naming_sys = 'sdss' (string): the naming system of object
 		/either
 			dir_obj (string)
 		/or 
@@ -39,6 +39,7 @@ class plainObj(object):
 		----------
 		ra (float)
 		dec (float)
+		name (string)
 		dir_obj (string)
 		"""
 
@@ -54,23 +55,23 @@ class plainObj(object):
 
 		if 'dir_obj' in kwargs:
 			self.dir_obj = kwargs.pop('dir_obj', None)
+			self.name = self.dir_obj.split('/')[-2]
+
+			# sanity check: dir_obj naming consistent with ra, dec
+			if (self.name[:4]=='SDSS' and self.name != get_obj_name(self.ra, self.dec, obj_naming_sys='sdss')):
+				raise Exception('dir_obj SDSS name inconsistent with ra dec')
 		elif 'dir_parent' in kwargs:
 			dir_parent = kwargs.pop('dir_parent', None)
-			sdssname = getSDSSName_fromRADEC(self.ra, self.dec)
-			self.dir_obj = dir_parent+sdssname+'/'
+			self.name = get_obj_name(self.ra, self.dec, obj_naming_sys=obj_naming_sys)
+			self.dir_obj = dir_parent+self.name+'/'
 			self.dir_parent = dir_parent
 		else:
 			raise Exception('dir_obj or dir_parent not specified')
 
+
 		# sanity check: dir_obj is like a directory
 		if self.dir_obj[-1] != '/':
 			raise Exception('dir_obj not a directory path')
-
-		# sanity check: dir_obj naming consistent with ra, dec
-		dir_obj_name = self.dir_obj.split('/')[-2]
-		if (dir_obj_name[:4]=='SDSS'):
-			if (dir_obj_name!=getSDSSName_fromRADEC(self.ra, self.dec)): 
-				raise Exception('dir_obj SDSS name inconsistent with ra dec')
 
 
 

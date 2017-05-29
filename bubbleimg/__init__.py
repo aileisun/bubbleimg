@@ -21,7 +21,5 @@ reload(obsobj)
 
 from make_batch import make_batch
 from do_batch import do_batch
-# from class_obsobj import obsobj
-from obsobj import obsObj
 
-# reload(class_obsobj)
+from obsobj import obsObj

@@ -12,9 +12,6 @@ import astropy.table as at
 from astropy.io import fits
 import astropy.units as u
 
-from catalogue.catalogue_util import getSDSSName_fromRADEC
-
-
 from ..plainobj import plainObj
 
 class SDSSObj(plainObj):
@@ -57,7 +54,6 @@ class SDSSObj(plainObj):
 		if toload_photoobj:
 			statusphotoobj = self.load_photoobj(writefile=writefile)
 
-		self.sdssname = getSDSSName_fromRADEC(self.ra, self.dec)
 		self.status = statusxid
 
 
@@ -204,27 +200,49 @@ class SDSSObj(plainObj):
 
 
 
-	def get_spectra(self, writefile=True):
+	def get_spec(self):
 		"""
 		If self.dir_obj/spec.fits exist, load spec locally. Otherwise
 		download from SDSS and save it locally. 
 
 		Examples
 		------
-		spectable=obj.sdss.get_spectra(obj)[1].data
+		spectable = obj.sdss.get_spec(obj)[1].data
 		spec, lcoord= spectable['flux'], 10.**spectable['loglam']
 
 		Parameters
-		------
+		----------
 		obj (object of obsobs)
-		writefile (bool)
 
 		Returns
 		------
-		sp (hdulist)
+		sp (hdulist) or None if it fails
+
+		"""
+		fn = self.dir_obj+self.get_spec_filename()
+
+		if self.make_spec(overwrite=False):
+			sp = fits.open(fn)
+			return sp
+		else: 
+			return None
+
+
+	def make_spec(self, overwrite=False):
+		"""
+		make spectrum by downloading. If overwrite=False then skip if it exists. 
+
+		Params
+		------
+		self
+		overwrite=True (bool)
+
+		Return
+		------
+		status (bool)
 
 		Write Outputs
-		------
+		-------------
 		obj.dir_obj+'spec.fits'
 			----- HDUList ---- 
 			HDU 0  : Header info from spPlate
@@ -235,28 +253,27 @@ class SDSSObj(plainObj):
 		    HDU 4+ : [Optional] Individual spCFrame spectra [B, R for each exposure]
 
 			For more informaiton, see http://data.sdss3.org/datamodel/files/BOSS_SPECTRO_REDUX/RUN2D/spectra/PLATE4/spec.html
+
 		"""
-		filename = self.dir_obj+'spec.fits'
+		self.make_dir_obj()		
+		fn = self.dir_obj+self.get_spec_filename()
 
-		if not hasattr(self, 'xid'):
-			xidstatus = self.load_xid(writefile=writefile)
-		else: 
-			xidstatus = True
-
-		if xidstatus:
-			if os.path.isfile(filename): 
-				sp = fits.open(filename)
-			else: 
+		if self.status: 
+			if not os.path.isfile(fn) or overwrite: 
+				print "[SDSSObj] download spec"
 				sp = astroquery.sdss.SDSS.get_spectra(matches=self.xid)
-				if len(sp)!=1: 
-					raise ValueError("SDSS spec obj not uniquely identified. ")
-				else: 
+				if len(sp) == 1: 
 					sp=sp[0]
-				if writefile: 
 					self.make_dir_obj()
-					sp.writeto(filename)
-			return sp
-		else:
+					sp.writeto(fn)
+					return True
+				else: 
+					raise ValueError("SDSS spec obj not uniquely identified. ")
+					return False
+			else: 
+				print "[SDSSObj] skip download spec as file exists"
+				return True
+		else: 
 			return False
 
 
@@ -272,7 +289,7 @@ class SDSSObj(plainObj):
 
 		RETURN OUTPUT: spec (nparray), lcoord (nparray)
 		"""
-		spectable = self.get_spectra()[1].data
+		spectable = self.get_spec()[1].data
 		spec, lcoord = spectable['flux'], 10.**spectable['loglam']
 
 		if not wunit:	
@@ -283,4 +300,6 @@ class SDSSObj(plainObj):
 			return spec*u_spec, lcoord*u_lcoord
 
 
+	def get_spec_filename(self):
+		return 'spec.fits'
 

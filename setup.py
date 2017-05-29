@@ -1,5 +1,12 @@
 from setuptools import setup
 
+"""
+  To use the hsc part one needs to be in lsst environment
+  # https://pipelines.lsst.io/install/conda.html
+  source activate lsst
+  source eups-setups.sh
+  setup lsst_distrib
+"""
 
 setup(name='bubbleimg',
       version='0.1',
@@ -21,8 +28,13 @@ setup(name='bubbleimg',
           'copy',
           'collections',
           'pickle',
-          'skimage',
+          'scikit-image',
           'shapely',
-          'PyAstronomy'
+          'PyAstronomy',
+          'lsst',
+          'catalogue',
+          'paramiko',
+          'requests',
+
       ],
       zip_safe=False)

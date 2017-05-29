@@ -244,7 +244,7 @@ def getUsername(args):
     if username_from_envvar != '':
         return username_from_envvar
     else:
-        return getpass.getpass('STARs username? ')
+        return getpass.getpass('STARs username: ')
 
 
 if __name__ == '__main__':

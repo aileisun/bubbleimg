@@ -24,8 +24,8 @@ dec = 12.7073027
 img_width = 20*u.arcsec
 img_height = 20*u.arcsec
 
-dir_obj = './test/SDSSJ1000+1242/'
-dir_parent = './test/'
+dir_obj = './testing/SDSSJ1000+1242/'
+dir_parent = './testing/'
 
 
 @pytest.fixture(scope="module", autouse=True)

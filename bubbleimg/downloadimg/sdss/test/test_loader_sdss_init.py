@@ -27,14 +27,14 @@ dec = 12.7073027
 img_width = 20*u.arcsec
 img_height = 20*u.arcsec
 
-dir_obj = './test/SDSSJ1000+1242/'
-dir_parent1 = './test/'
-dir_parent2 = './test2/'
+dir_obj = './testing/SDSSJ1000+1242/'
+dir_parent1 = './testing/'
+dir_parent2 = './testing2/'
 
 
 @pytest.fixture(scope="module", autouse=True)
 def setUp_tearDown():
-	""" rm ./test/ and ./test2/ before and after test"""
+	""" rm ./testing/ and ./test2/ before and after test"""
 
 	# setup
 	if os.path.isdir(dir_parent1):
@@ -99,7 +99,7 @@ def test_instantiate_SDSSimgLoader_error_radec_obsobj():
 	tab = at.Table([[ra], [dec]], names=['ra', 'dec'])
 	obj = obsobj(tab, catalog='SDSS', dir_parent=dir_parent2, towriteID=False)
 
-	with pytest.raises(TypeError):
+	with pytest.raises(Exception):
 		L = SDSSimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, obj=obj, img_width=img_width, img_height=img_height)
 
 
@@ -133,34 +133,24 @@ def test_add_obj_sdss(L_radec):
 	del L_radec.obj
 	assert not hasattr(L, 'obj')
 
-	L._add_obj_sdss(update=False)
+	L.add_obj_sdss(update=False)
 	assert hasattr(L, 'obj')
 	assert L.obj.ra == L.ra
 	assert L.obj.dec == L.dec
 	assert L.obj.dir_obj == L.dir_obj
 	assert hasattr(L.obj, 'sdss')
 	assert hasattr(L.obj.sdss, 'xid')
-	assert os.path.isfile(L.dir_obj+'xid.csv')
-	assert os.path.isfile(L.dir_obj+'photoobj.csv')
+	assert os.path.isfile(L.dir_obj+'sdss_xid.csv')
+	assert os.path.isfile(L.dir_obj+'sdss_photoobj.csv')
 	xid = L.obj.sdss.xid
 
 	# check that L.obj can be updated to the right things
 	L.obj = 'testing'
-	L._add_obj_sdss(update=True)
+	L.add_obj_sdss(update=True)
 
 	assert L.obj.ra == L.ra
 	assert L.obj.dir_obj == L.dir_obj
 	assert L.obj.sdss.xid == xid
-
-
-def test_make_obj_sdss_xid(L_radec):
-	L = L_radec
-	del L_radec.obj
-	assert not hasattr(L, 'obj')
-
-	L._make_obj_sdss_xid()
-	assert round(L.obj.sdss.xid['ra'][0], 4) == round(L.ra, 4)
-	assert os.path.isfile(L.dir_obj+'xid.csv')
 
 
 def test_instantiate_SDSSimgLoader_floatwidth():

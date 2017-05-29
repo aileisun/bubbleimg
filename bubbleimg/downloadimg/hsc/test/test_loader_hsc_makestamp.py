@@ -6,10 +6,6 @@ to be used with pytest
 
 test sets for loader_hsc
 
-please create a python file STARs.py with your STARs account
-user = 'XXXX'
-password = 'XXXX'
-
 """
 import numpy as np
 import astropy.units as u
@@ -20,22 +16,19 @@ from astropy.io import fits
 import filecmp
 import glob
 
-from loader_hsc import HSCimgLoader
-from ...class_obsobj import obsobj
-from STARs import user, password
+from ..loader_hsc import HSCimgLoader
 
 ra = 140.099341430207
 dec = 0.580162492432517
-dir_parent = './test/'
-dir_obj = './test/SDSSJ0920+0034/'
+dir_parent = './testing/'
+dir_obj = './testing/SDSSJ0920+0034/'
 img_width = 128*u.pix
 img_height = 128*u.pix
 
 
-
 @pytest.fixture(scope="module", autouse=True)
 def setUp_tearDown():
-	""" rm ./test/ and ./test2/ before and after test"""
+	""" rm ./testing/ and ./test2/ before and after test"""
 
 	# setup
 	if os.path.isdir(dir_parent):
@@ -50,13 +43,16 @@ def setUp_tearDown():
 @pytest.fixture
 def L_radec():
 	""" returns a imgLoader object initiated with the ra dec above"""
-	return HSCimgLoader(ra=ra , dec=dec, dir_parent=dir_parent, img_width=img_width, img_height=img_height, user=user, password=password)
+	return HSCimgLoader(ra=ra , dec=dec, dir_parent=dir_parent, img_width=img_width, img_height=img_height)
 
 
-# @pytest.fixture
-# def L_radec_128pix():
-# 	""" returns a imgLoader object initiated with the ra dec above of img size 128*128"""
-# 	return HSCimgLoader(ra=ra , dec=dec, dir_parent=dir_parent, img_width=128, img_height=128)
+
+def test_downlaod_stamp(L_radec):
+	""" test it can make_stamp"""
+	L = L_radec
+	L._download_stamp(band = 'r')
+
+	assert os.path.isfile(L.dir_obj+'stamp-r.fits')
 
 
 def test_make_stamp(L_radec):
@@ -71,9 +67,9 @@ def test_make_stamp_no_img_in_hsc():
 	""" try loading a img thats not in hsc """
 	ra = 150.0547735
 	dec = 12.7073027
-	dir_obj = './test/SDSSJ1000+1242/'
+	dir_obj = './testing/SDSSJ1000+1242/'
 
-	L = HSCimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=img_width, img_height=img_height, user=user, password=password)
+	L = HSCimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=img_width, img_height=img_height)
 
 	assert L.make_stamp(band = 'r', overwrite=True) is False
 
@@ -91,9 +87,9 @@ def test_make_stamps_no_img_in_hsc():
 	""" try loading a img thats not in hsc """
 	ra = 150.0547735
 	dec = 12.7073027
-	dir_obj = './test/SDSSJ1000+1242/'
+	dir_obj = './testing/SDSSJ1000+1242/'
 
-	L = HSCimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=img_width, img_height=img_height, user=user, password=password)
+	L = HSCimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=img_width, img_height=img_height)
 
 	assert L.make_stamps(overwrite=True) is False
 
@@ -134,16 +130,6 @@ def test_make_a_zero_size_file():
 	os.remove(file)
 
 
-def test_loader_does_not_make_dir_obj():
-
-	if os.path.isdir(dir_obj): 
-		shutil.rmtree(dir_obj)
-
-	assert not os.path.isdir(dir_obj)
-	HSCimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=img_width, img_height=img_height, user=user, password=password)
-	assert not os.path.isdir(dir_obj)
-
-
 def test_make_stamps_overwriteFalse(L_radec):
 
 	"""
@@ -176,14 +162,14 @@ def test_make_stamps_overwriteFalse(L_radec):
 def test_make_stamp_correctimgsize():
 
 	for pixnum in [64, 128, 256]:
-		L = HSCimgLoader(ra=ra , dec=dec, dir_parent=dir_parent, img_width=pixnum, img_height=pixnum, user=user, password=password)
+		L = HSCimgLoader(ra=ra , dec=dec, dir_parent=dir_parent, img_width=pixnum, img_height=pixnum)
 		L.make_stamp(band='r', overwrite=True)
 		data = fits.getdata(L.dir_obj+'stamp-r.fits')
 		assert data.shape == (pixnum, pixnum)
 
 
 def test_make_stamp_correctcontent():
-	L = HSCimgLoader(ra=ra , dec=dec, dir_parent=dir_parent, img_width=128, img_height=128, to_make_obj_sdss=True, user=user, password=password)
+	L = HSCimgLoader(ra=ra , dec=dec, dir_parent=dir_parent, img_width=128, img_height=128)
 
 	L.make_stamps(overwrite=True)
 
@@ -193,7 +179,7 @@ def test_make_stamp_correctcontent():
 		file_verification = './test_verification_data_128pix/SDSSJ0920+0034/'+f
 		assert filecmp.cmp(file_totest, file_verification)
 
-	for f in ['xid.csv', 'PhotoObj.csv']:
+	for f in ['hsc_xid.csv']:
 		file_totest = dir_obj+f
 		file_verification = './test_verification_data_128pix/SDSSJ0920+0034/'+f
 		assert filecmp.cmp(file_totest, file_verification)
@@ -206,7 +192,6 @@ def test_header_w_BUNIT(L_radec):
 	header = fits.getheader(L.dir_obj+'stamp-r.fits')
 	assert header['BUNIT'] == '1.58479740e-02 nanomaggy'
 	# assert 'FLUXMAG0' not in header
-
 
 
 def test_unit_conversion(L_radec):
@@ -233,7 +218,6 @@ def test_unit_conversion(L_radec):
 	assert headerout['BUNIT'] == 'nanomaggy'
 
 
-
 def test_make_stamp_not_tokeepraw(L_radec):
 	L = L_radec
 	
@@ -244,7 +228,6 @@ def test_make_stamp_not_tokeepraw(L_radec):
 
 	a = glob.glob(L.dir_obj+'cutout*.fits')
 	assert len(a) == 0
-
 
 
 def test_make_stamp_tokeepraw(L_radec):

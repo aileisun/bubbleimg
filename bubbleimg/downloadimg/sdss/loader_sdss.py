@@ -8,7 +8,7 @@ from astropy.io import fits
 
 from ..loader import imgLoader
 from ...filters import surveysetup
-import alignstamp
+import stamp
 import psf
 
 class SDSSimgLoader(imgLoader):
@@ -19,8 +19,10 @@ class SDSSimgLoader(imgLoader):
 		force to_make_obj_sdss=True such that self.obj.sdss.xid is always loaded 
 		add attributes self.img_width_pix, self.img_height_pix
 		"""
-		kwargs['to_make_obj_sdss'] = True		# to make self.obj.sdss
-		super(SDSSimgLoader, self ).__init__(**kwargs)
+
+		super(self.__class__, self).__init__(**kwargs)
+		self.sdss_status = super(self.__class__, self).add_obj_sdss(update=False)
+
 
 		self.survey = 'sdss'
 		self.bands = surveysetup.surveybands[self.survey]
@@ -55,7 +57,7 @@ class SDSSimgLoader(imgLoader):
 		isstampfiles = np.all([os.path.isfile(self.get_stamp_filepath(b)) for b in self.bands])
 
 		if (not isstampfiles) or overwrite:
-			alignstamp.write_alignedstampImages(obj=self.obj, bands=self.bands, band_rf=band_rf, xwidth=self.img_width_pix.value, ywidth=self.img_height_pix.value, clipnegative=False, overwrite=True)
+			stamp.write_alignedstampImages(obj=self.obj, bands=self.bands, band_rf=band_rf, xwidth=self.img_width_pix, ywidth=self.img_height_pix, clipnegative=False, overwrite=True)
 
 		if not tokeepframe:
 			for band in self.bands:
