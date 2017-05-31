@@ -17,7 +17,7 @@ import os
 
 import pytest
 
-from ..loader_sdss import SDSSimgLoader
+from ..loader_sdss import sdssimgLoader
 
 from ....class_obsobj import obsobj
 
@@ -54,18 +54,18 @@ def setUp_tearDown():
 
 @pytest.fixture
 def L_radec():
-	""" returns a SDSSimgLoader object initiated with the ra dec above"""
-	return SDSSimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=img_width, img_height=img_height)
+	""" returns a sdssimgLoader object initiated with the ra dec above"""
+	return sdssimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=img_width, img_height=img_height)
 
 
 def test_instantiate_SDSSimgLoader_radec(L_radec):
 	"""
-	test that SDSSimgLoader can be instantiated with ra dec 
+	test that sdssimgLoader can be instantiated with ra dec 
 	"""
 
 	L = L_radec
 
-	assert isinstance(L, SDSSimgLoader)
+	assert isinstance(L, sdssimgLoader)
 	assert L.ra == ra
 	assert L.img_width == img_width
 	assert L.img_height == img_height
@@ -74,15 +74,15 @@ def test_instantiate_SDSSimgLoader_radec(L_radec):
 
 def test_instantiate_SDSSimgLoader_obsobj():
 	"""
-	test that SDSSimgLoader can be instantiated with obsobj
+	test that sdssimgLoader can be instantiated with obsobj
 	"""
 	
 	tab = at.Table([[ra], [dec]], names=['ra', 'dec'])
 	obj = obsobj(tab, catalog='SDSS', dir_parent=dir_parent2, towriteID=False)
 
-	L = SDSSimgLoader(obj=obj, img_width=img_width, img_height=img_height)
+	L = sdssimgLoader(obj=obj, img_width=img_width, img_height=img_height)
 
-	assert isinstance(L, SDSSimgLoader)
+	assert isinstance(L, sdssimgLoader)
 	assert L.ra == ra
 	assert L.ra == obj.ra
 	assert L.img_height == img_height
@@ -93,23 +93,23 @@ def test_instantiate_SDSSimgLoader_obsobj():
 
 def test_instantiate_SDSSimgLoader_error_radec_obsobj():
 	"""
-	test that an error being raised when both obsobj and ra/dec/dir_obj are fed to SDSSimgLoader
+	test that an error being raised when both obsobj and ra/dec/dir_obj are fed to sdssimgLoader
 	"""
 	
 	tab = at.Table([[ra], [dec]], names=['ra', 'dec'])
 	obj = obsobj(tab, catalog='SDSS', dir_parent=dir_parent2, towriteID=False)
 
 	with pytest.raises(Exception):
-		L = SDSSimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, obj=obj, img_width=img_width, img_height=img_height)
+		L = sdssimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, obj=obj, img_width=img_width, img_height=img_height)
 
 
 def test_instantiate_SDSSimgLoader_error():
 	"""
-	test that an error being raised when none of obsobj or ra/dec/dir_obj are fed to SDSSimgLoader
+	test that an error being raised when none of obsobj or ra/dec/dir_obj are fed to sdssimgLoader
 	"""
 
 	with pytest.raises(TypeError):
-		L = SDSSimgLoader(img_width=img_width, img_height=img_height)
+		L = sdssimgLoader(img_width=img_width, img_height=img_height)
 
 
 def test_init_survey(L_radec):
@@ -158,9 +158,9 @@ def test_instantiate_SDSSimgLoader_floatwidth():
 	test img_width can be input with float (with units assumed to be pix)
 	"""
 
-	L = SDSSimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=64., img_height=64)
+	L = sdssimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=64., img_height=64)
 
-	assert isinstance(L, SDSSimgLoader)
+	assert isinstance(L, sdssimgLoader)
 	assert L.ra == ra
 	assert L.img_width == 64*u.pix
 	assert L.img_height == 64*u.pix
@@ -172,9 +172,9 @@ def test_instantiate_SDSSimgLoader_pixwidth():
 	test img_width can be input with float (with units assumed to be pix)
 	"""
 
-	L = SDSSimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=64.*u.pix, img_height=64.*u.pix)
+	L = sdssimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=64.*u.pix, img_height=64.*u.pix)
 
-	assert isinstance(L, SDSSimgLoader)
+	assert isinstance(L, sdssimgLoader)
 	assert L.ra == ra
 	assert L.img_width == 64*u.pix
 	assert L.img_height == 64*u.pix

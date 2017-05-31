@@ -6,11 +6,9 @@ import astropy.table as at
 import astropy.units as u
 import os 
 import abc
-from catalogue.catalogue_util import getSDSSName_fromRADEC
 
 from ..filters import surveysetup
 from ..obsobj import obsObj
-# from ..class_obsobj import obsobj
 
 
 class imgLoader(object):
@@ -64,23 +62,11 @@ class imgLoader(object):
 					raise Exception("[loader] conflicting dir_obj entered")
 		else: 
 			self.obj = obsObj(**kwargs)
-		# else:
-		# 	raise TypeError('dir_obj or dir_parent not specified')
 
 		self.ra = self.obj.ra
 		self.dec = self.obj.dec
 		self.dir_obj = self.obj.dir_obj
 
-		# self.ra = kwargs.pop('ra', None)
-		# self.dec = kwargs.pop('dec', None)
-		# if 'dir_obj' in kwargs:
-		# 	self.dir_obj = kwargs.pop('dir_obj', None)
-		# elif 'dir_parent' in kwargs:
-		# 	sdssname = getSDSSName_fromRADEC(self.ra, self.dec)
-		# 	self.dir_parent = kwargs.pop('dir_parent', '')
-		# 	self.dir_obj = self.dir_parent+sdssname+'/'
-		# else:
-		# 	raise TypeError('dir_obj or dir_parent not specified')
 
 		self.img_width = kwargs.pop('img_width', 20*u.arcsec)
 		self.img_height = kwargs.pop('img_height', 20*u.arcsec)
@@ -119,66 +105,6 @@ class imgLoader(object):
 
 	def get_psf_filename(self, band):
 		return 'psf-{0}.fits'.format(band)
-
-
-	# def _imgLoader__make_stamp_core(self, func_download_stamp, **kwargs):
-	# 	"""
-	# 	make a stamp of self and of band
-	# 	call _download_stamp and takes care of overwrite with argument 'overwrite'. Default: do not overwrite. 
-
-	# 	Params
-	# 	----------
-	# 	func_download_stamp (function)
-	# 	band (string) = 'r'
-	# 	overwrite (boolean) = False
-	# 	**kwargs to be entered into func_download_stamp()
-
-	# 	Return
-	# 	----------
-	# 	status: True if downloaded or skipped, False if download fails
-	# 	"""
-	# 	band = kwargs.pop('band', 'r')
-	# 	overwrite = kwargs.pop('overwrite', False)
-
-	# 	# setting
-	# 	filename = self.get_stamp_filename(band)
-	# 	file = self.get_stamp_filepath(band)
-
-	# 	if not os.path.isdir(self.dir_obj):
-	# 	    os.makedirs(self.dir_obj)
-
-	# 	if (not os.path.isfile(file)) or overwrite:
-	# 		print "download_stamp() ".format(filename)
-	# 		try: 
-	# 			return func_download_stamp(band=band, **kwargs) # if failed then return False
-	# 		except:
-	# 			return False
-	# 	else:
-	# 		print "skip download_stamp() as file {0} exists".format(filename)
-	# 		return True
-
-
-	# def _imgLoader__make_stamps_core(self, func_download_stamp, **kwargs):
-	# 	"""
-	# 	make all stamp images of all survey bands for obj self. 
-
-	# 	Params
-	# 	----------
-	# 	func_download_stamp (function)
-	# 	overwrite (boolean) = False
-	# 	**kwargs to be entered into func_download_stamp()
-
-	# 	Return
-	# 	----------
-	# 	status: True if all downloaded or skipped, False if any of the downloads fails
-	# 	"""
-	# 	bands = surveysetup.surveybands[self.survey]
-
-	# 	statuss = np.ndarray(5, dtype=bool)
-	# 	for i, band in enumerate(bands): 
-	# 		statuss[i] = self._imgLoader__make_stamp_core(func_download_stamp=func_download_stamp, band=band, **kwargs)
-
-	# 	return all(statuss)
 
 
 	def _imgLoader__make_file_core(self, func_download_file, func_naming_file, band='r', overwrite=False, **kwargs):

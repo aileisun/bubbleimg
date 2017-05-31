@@ -11,7 +11,7 @@ from ...filters import surveysetup
 import stamp
 import psf
 
-class SDSSimgLoader(imgLoader):
+class sdssimgLoader(imgLoader):
 
 	def __init__(self, **kwargs):
 		""" 
@@ -30,8 +30,9 @@ class SDSSimgLoader(imgLoader):
 		self._add_attr_img_width_pix_arcsec()
 
 		# sanity check
-		if round(self.obj.sdss.xid['ra'][0], 4) != round(self.ra, 4):
-			raise ValueError("xid created inconsistent with init ra")
+		if self.sdss_status:
+			if round(self.obj.sdss.xid['ra'][0], 4) != round(self.ra, 4):
+				raise ValueError("xid created inconsistent with init ra")
 
 
 	def make_stamps(self, overwrite=False, band_rf='r', tokeepframe=False):
@@ -148,11 +149,11 @@ class SDSSimgLoader(imgLoader):
 		file = self._get_frame_filepath(band)
 
 		if (not os.path.isfile(file)) or overwrite:
-			print "[SDSSimgLoader] downloading frame image band {0}".format(band)
+			print "[sdssimgLoader] downloading frame image band {0}".format(band)
 			im = SDSS.get_images(matches=self.obj.sdss.xid, band=band)
 			im[0].writeto(file, overwrite=True)
 		else: 
-			print "[SDSSimgLoader] skip downloading frame image band {0}".format(band)
+			print "[sdssimgLoader] skip downloading frame image band {0}".format(band)
 
 		return os.path.isfile(file)
 

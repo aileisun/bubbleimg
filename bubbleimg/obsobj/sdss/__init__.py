@@ -7,4 +7,4 @@ import sdssobj
 
 reload(sdssobj)
 
-from sdssobj import SDSSObj
+from sdssobj import sdssObj

@@ -17,13 +17,6 @@ class plainObj(object):
 		a object with only attributes ra, dec, and dir_obj
 		it does not automatically create dir_obj when instantiated, one can call funciton make_dir_obj()
 
-
-		!!!! WARNING !!!!!
-		no checking if unexpected kwargs is passed, in order to allow child class to have additional args
-		if kwargs:
-			raise TypeError('Unexpected **kwargs: %r' % kwargs)
-
-
 		Params
 		----------
 		ra (float)
@@ -41,6 +34,15 @@ class plainObj(object):
 		dec (float)
 		name (string)
 		dir_obj (string)
+
+		dir_parent (optional) (string)
+
+
+		Note
+		----
+		Does not check if additional kwargs are inserted, as the following lines are not implemented. 
+		if kwargs:
+			raise TypeError('Unexpected **kwargs: %r' % kwargs)
 		"""
 
 		if isinstance(ra, float):

@@ -7,7 +7,7 @@ import loader_hsc
 
 reload(loader_hsc)
 
-from loader_hsc import HSCimgLoader
+from loader_hsc import hscimgLoader
 
 
 import multibutler

@@ -16,7 +16,7 @@ from astropy.io import fits
 import filecmp
 import glob
 
-from ..loader_hsc import HSCimgLoader
+from ..loader_hsc import hscimgLoader
 
 ra = 140.099341430207
 dec = 0.580162492432517
@@ -43,7 +43,7 @@ def setUp_tearDown():
 @pytest.fixture
 def L_radec():
 	""" returns a imgLoader object initiated with the ra dec above"""
-	return HSCimgLoader(ra=ra , dec=dec, dir_parent=dir_parent, img_width=img_width, img_height=img_height)
+	return hscimgLoader(ra=ra , dec=dec, dir_parent=dir_parent, img_width=img_width, img_height=img_height)
 
 
 
@@ -69,7 +69,7 @@ def test_make_stamp_no_img_in_hsc():
 	dec = 12.7073027
 	dir_obj = './testing/SDSSJ1000+1242/'
 
-	L = HSCimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=img_width, img_height=img_height)
+	L = hscimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=img_width, img_height=img_height)
 
 	assert L.make_stamp(band = 'r', overwrite=True) is False
 
@@ -89,7 +89,7 @@ def test_make_stamps_no_img_in_hsc():
 	dec = 12.7073027
 	dir_obj = './testing/SDSSJ1000+1242/'
 
-	L = HSCimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=img_width, img_height=img_height)
+	L = hscimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=img_width, img_height=img_height)
 
 	assert L.make_stamps(overwrite=True) is False
 
@@ -162,14 +162,14 @@ def test_make_stamps_overwriteFalse(L_radec):
 def test_make_stamp_correctimgsize():
 
 	for pixnum in [64, 128, 256]:
-		L = HSCimgLoader(ra=ra , dec=dec, dir_parent=dir_parent, img_width=pixnum, img_height=pixnum)
+		L = hscimgLoader(ra=ra , dec=dec, dir_parent=dir_parent, img_width=pixnum, img_height=pixnum)
 		L.make_stamp(band='r', overwrite=True)
 		data = fits.getdata(L.dir_obj+'stamp-r.fits')
 		assert data.shape == (pixnum, pixnum)
 
 
 def test_make_stamp_correctcontent():
-	L = HSCimgLoader(ra=ra , dec=dec, dir_parent=dir_parent, img_width=128, img_height=128)
+	L = hscimgLoader(ra=ra , dec=dec, dir_parent=dir_parent, img_width=128, img_height=128)
 
 	L.make_stamps(overwrite=True)
 

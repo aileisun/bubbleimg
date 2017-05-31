@@ -3,7 +3,7 @@
 
 __all__ = ['blobmaps', 'measureimg', 'filters', 'make_batch', 'do_batch', 'denoiseimg', 'external_links', 'standards', 'visual', 'downloadimg', 'obsobj']
 
-import blobmaps, measureimg, filters, make_batch, do_batch, denoiseimg, external_links, fitpsf, smallfunc, contaminants, standards, visual, downloadimg, obsobj
+import blobmaps, measureimg, filters, make_batch, do_batch, denoiseimg, external_links, fitpsf, smallfunc, contaminants, standards, visual, downloadimg, obsobj, batch
 
 reload(blobmaps)
 reload(measureimg)
@@ -18,6 +18,7 @@ reload(visual)
 reload(external_links)
 reload(downloadimg)
 reload(obsobj)
+reload(batch)
 
 from make_batch import make_batch
 from do_batch import do_batch

@@ -10,7 +10,7 @@ from astropy.io import fits
 import filecmp
 # import glob
 
-from ..loader_hsc import HSCimgLoader
+from ..loader_hsc import hscimgLoader
 
 ra = 140.099341430207
 dec = 0.580162492432517
@@ -35,7 +35,7 @@ def setUp_tearDown():
 @pytest.fixture
 def L_radec():
 	""" returns a imgLoader object initiated with the ra dec above"""
-	return HSCimgLoader(ra=ra, dec=dec, dir_parent=dir_parent)
+	return hscimgLoader(ra=ra, dec=dec, dir_parent=dir_parent)
 
 
 def test_make_psf(L_radec):
@@ -57,7 +57,7 @@ def test_make_psf_no_img_in_hsc():
 	dec = 12.7073027
 	dir_obj = './testing/SDSSJ1000+1242/'
 
-	L = HSCimgLoader(ra=ra , dec=dec, dir_obj=dir_obj)
+	L = hscimgLoader(ra=ra , dec=dec, dir_obj=dir_obj)
 
 	status = L.make_psf(band = 'r', overwrite=True)
 	assert status is False

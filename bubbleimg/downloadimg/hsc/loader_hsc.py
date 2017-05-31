@@ -19,7 +19,7 @@ u.add_enabled_units([nanomaggy])
 u.nanomaggy=nanomaggy
 
 
-class HSCimgLoader(imgLoader):
+class hscimgLoader(imgLoader):
 
 	def __init__(self, **kwargs):
 		""" 
@@ -42,7 +42,7 @@ class HSCimgLoader(imgLoader):
 		Instruction for stars username and password
 		-------------------------------------------
 		1) as arguments 
-			HSCimgLoader(..., username=username, password=password)
+			hscimgLoader(..., username=username, password=password)
 
 		2) as environmental variable 
 		  $ export HSC_SSP_CAS_USERNAME
@@ -197,7 +197,7 @@ class HSCimgLoader(imgLoader):
 
 	def _download_psf_at_iaa(self, band):
 		if self.environment!='iaa':
-			raise Exception("[HSCimgLoader] _download_psf_at_iaa() can only be called when environment is iaa")
+			raise Exception("[hscimgLoader] _download_psf_at_iaa() can only be called when environment is iaa")
 
 		fn_out = self.dir_obj+self.get_psf_filename(band=band)
 
@@ -212,7 +212,7 @@ class HSCimgLoader(imgLoader):
 
 	def _download_psfs_at_iaa(self):
 		if self.environment!='iaa':
-			raise Exception("[HSCimgLoader] _download_psf_at_iaa() can only be called when environment is iaa")
+			raise Exception("[hscimgLoader] _download_psf_at_iaa() can only be called when environment is iaa")
 
 		b = multiButler(environment=self.environment, release_version=self.release_version, semester=self.semester, rerun=self.rerun).butler
 

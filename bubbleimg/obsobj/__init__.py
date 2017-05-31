@@ -16,5 +16,5 @@ reload(sdss)
 reload(hsc)
 reload(objnaming)
 
-from sdss import SDSSObj
-from hsc import HSCObj
+from sdss import sdssObj
+from hsc import hscObj

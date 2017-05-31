@@ -14,7 +14,7 @@ import astropy.units as u
 
 from ..plainobj import plainObj
 
-class SDSSObj(plainObj):
+class sdssObj(plainObj):
 	def __init__(self, **kwargs):
 		"""
 		load sdss.xid and sdss.photoboj and write files 'sdss_xid.csv', 'photoobj.csv' automatically.
@@ -260,7 +260,7 @@ class SDSSObj(plainObj):
 
 		if self.status: 
 			if not os.path.isfile(fn) or overwrite: 
-				print "[SDSSObj] download spec"
+				print "[sdssObj] download spec"
 				sp = astroquery.sdss.SDSS.get_spectra(matches=self.xid)
 				if len(sp) == 1: 
 					sp=sp[0]
@@ -271,7 +271,7 @@ class SDSSObj(plainObj):
 					raise ValueError("SDSS spec obj not uniquely identified. ")
 					return False
 			else: 
-				print "[SDSSObj] skip download spec as file exists"
+				print "[sdssObj] skip download spec as file exists"
 				return True
 		else: 
 			return False

@@ -3,7 +3,7 @@ import os
 import astropy.table as at
 import shutil
 
-from ..sdssobj import SDSSObj
+from ..sdssobj import sdssObj
 
 ra = 150.0547735
 dec = 12.7073027
@@ -27,22 +27,22 @@ def setUp_tearDown():
 
 @pytest.fixture
 def obj_dirobj():
-	return SDSSObj(ra=ra, dec=dec, dir_obj=dir_obj)
+	return sdssObj(ra=ra, dec=dec, dir_obj=dir_obj)
 
 
 def test_SDSSObj_init_dir_obj(obj_dirobj):
 
 	obj = obj_dirobj
 
-	assert isinstance(obj, SDSSObj)
+	assert isinstance(obj, sdssObj)
 	assert obj.dir_obj == dir_obj
 
 
 def test_SDSSObj_init_dir_parent():
 
-	obj = SDSSObj(ra=ra, dec=dec, dir_parent=dir_parent)
+	obj = sdssObj(ra=ra, dec=dec, dir_parent=dir_parent)
 
-	assert isinstance(obj, SDSSObj)
+	assert isinstance(obj, sdssObj)
 	assert obj.dir_obj == dir_obj
 
 
@@ -78,7 +78,7 @@ def test_SDSSObj_xid_writefile(obj_dirobj):
 def test_SDSSObj_xid_fails():
 	ra = 0.
 	dec = -89.
-	obj = SDSSObj(ra=ra, dec=dec, dir_obj = './badobject/')
+	obj = sdssObj(ra=ra, dec=dec, dir_obj = './badobject/')
 
 	status = obj.load_xid(writefile=True)
 
@@ -96,7 +96,7 @@ def test_SDSSObj_xid_conflicting_dir_obj():
 	dir_obj = './testing/SDSSJ9999+9999/'
 
 	with pytest.raises(Exception):
-		obj = SDSSObj(ra=ra, dec=dec, dir_obj=dir_obj)
+		obj = sdssObj(ra=ra, dec=dec, dir_obj=dir_obj)
 
 
 def test_load_photoboj_writefile(obj_dirobj):
@@ -115,7 +115,7 @@ def test_load_photoboj_writefile(obj_dirobj):
 def test_SDSSObj_photoobj_fails():
 	ra = 0.
 	dec = -89.
-	obj = SDSSObj(ra=ra, dec=dec, dir_obj = './badobject/')
+	obj = sdssObj(ra=ra, dec=dec, dir_obj = './badobject/')
 
 	status = obj.load_photoobj(writefile=True)
 

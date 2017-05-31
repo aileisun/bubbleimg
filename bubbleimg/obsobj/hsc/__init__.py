@@ -7,4 +7,4 @@ import hscobj
 
 reload(hscobj)
 
-from hscobj import HSCObj
+from hscobj import hscObj

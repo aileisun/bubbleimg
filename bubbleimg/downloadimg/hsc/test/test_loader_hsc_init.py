@@ -22,7 +22,7 @@ import os
 
 import pytest
 
-from ..loader_hsc import HSCimgLoader
+from ..loader_hsc import hscimgLoader
 from ....obsobj import obsObj
 
 
@@ -59,23 +59,23 @@ def setUp_tearDown():
 
 @pytest.fixture
 def L_radec():
-	""" returns a HSCimgLoader object initiated with the ra dec above"""
-	return HSCimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=img_width, img_height=img_height)
+	""" returns a hscimgLoader object initiated with the ra dec above"""
+	return hscimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=img_width, img_height=img_height)
 
 
 def test_automatically_generate_dir_obj_w_SDSSNAME():
-	L = HSCimgLoader(ra=ra , dec=dec, dir_parent=dir_parent1, img_width=img_width, img_height=img_height)
+	L = hscimgLoader(ra=ra , dec=dec, dir_parent=dir_parent1, img_width=img_width, img_height=img_height)
 	assert L.dir_obj == dir_obj
 
 
 def test_instantiate_HSCimgLoader_radec(L_radec):
 	"""
-	test that HSCimgLoader can be instantiated with ra dec 
+	test that hscimgLoader can be instantiated with ra dec 
 	"""
 
 	L = L_radec
 
-	assert isinstance(L, HSCimgLoader)
+	assert isinstance(L, hscimgLoader)
 	assert L.ra == ra
 	assert L.img_width == img_width
 	assert L.img_height == img_height
@@ -84,14 +84,14 @@ def test_instantiate_HSCimgLoader_radec(L_radec):
 
 def test_instantiate_HSCimgLoader_obsobj():
 	"""
-	test that HSCimgLoader can be instantiated with obsobj
+	test that hscimgLoader can be instantiated with obsobj
 	"""
 	
 	obj = obsObj(ra=ra, dec=dec, dir_parent=dir_parent2)
 
-	L = HSCimgLoader(obj=obj, img_width=img_width, img_height=img_height)
+	L = hscimgLoader(obj=obj, img_width=img_width, img_height=img_height)
 
-	assert isinstance(L, HSCimgLoader)
+	assert isinstance(L, hscimgLoader)
 	assert L.ra == ra
 	assert L.ra == obj.ra
 	assert L.img_height == img_height
@@ -102,22 +102,22 @@ def test_instantiate_HSCimgLoader_obsobj():
 
 def test_instantiate_HSCimgLoader_error_radec_obsobj():
 	"""
-	test that an error being raised when both obsobj and ra/dec/dir_obj are fed to HSCimgLoader
+	test that an error being raised when both obsobj and ra/dec/dir_obj are fed to hscimgLoader
 	"""
 	
 	obj = obsObj(ra=ra, dec=dec, dir_parent=dir_parent2)
 
 	with pytest.raises(Exception):
-		L = HSCimgLoader(ra=ra , dec=dec, dir_obj=dir_obj+'fortesting/', obj=obj, img_width=img_width, img_height=img_height)
+		L = hscimgLoader(ra=ra , dec=dec, dir_obj=dir_obj+'fortesting/', obj=obj, img_width=img_width, img_height=img_height)
 
 
 def test_instantiate_HSCimgLoader_error():
 	"""
-	test that an error being raised when none of obsobj or ra/dec/dir_obj are fed to HSCimgLoader
+	test that an error being raised when none of obsobj or ra/dec/dir_obj are fed to hscimgLoader
 	"""
 
 	with pytest.raises(TypeError):
-		L = HSCimgLoader(img_width=img_width, img_height=img_height)
+		L = hscimgLoader(img_width=img_width, img_height=img_height)
 
 
 def test_init_survey(L_radec):
@@ -193,9 +193,9 @@ def test_instantiate_HSCimgLoader_floatwidth():
 	test img_width can be input with float (with units assumed to be pix)
 	"""
 
-	L = HSCimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=64., img_height=64)
+	L = hscimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=64., img_height=64)
 
-	assert isinstance(L, HSCimgLoader)
+	assert isinstance(L, hscimgLoader)
 	assert L.ra == ra
 	assert L.img_width == 64*u.pix
 	assert L.img_height == 64*u.pix
@@ -207,9 +207,9 @@ def test_instantiate_HSCimgLoader_pixwidth():
 	test img_width can be input with float (with units assumed to be pix)
 	"""
 
-	L = HSCimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=64.*u.pix, img_height=64.*u.pix)
+	L = hscimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=64.*u.pix, img_height=64.*u.pix)
 
-	assert isinstance(L, HSCimgLoader)
+	assert isinstance(L, hscimgLoader)
 	assert L.ra == ra
 	assert L.img_width == 64*u.pix
 	assert L.img_height == 64*u.pix
@@ -221,20 +221,20 @@ def test_transform_img_widthheight_unit_to_pix(L_radec):
 
 	hscpixsize = 0.168*u.arcsec/u.pix
 
-	assert L.img_width_pix == np.floor((L.img_width/hscpixsize).to(u.pix))
-	assert L.img_height_pix == np.floor((L.img_height/hscpixsize).to(u.pix))
+	assert L.img_width_pix == int(np.floor((L.img_width/hscpixsize).to(u.pix).value))
+	assert L.img_height_pix == int(np.floor((L.img_height/hscpixsize).to(u.pix).value))
 
 
 def test_HSCimgLoader_get_img_width_pix(L_radec): 
 	L = L_radec
 	print L.img_width_pix
-	assert (L.img_width_pix.value).is_integer()
-	assert (L.img_width_pix.value) == 119.
+	assert type(L.img_width_pix) is int
+	assert (L.img_width_pix) == 119.
 
 
 def test_HSCimgLoader_get_img_width_arcsec(): 
 	
-	L = HSCimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=120, img_height=120)
+	L = hscimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=120, img_height=120)
 	
 	assert round(L.img_width_arcsec.value, 3) == 20.160
 	assert round(L.img_height_arcsec.value, 3) == 20.160

@@ -2,7 +2,7 @@
 # ALS 2017/05/11
 
 """
-define class hscobj, which can check whether there is such an object and load xid 
+define class hscObj, which can check whether there is such an object and load xid 
 """
 import numpy as np
 import sys 
@@ -15,7 +15,7 @@ import astropy.units as u
 from hscsspquery import hscSspQuery
 from ..plainobj import plainObj
 
-class HSCObj(plainObj):
+class hscObj(plainObj):
 	def __init__(self, **kwargs):
 		"""
 		load sdss.xid write files 'hsc_xid.csv' automatically.
@@ -115,9 +115,9 @@ class HSCObj(plainObj):
 		fn = self.dir_obj+'hsc_xid.csv'
 
 		if os.path.isfile(fn): # retrieve xid locally
-			print "[hscobj] reading xid locally"
+			print "[hscObj] reading xid locally"
 		else: # download xid from sdss
-			print "[hscobj] querying xid from server"
+			print "[hscObj] querying xid from server"
 			self.make_dir_obj()	
 			sql = _get_sql(ra=self.ra, dec=self.dec, rerun=rerun)
 			hscSspQuery(sql, filename_out=fn, release_version=release_version)
@@ -137,27 +137,27 @@ class HSCObj(plainObj):
 						raise ValueError("local hsc_xid inconsistent with object")
 					# sanity check 2
 					if (len(xid) != 1) or (xid['detect_is_primary'][0] !='t'):
-						raise Exception("[hscobj] something wrong with xid") 
+						raise Exception("[hscObj] something wrong with xid") 
 
 					return xid
 
 				elif len(xid)<1:
-					print "[hscobj] no object found"				
+					print "[hscObj] no object found"				
 					os.remove(fn)
 					return None
 
 			else: 
-				print "[hscobj] no object found"
+				print "[hscObj] no object found"
 				os.remove(fn)
 				return None
 		else: 
-			print "[hscobj] query failed"
+			print "[hscObj] query failed"
 			return None
 
 
 	def _resolve_multiple_sources(self, xid):
 		""" return the xid with only the row that is closest to self.ra, dec"""
-		print "[hscobj] multiple primary objects found, choose the closest one"
+		print "[hscObj] multiple primary objects found, choose the closest one"
 		c = SkyCoord(self.ra, self.dec, 'icrs', unit='deg')
 		crows = [SkyCoord(row['ra'], row['dec'], 'icrs', unit='deg') for row in xid]
 		

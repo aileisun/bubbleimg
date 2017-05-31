@@ -7,4 +7,4 @@ import loader_sdss
 
 reload(loader_sdss)
 
-from loader_sdss import SDSSimgLoader
+from loader_sdss import sdssimgLoader

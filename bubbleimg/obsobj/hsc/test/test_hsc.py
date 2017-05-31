@@ -5,7 +5,7 @@ import numpy as np
 import shutil
 import filecmp
 
-from ..hscobj import HSCObj
+from ..hscobj import hscObj
 
 ra = 140.099341430207
 dec = 0.580162492432517
@@ -29,22 +29,22 @@ def setUp_tearDown():
 
 @pytest.fixture
 def obj_dirobj():
-	return HSCObj(ra=ra, dec=dec, dir_obj=dir_obj)
+	return hscObj(ra=ra, dec=dec, dir_obj=dir_obj)
 
 
 def test_HSCObj_init_dir_obj(obj_dirobj):
 
 	obj = obj_dirobj
 
-	assert isinstance(obj, HSCObj)
+	assert isinstance(obj, hscObj)
 	assert obj.dir_obj == dir_obj
 
 
 def test_HSCObj_init_dir_parent():
 
-	obj = HSCObj(ra=ra, dec=dec, dir_parent=dir_parent)
+	obj = hscObj(ra=ra, dec=dec, dir_parent=dir_parent)
 
-	assert isinstance(obj, HSCObj)
+	assert isinstance(obj, hscObj)
 	assert obj.dir_obj == dir_obj
 
 
@@ -87,7 +87,7 @@ def test_HSCObj_xid_writefile(obj_dirobj):
 def test_HSCObj_xid_fails():
 	ra = 0.
 	dec = -89.
-	obj = HSCObj(ra=ra, dec=dec, dir_obj = './testing/badobject/')
+	obj = hscObj(ra=ra, dec=dec, dir_obj = './testing/badobject/')
 
 	status = obj.load_xid(writefile=True)
 
@@ -105,7 +105,7 @@ def test_HSCObj_xid_conflicting_dir_obj():
 	dir_obj = './testing/SDSSJ9999+9999/'
 
 	with pytest.raises(Exception):
-		obj = HSCObj(ra=ra, dec=dec, dir_obj=dir_obj)
+		obj = hscObj(ra=ra, dec=dec, dir_obj=dir_obj)
 
 
 def test_only_one_row(obj_dirobj):

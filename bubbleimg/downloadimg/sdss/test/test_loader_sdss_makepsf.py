@@ -16,7 +16,7 @@ from astropy.io import fits
 import filecmp
 
 
-from ..loader_sdss import SDSSimgLoader
+from ..loader_sdss import sdssimgLoader
 from ....class_obsobj import obsobj
 
 ra = 150.0547735
@@ -45,7 +45,7 @@ def setUp_tearDown():
 @pytest.fixture
 def L_radec():
 	""" returns a imgLoader object initiated with the ra dec above"""
-	return SDSSimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=img_width, img_height=img_height)
+	return sdssimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=img_width, img_height=img_height)
 
 
 def test_make_psfs_write_psf(L_radec):

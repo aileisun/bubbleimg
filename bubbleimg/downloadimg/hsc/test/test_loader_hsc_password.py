@@ -14,7 +14,7 @@ import os
 
 import pytest
 
-from ..loader_hsc import HSCimgLoader
+from ..loader_hsc import hscimgLoader
 
 
 ra = 140.099341430207
@@ -43,7 +43,7 @@ def setUp_tearDown():
 def test_HSCimgLoader_user_password():
 	""" test it can make_stamp"""
 	
-	L = HSCimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=img_width, img_height=img_height)
+	L = hscimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=img_width, img_height=img_height)
 	L.make_stamp(band = 'r', overwrite=True)
 
 	assert os.path.isfile(L.dir_obj+'stamp-r.fits')

@@ -16,7 +16,7 @@ from astropy.io import fits
 import filecmp
 import glob
 
-from ..loader_hsc import HSCimgLoader
+from ..loader_hsc import hscimgLoader
 
 ra = 140.099341430207
 dec = 0.580162492432517
@@ -43,7 +43,7 @@ def setUp_tearDown():
 @pytest.fixture
 def L_radec():
 	""" returns a imgLoader object initiated with the ra dec above"""
-	return HSCimgLoader(ra=ra , dec=dec, dir_parent=dir_parent, img_width=img_width, img_height=img_height)
+	return hscimgLoader(ra=ra , dec=dec, dir_parent=dir_parent, img_width=img_width, img_height=img_height)
 
 
 def test_make_calexp(L_radec):
@@ -62,7 +62,7 @@ def test_make_calexp_no_img_in_hsc():
 	dec = 12.7073027
 	dir_obj = './testing/SDSSJ1000+1242/'
 
-	L = HSCimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=img_width, img_height=img_height)
+	L = hscimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=img_width, img_height=img_height)
 
 	status = L.make_calexp(band = 'r', overwrite=True)
 	assert status is False

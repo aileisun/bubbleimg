@@ -1,13 +1,10 @@
 # obsobj.py
 # ALS 2017/05/11
 
-"""
-define class obsObj 
-"""
-
 from plainobj import plainObj
-from sdss.sdssobj import SDSSObj
-from hsc.hscobj import HSCObj
+from sdss.sdssobj import sdssObj
+from hsc.hscobj import hscObj
+
 
 class obsObj(plainObj):
 	def __init__(self, **kwargs):
@@ -36,12 +33,12 @@ class obsObj(plainObj):
 
 	def add_sdss(self, **kwargs):
 
-		self.sdss = SDSSObj(ra=self.ra, dec=self.dec, dir_obj=self.dir_obj, **kwargs)
+		self.sdss = sdssObj(ra=self.ra, dec=self.dec, dir_obj=self.dir_obj, **kwargs)
 
 		return self.sdss.status
 
 
 	def add_hsc(self, **kwargs):
-		self.hsc = HSCObj(ra=self.ra, dec=self.dec, dir_obj=self.dir_obj, **kwargs)
+		self.hsc = hscObj(ra=self.ra, dec=self.dec, dir_obj=self.dir_obj, **kwargs)
 
 		return self.hsc.status
