@@ -20,7 +20,7 @@ class sdssimgLoader(imgLoader):
 		add attributes self.img_width_pix, self.img_height_pix
 		"""
 
-		super(self.__class__, self).__init__(**kwargs)
+		super(sdssimgLoader, self).__init__(**kwargs)
 		self.sdss_status = super(self.__class__, self).add_obj_sdss(update=False)
 
 

@@ -279,15 +279,21 @@ class sdssObj(plainObj):
 
 	def get_speclcoord(self, wunit=False):
 		"""
-		PURPOSE: retrieve SDSS spec of and obj as spec and lcoord arrays.
+		to retrieve SDSS spec and lcoord arrays
 
-		EXAMPLES: 					
-				spec, lcoord = get_spec_lcoord(obj)
+		Param
+		-----
+		wunit=False (bool)  to attach unit or not
 
-		PARAMETERS:		obj (object of obsobs)
-						wunit (bool)  to attach unit or not
+		Return
+		------
+		spec (nparray)
+		lcoord (nparray)
 
-		RETURN OUTPUT: spec (nparray), lcoord (nparray)
+		Default units
+		-------------
+		u_spec = 1.e-17*u.Unit('erg / (Angstrom cm2 s)')
+		u_lcoord = u.AA
 		"""
 		spectable = self.get_spec()[1].data
 		spec, lcoord = spectable['flux'], 10.**spectable['loglam']

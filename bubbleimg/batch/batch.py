@@ -231,13 +231,18 @@ class Batch(object):
 
 		statuss = np.ndarray(len(lst), dtype=bool)
 		for i, row in enumerate(lst):
+
 			ra = row['ra']
 			dec = row['dec']
+			obj_name = row['obj_name']
+
+			print("[batch] {obj_name} iterating".format(obj_name=obj_name))
 
 			for arg in listargs:
 				kwargs.update({arg: row[arg]})
 
 			obj = obsobj.obsObj(ra=ra, dec=dec, dir_parent=dir_parent, obj_naming_sys=self.obj_naming_sys, overwrite=overwrite)
+			obj.survey = self.survey		
 
 			statuss[i] = func(obj, overwrite=overwrite, **kwargs)
 
@@ -266,7 +271,9 @@ class Batch(object):
 		Params
 		------
 		func_build=self._func_build (funcion):
-			a funciton that takes (ra, dec, dir_parent, overwrite, **kwargs) as param and returns status (bool)
+			A funciton that takes (obj, overwrite, **kwargs) as param, 
+			and returns status (bool)
+			The obj contains: ra, dec, dir_parent, dir_obj, name, overwrite, and "survey" of batch
 		overwrite=False (bool)
 		**kwargs:
 			 to be entered into func_build() in the kwargs part
@@ -300,7 +307,9 @@ class Batch(object):
 				print("[batch] {obj_name} building".format(obj_name=obj_name))
 
 				try:
-					status = func_build(ra, dec, dir_parent=self.dir_good, overwrite=overwrite, **kwargs)
+					obj = obsobj.obsObj(ra=ra, dec=dec, dir_parent=self.dir_good, obj_naming_sys=self.obj_naming_sys, overwrite=overwrite)
+					obj.survey = self.survey
+					status = func_build(obj=obj, overwrite=overwrite, **kwargs)
 
 				except KeyboardInterrupt, e:
 					print("[batch] func_build() encounters exception {0}".format(str(e)))

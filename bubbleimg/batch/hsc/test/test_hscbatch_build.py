@@ -103,7 +103,7 @@ def test_batch_build_bad(batch_bad):
 
 
 
-def func_build(ra, dec, dir_parent, overwrite=False, **kwargs):
+def func_build(obj, overwrite=False, **kwargs):
 	"""
 	Params
 	------
@@ -125,14 +125,13 @@ def func_build(ra, dec, dir_parent, overwrite=False, **kwargs):
 	humvi_bands = 'riz'
 
 	# running
-	L = downloadimg.hscimgLoader(ra=ra, dec=dec, dir_parent=dir_parent, environment=environment)
+	L = downloadimg.hscimgLoader(obj=obj, environment=environment)
 
 	statuss = [
 				L.hsc_status, 
 				L.add_obj_sdss(), 
 				L.make_stamps(overwrite=overwrite), 
+				L.plot_colorimg(bands=humvi_bands, img_type='stamp', overwrite=overwrite), 
 				]
-
-	blobmaps.imagedisp_util.objw_HumVIgriimages(L, bands=humvi_bands, update=overwrite)
 
 	return all(statuss)

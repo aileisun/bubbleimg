@@ -23,6 +23,7 @@ class hscimgLoader(imgLoader):
 
 	def __init__(self, **kwargs):
 		""" 
+		hscimgLoader, child of imgLoader
 
 		on top of imgLoader init, set self.survey = 'hsc', 
 		add attributes self.img_width_pix, self.img_height_pix
@@ -53,7 +54,7 @@ class hscimgLoader(imgLoader):
 		3) enter from terminal
 
 		"""
-		super(self.__class__, self).__init__(**kwargs)
+		super(hscimgLoader, self).__init__(**kwargs)
 
 		self.environment = kwargs.pop('environment', 'iaa')
 		self.rerun = kwargs.pop('rerun', 's16a_wide')

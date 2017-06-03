@@ -37,13 +37,11 @@ class hscBatch(Batch):
 		return status
 
 
-	def _func_build(self, ra, dec, dir_parent, overwrite=False, **kwargs):
+	def _func_build(self, obj, overwrite=False, **kwargs):
 		"""
 		Params
 		------
-		ra
-		dec
-		obj_name
+		obj
 		overwrite=False
 
 		**kwargs:
@@ -59,16 +57,16 @@ class hscBatch(Batch):
 		humvi_bands = 'riz'
 
 		# running
-		L = downloadimg.hscimgLoader(ra=ra, dec=dec, dir_parent=dir_parent, environment=environment)
+		L = downloadimg.hscimgLoader(obj=obj, environment=environment)
 
-		statuss = [
+		statuss = 	[
 					L.hsc_status, 
 					L.add_obj_sdss(), 
 					L.make_stamps(overwrite=overwrite), 
 					L.make_psfs(overwrite=overwrite), 
-					L.obj.sdss.make_spec(overwrite=overwrite)
+					L.obj.sdss.make_spec(overwrite=overwrite),
+					L.plot_colorimg(bands=humvi_bands, img_type='stamp', overwrite=overwrite)
 					]
 
-		blobmaps.imagedisp_util.objw_HumVIgriimages(L, bands=humvi_bands, update=overwrite)
 
 		return all(statuss)

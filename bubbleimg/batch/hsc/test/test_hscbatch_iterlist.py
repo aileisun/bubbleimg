@@ -35,10 +35,11 @@ def setUp_tearDown():
 	if os.path.isdir(dir_parent):
 		shutil.rmtree(dir_parent)
 
-	# yield
-	# # tear down
-	# if os.path.isdir(dir_parent):
-	# 	shutil.rmtree(dir_parent)
+	yield
+	# tear down
+	if os.path.isdir(dir_parent):
+		shutil.rmtree(dir_parent)
+
 
 @pytest.fixture
 def batch1():
@@ -99,13 +100,11 @@ def test_batch_iterlist(batch1):
 
 
 
-def func_build(ra, dec, dir_parent, overwrite=False, **kwargs):
+def func_build(obj, overwrite=False, **kwargs):
 	"""
 	Params
 	------
-	ra
-	dec
-	obj_name
+	obj
 	overwrite=False
 
 	**kwargs:
@@ -121,7 +120,7 @@ def func_build(ra, dec, dir_parent, overwrite=False, **kwargs):
 	humvi_bands = 'riz'
 
 	# running
-	L = downloadimg.hscimgLoader(ra=ra, dec=dec, dir_parent=dir_parent, environment=environment)
+	L = downloadimg.hscimgLoader(obj=obj, environment=environment)
 
 	statuss = [
 				L.hsc_status, 

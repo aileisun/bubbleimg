@@ -139,7 +139,7 @@ def getObjBandContiFluxDensity_dEdl(obj, band='r', survey='sdss', wunit=False):
 	except: pass
 
 	# get continuum
-	speccont, lcoordcont = getcontspec.getMedianFilteredConti(spec,lcoord,obj.sdss.z,toplot=False)
+	speccont, lcoordcont = getcontspec.getMedianFilteredConti(spec, lcoord, obj.sdss.z, toplot=False)
 
 	# get filter function
 	specfilter, lcoordfilter = filters.getFilterResponseFunc(band=band, survey=survey)
@@ -273,7 +273,7 @@ def plotSpecwFilters(obj, survey='sdss'):
 
 	for band in filters.filtertools.surveybands[survey]:
 		specfilter, lcoordfilter=filters.getFilterResponseFunc(band=band, survey=survey)
-		plt.plot(lcoordfilter,specfilter/max(specfilter),label=band)
+		plt.plot(lcoordfilter, specfilter/max(specfilter), label=band)
 
 	plt.legend(loc='upper right')
 	plt.xlim(2980.0, 11230.0)
@@ -291,7 +291,7 @@ def getSDSSspeclineratio(obj,line1='H_beta',line2='[O_III] 5007'):
 
 	DESCRIPTION: the flux used is the area under the best fit Gaussian, so may differ from true flux if line shape deviates from Gaussian. 
 	"""
-	table=obj.sdss.get_spectra(obj)[3].data
+	table=obj.sdss.get_spec()[3].data
 	f1=table[table['LINENAME']==line1]['LINEAREA'][0]
 	f2=table[table['LINENAME']==line2]['LINEAREA'][0]
 

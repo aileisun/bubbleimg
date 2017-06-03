@@ -8,27 +8,30 @@ import os
 import abc
 
 from ..filters import surveysetup
-from ..obsobj import obsObj
+from .. import obsobj
+# from ..obsobj import obsObj, Operator
+from ..external_links import file_humvi_compose
 
 
-class imgLoader(object):
+class imgLoader(obsobj.Operator):
 	__metaclass__ = abc.ABCMeta
 
 	def __init__(self, **kwargs):
 		"""
-		imgLoader
+		imgLoader, child of Operator
 
 		Params
 		----------
-		/either
-			obj (object of class obsobj): with attributes ra, dec, dir_obj
-		/or  
-			ra (float)
-			dec (float)
+		Operator params:
 			/either
-				dir_obj (string)
-			/or 
-				dir_parent (string): attr dir_obj is set to dir_parent+'SDSSJXXXX+XXXX/'
+				obj (object of class obsobj): with attributes ra, dec, dir_obj
+			/or  
+				ra (float)
+				dec (float)
+				/either
+					dir_obj (string)
+				/or 
+					dir_parent (string): attr dir_obj is set to dir_parent+'SDSSJXXXX+XXXX/'
 				
 		img_width (angle quantity or int) = 20 * u.arcsec:
 			:if int then unit is assumed to be pix. 
@@ -40,41 +43,24 @@ class imgLoader(object):
 
 		Attributes
 		----------
-		ra (float)
-		dec (float)
-		dir_obj (string)
+		Operator Attributes:	
+			obj (instance of objObj)
+			ra (float)
+			dec (float)
+			dir_obj (string)
 		img_width (angle quantity)
 		img_height (angle quantity)
 		img_width_pix (quantity of unit u.pix): floor integer of img_width in pixels
 		img_height_pix (quantity of unit u.pix): floor integer of img_width in pixels
 
-		obj (optional) may have attributes sdss.xid etc 
-
 		"""
 		#===== unparse input
-		print "WARNING: to reorganize loader init using plainobj"
-		
-		if 'obj' in kwargs: 
-			self.obj = kwargs.pop('obj')
-			# sanity check
-			if 'dir_obj' in kwargs:
-				if self.obj.dir_obj != kwargs.pop('dir_obj'):
-					raise Exception("[loader] conflicting dir_obj entered")
-		else: 
-			self.obj = obsObj(**kwargs)
-
-		self.ra = self.obj.ra
-		self.dec = self.obj.dec
-		self.dir_obj = self.obj.dir_obj
-
+		super(imgLoader, self).__init__(**kwargs)
 
 		self.img_width = kwargs.pop('img_width', 20*u.arcsec)
 		self.img_height = kwargs.pop('img_height', 20*u.arcsec)
 		self._user = kwargs.pop('user', "")
 		self._password = kwargs.pop('password', "")
-
-		if (self.ra is None) or (self.dec is None) or (self.dir_obj is None):
-			raise TypeError('ra or dec or dir_obj not specified')
 		
 		self._attach_img_widthheight_unit()
 		self.survey = 'to be overwritten'
@@ -229,7 +215,7 @@ class imgLoader(object):
 		status: True if success, False if not
 		"""
 		if (not hasattr(self, 'obj')) or update:
-			self.obj = obsObj(ra=self.ra, dec=self.dec, dir_obj=self.dir_obj)
+			self.obj = obsobj.obsObj(ra=self.ra, dec=self.dec, dir_obj=self.dir_obj)
 
 		if (not hasattr(self.obj, 'sdss')) or update:
 			status = self.obj.add_sdss()
@@ -254,7 +240,7 @@ class imgLoader(object):
 		status: True if success, False if not
 		"""
 		if (not hasattr(self, 'obj')) or update:
-			self.obj = obsObj(ra=self.ra, dec=self.dec, dir_obj=self.dir_obj)
+			self.obj = obsobj.obsObj(ra=self.ra, dec=self.dec, dir_obj=self.dir_obj)
 
 		if (not hasattr(self.obj, 'hsc')) or update:
 			status = self.obj.add_hsc(**kwargs)
@@ -264,3 +250,34 @@ class imgLoader(object):
 			raise ValueError('self.dir_obj inconsistent with SDSS naming convension')
 
 		return status
+
+
+	def plot_colorimg(self, bands ='riz', img_type='stamp', overwrite=False):
+		"""
+		make color composit image using external package HumVI. Example file name: 'color_stamp-riz.png'.
+
+		Params
+		------
+		bands ='riz'
+		img_type='stamp'
+		overwrite=False
+
+		Return
+		------
+		status (bool)
+		"""
+		fn = self.dir_obj+'color_{img_type}-{bands}.png'.format(bands=bands, img_type=img_type)
+
+		fns_in = [self.dir_obj+img_type+'-'+band+'.fits' for band in bands[::-1]]
+
+
+		if (not os.path.isfile(fn)) or overwrite:
+			commandfiles = '{0} {1} {2} {3}'.format(fn, fns_in[0], fns_in[1], fns_in[2])
+			commandHumVI = file_humvi_compose+' -s 1.0,1.1,1.0  -p 1.6,1.6  -o '+commandfiles
+
+			os.system(commandHumVI)
+
+		status = os.path.isfile(fn)
+
+		return status
+

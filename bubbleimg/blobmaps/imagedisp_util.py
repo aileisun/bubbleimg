@@ -6,36 +6,8 @@ A collection of functions for image displays
 import os
 import numpy as np
 from astropy.io import fits
-import matplotlib.pylab as plt
-import scipy
 
 from skimage.io import imsave
-
-from .. import external_links
-
-
-def objw_HumVIgriimages(obj, bands='gri', update=False):
-	"""
-	PURPOSE: if file does not already exist, use package HumVI to make gri color images from the stamps for the Magellan targets
-	PARAMS: 
-			obj
-			filename='HumVI_gri.png'
-
-	READ INPUT: 	stamp i,r,g images, e.g., obj.dir_obj+'stamp-i.fits' 
-	WRITE OUTPUT: 	obj.dir_obj+filename
-	"""
-	filename = 'HumVI_'+bands+'.png'
-
-	pathHumVI = external_links.file_humvi_compose
-	print pathHumVI
-
-	dir_obj = obj.dir_obj
-
-	if (not os.path.isfile(dir_obj+filename)) or update:
-		commandHumVI = pathHumVI+' -s 1.0,1.1,1.0  -p 1.6,1.6  -o '+dir_obj+filename+' '+dir_obj+'stamp-'+bands[2]+'.fits '+dir_obj+'stamp-'+bands[1]+'.fits '+dir_obj+'stamp-'+bands[0]+'.fits'
-
-		os.system(commandHumVI)
-
 
 
 def fits_to_png(filenamein, filenameout=None, vmin=None, vmax=None):
@@ -91,51 +63,27 @@ def fits_to_png(filenamein, filenameout=None, vmin=None, vmax=None):
 
 
 
+# from .. import external_links
 
-# def fits_to_image(filenamein, filenameout=None, formats='png', saturatebright=0.5, toshow=False):
+
+# def objw_HumVIgriimages(obj, bands='gri', update=False):
 # 	"""
-# 	PURPOSE: make fits image into png image
+# 	PURPOSE: if file does not already exist, use package HumVI to make gri color images from the stamps for the Magellan targets
 # 	PARAMS: 
-# 			 filenamein
-# 			 formats='png' (string)
-# 			 saturatebright= 0.5 (float): a number between 0 and 1, marking relative scale, above which to saturate. 
-# 			 toshow=False (bool)
-# 	READ INPUT: 
-# 			 filenamein
-# 	WRITE OUTPUT
-# 			 filenamein+'.png'
+# 			obj
+# 			filename='HumVI_gri.png'
+
+# 	READ INPUT: 	stamp i,r,g images, e.g., obj.dir_obj+'stamp-i.fits' 
+# 	WRITE OUTPUT: 	obj.dir_obj+filename
 # 	"""
-# 	# setting
-# 	if filenameout is None:
-# 		extension='.'+formats
-# 		if filenamein[-5:]=='.fits': 
-# 			filenameout=filenamein[:-5]+extension
-# 		else: 
-# 			filenameout=filenamein+extension
+# 	filename = 'HumVI_'+bands+'.png'
 
-# 	if not os.path.isfile(filenamein):
-# 		print "skipping "+filenamein+" as in file does not exist"
-# 	else:
-# 		# read in
-# 		image=fits.getdata(filenamein)
-# 		# check
-# 		if len(image.shape)!=2: raise ValueError("Input fits file is not an 2D image")
+# 	pathHumVI = external_links.file_humvi_compose
+# 	print pathHumVI
 
-# 		if formats=='png':
-# 			scipy.misc.imsave(filenameout, image)
-# 		else:
-# 			plt.close('all')
-# 			plt.figure()
-# 			f, ax = plt.subplots(1)
+# 	dir_obj = obj.dir_obj
 
-# 			ax.imshow(image,origin='lower',cmap='gist_gray',vmin=0.,vmax=image.max()*saturatebright,interpolation='nearest')
+# 	if (not os.path.isfile(dir_obj+filename)) or update:
+# 		commandHumVI = pathHumVI+' -s 1.0,1.1,1.0  -p 1.6,1.6  -o '+dir_obj+filename+' '+dir_obj+'stamp-'+bands[2]+'.fits '+dir_obj+'stamp-'+bands[1]+'.fits '+dir_obj+'stamp-'+bands[0]+'.fits'
 
-# 			ax.get_xaxis().set_visible(False)
-# 			ax.get_yaxis().set_visible(False)
-# 			ax.get_xaxis().set_ticks([])
-# 			ax.get_yaxis().set_ticks([])
-# 			plt.subplots_adjust(left=0.0, right=1.0, top=1.0, bottom=0.0)
-# 			plt.draw()
-# 			if toshow:	plt.show(block=False)
-# 			plt.savefig(filenameout,bbox_inches='tight')
-
+# 		os.system(commandHumVI)
