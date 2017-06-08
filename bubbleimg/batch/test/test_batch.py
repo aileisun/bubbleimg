@@ -9,7 +9,7 @@ import shutil
 import copy
 
 from ..batch import Batch
-from ... import downloadimg
+from ... import imgdownload
 from ... import obsobj
 
 
@@ -99,7 +99,7 @@ def test_batch_domap(batch1):
 	check that domap can be call func to all objects in catalogue
 	"""
 	def func(ra, dec, dir_parent):
-		L = downloadimg.sdssimgLoader(ra=ra, dec=dec, dir_parent=dir_parent)
+		L = imgdownload.sdssimgLoader(ra=ra, dec=dec, dir_parent=dir_parent)
 
 
 	b = batch1

@@ -17,6 +17,7 @@ from scipy.optimize import fsolve
 import glob
 
 from surveysetup import surveybands
+from surveysetup import waverange
 
 def getFilterCentroids(band='u', survey='sdss', withunit=True):
     """

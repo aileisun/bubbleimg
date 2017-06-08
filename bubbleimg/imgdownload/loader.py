@@ -48,6 +48,8 @@ class imgLoader(obsobj.Operator):
 			ra (float)
 			dec (float)
 			dir_obj (string)
+		status:
+			whether loader is properly initiated, for example, successfully queried xid. If False, than make file functions will not be executed and returns False. 
 		img_width (angle quantity)
 		img_height (angle quantity)
 		img_width_pix (quantity of unit u.pix): floor integer of img_width in pixels
@@ -56,6 +58,8 @@ class imgLoader(obsobj.Operator):
 		"""
 		#===== unparse input
 		super(imgLoader, self).__init__(**kwargs)
+
+		self.status = False # to be overwritten by subclass
 
 		self.img_width = kwargs.pop('img_width', 20*u.arcsec)
 		self.img_height = kwargs.pop('img_height', 20*u.arcsec)
@@ -112,22 +116,25 @@ class imgLoader(obsobj.Operator):
 		"""
 
 		# setting
-		filename = func_naming_file(band)
-		filepath = self.dir_obj+filename
+		if self.status:
+			filename = func_naming_file(band)
+			filepath = self.dir_obj+filename
 
-		if not os.path.isdir(self.dir_obj):
-		    os.makedirs(self.dir_obj)
+			if not os.path.isdir(self.dir_obj):
+			    os.makedirs(self.dir_obj)
 
-		if (not os.path.isfile(filepath)) or overwrite:
-			print "download_file() ".format(filename)
-			# try: 
-			return func_download_file(band=band, **kwargs) # if failed then return False
-			# except:
-				# return False
-			
-		else:
-			print "skip download_file() as file {0} exists".format(filename)
-			return True
+			if (not os.path.isfile(filepath)) or overwrite:
+				print("[loader] make file ".format(filename))
+				# try: 
+				return func_download_file(band=band, **kwargs) # if failed then return False
+				# except:
+					# return False
+			else:
+				print("[loader] skip make file as file {0} exists".format(filename))
+				return True
+		else: 
+			print("[loader] make file failed as loader not properly initiated")
+			return False
 
 
 	def _imgLoader__make_files_core(self, func_download_file, func_naming_file, overwrite=False, **kwargs):

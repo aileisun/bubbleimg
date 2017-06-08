@@ -21,7 +21,7 @@ class sdssimgLoader(imgLoader):
 		"""
 
 		super(sdssimgLoader, self).__init__(**kwargs)
-		self.sdss_status = super(self.__class__, self).add_obj_sdss(update=False)
+		self.status = super(self.__class__, self).add_obj_sdss(update=False)
 
 
 		self.survey = 'sdss'
@@ -30,7 +30,7 @@ class sdssimgLoader(imgLoader):
 		self._add_attr_img_width_pix_arcsec()
 
 		# sanity check
-		if self.sdss_status:
+		if self.status:
 			if round(self.obj.sdss.xid['ra'][0], 4) != round(self.ra, 4):
 				raise ValueError("xid created inconsistent with init ra")
 

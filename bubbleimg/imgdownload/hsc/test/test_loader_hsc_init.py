@@ -166,7 +166,7 @@ def test_add_obj_hsc(L_radec):
 	"""
 	L = L_radec
 
-	assert L.hsc_status
+	assert L.status
 	assert hasattr(L, 'obj')
 	assert round(L.obj.ra, 3) == round(L.ra, 3)
 	assert round(L.obj.dec, 3) == round(L.dec, 3)

@@ -62,6 +62,7 @@ class hscObj(plainObj):
 		self.rerun = kwargs.pop('rerun', 's16a_wide')
 		self.release_version = kwargs.pop('release_version', 'dr1')
 
+		self.fp_xid = self.dir_obj+'hsc_xid.csv'
 		self.status = self.load_xid(writefile=writefile)
 
 
@@ -112,7 +113,7 @@ class hscObj(plainObj):
 		self.dir_obj+'xid.csv'
 		"""
 
-		fn = self.dir_obj+'hsc_xid.csv'
+		fn = self.fp_xid
 
 		if os.path.isfile(fn): # retrieve xid locally
 			print "[hscObj] reading xid locally"
@@ -165,6 +166,10 @@ class hscObj(plainObj):
 		xid = at.Table(xid[np.argmin(a)])
 		return xid
 
+
+	def get_psfsize(self, band='i'):
+		""" return the {band}flux_kron_psfradius that is queried in hsx_xid.csv"""
+		return self.xid[band+'flux_kron_psfradius']
 
 
 def _get_sql(ra, dec, radius=2, rerun='s16a_wide'):

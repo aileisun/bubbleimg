@@ -49,11 +49,16 @@ def L_radec():
 def test_make_calexp(L_radec):
 	""" test it can make_calexp"""
 	L = L_radec
-	assert L.hsc_status
+	assert L.status
+	
+	fn = L.dir_obj+'calexp-r.fits'
 	status = L.make_calexp(band = 'r', overwrite=True)
 
 	assert status
-	assert os.path.isfile(L.dir_obj+'calexp-r.fits')
+	assert os.path.isfile(fn)
+
+	file_verification = './test_verification_data_128pix/SDSSJ0920+0034/calexp-r.fits'
+	assert filecmp.cmp(fn, file_verification)
 
 
 def test_make_calexp_no_img_in_hsc():

@@ -4,8 +4,8 @@
 import numpy as np
 
 from ..batch import Batch
-from ... import downloadimg
-from ... import blobmaps
+from ... import imgdownload
+
 
 class hscBatch(Batch):
 	def __init__(self, **kwargs): 
@@ -57,16 +57,17 @@ class hscBatch(Batch):
 		humvi_bands = 'riz'
 
 		# running
-		L = downloadimg.hscimgLoader(obj=obj, environment=environment)
+		L = imgdownload.hscimgLoader(obj=obj, environment=environment)
 
-		statuss = 	[
-					L.hsc_status, 
-					L.add_obj_sdss(), 
-					L.make_stamps(overwrite=overwrite), 
-					L.make_psfs(overwrite=overwrite), 
-					L.obj.sdss.make_spec(overwrite=overwrite),
-					L.plot_colorimg(bands=humvi_bands, img_type='stamp', overwrite=overwrite)
-					]
+		if L.status:
+			statuss = 	[ 
+						L.add_obj_sdss(), 
+						L.make_stamps(overwrite=overwrite), 
+						L.make_psfs(overwrite=overwrite), 
+						L.obj.sdss.make_spec(overwrite=overwrite),
+						L.plot_colorimg(bands=humvi_bands, img_type='stamp', overwrite=overwrite)
+						]
 
-
-		return all(statuss)
+			return all(statuss)
+		else:
+			return False

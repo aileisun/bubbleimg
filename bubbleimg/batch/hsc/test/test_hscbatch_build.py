@@ -9,9 +9,8 @@ import astropy.table as at
 import copy
 
 from ..hscbatch import hscBatch
-from .... import downloadimg
+from .... import imgdownload
 from .... import obsobj
-from .... import blobmaps
 
 
 dir_parent = 'testing/'
@@ -125,10 +124,10 @@ def func_build(obj, overwrite=False, **kwargs):
 	humvi_bands = 'riz'
 
 	# running
-	L = downloadimg.hscimgLoader(obj=obj, environment=environment)
+	L = imgdownload.hscimgLoader(obj=obj, environment=environment)
 
 	statuss = [
-				L.hsc_status, 
+				L.status, 
 				L.add_obj_sdss(), 
 				L.make_stamps(overwrite=overwrite), 
 				L.plot_colorimg(bands=humvi_bands, img_type='stamp', overwrite=overwrite), 

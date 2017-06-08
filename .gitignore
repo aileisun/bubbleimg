@@ -35,9 +35,13 @@ bubbleimg/downloadimg/hsc/stars_credential.py
 
 .cache/
 
-# too big
-bubbleimg/downloadimg/hsc/test/test_verification_data_128pix/SDSSJ0920+0034/calexp-r.fits
+# test_verification_data
+bubbleimg/imgdownload/sdss/test/test_verification_data_64pix/
+bubbleimg/imgdownload/hsc/test/test_verification_data_128pix/
+bubbleimg/imgdecompose/test/test_verification_data/
+bubbleimg/spector/test/test_verification_data/
 
 # deprecated
 bubbleimg/trash_deprecated/
 bubbleimg/spector/fromspec_todeprecate.py
+

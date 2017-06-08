@@ -9,7 +9,6 @@ import astropy.table as at
 import copy
 
 from ..hscbatch import hscBatch
-from .... import downloadimg
 from .... import obsobj
 
 

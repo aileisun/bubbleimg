@@ -12,6 +12,7 @@ from ..obsobj import Operator
 from .. import filters
 import getconti
 import inttools
+import extrap
 
 class Spector(Operator):
 
@@ -32,11 +33,11 @@ class Spector(Operator):
 				/or 
 					dir_parent (string): attr dir_obj is set to dir_parent+'SDSSJXXXX+XXXX/'
 
-		z (float):  
-			redshift, if not provided, use obj.sdss.z
-		survey = 'hsc' (str): 
+		survey (str): 
 			survey of the photometric system
-			if not provided, use self.obj.survey (or 'hsc' if attribute does not exist)
+			if not provided, use self.obj.survey. Raise exception if self.obj.survey does not exist. 
+		z (float):  
+			redshift, if not provided, use obj.z or obj.sdss.z
 		survey_spec (str): 
 			survey of the spectrum
 			if not provided, use the instrument of sdss_xid.csv
@@ -56,23 +57,23 @@ class Spector(Operator):
 			survey of the spectrum
 		bands (list): 
 			e.g., ['g', 'r', 'i', 'z', 'y'] for survey = 'hsc'
+		z (float):  
 		"""
 		
 		super(Spector, self).__init__(**kwargs)
 
+		# set survey
 		if hasattr(self.obj, 'survey'):
 			default_survey = self.obj.survey
+			self.survey = kwargs.pop('survey', default_survey)
 		else: 
-			default_survey = 'hsc'
+			self.survey = kwargs.pop('survey')
 
-		self.survey = kwargs.pop('survey', default_survey)
+		# set survey_spec
 		self.survey_spec = kwargs.pop('survey_spec', 'auto')
-		self.bands = filters.filtertools.surveybands[self.survey]
 
-		if self.survey_spec in ['sdss', 'boss', 'boss', 'auto']:
+		if self.survey_spec in ['sdss', 'boss', 'eboss', 'auto']:
 			self.obj.add_sdss(toload_photoobj=False)
-			self.z = kwargs.pop('z', self.obj.sdss.z) 
-
 			if self.survey_spec == 'auto':
 				self.survey_spec = self.obj.sdss.instrument.lower()
 
@@ -80,11 +81,22 @@ class Spector(Operator):
 			if (self.survey_spec != self.obj.sdss.instrument.lower()):
 				raise Exception("[spector] survey_spec in consistent with sdss_xid.csv:instrument")
 
+		# set z
+		if hasattr(self.obj, 'z'):
+			self.z = kwargs.pop('z', self.obj.z)
+		elif self.survey_spec in ['sdss', 'boss', 'boss', 'auto']:
+			self.obj.add_sdss(toload_photoobj=False)
+			self.z = kwargs.pop('z', self.obj.sdss.z) 
 		else: 
 			self.z = kwargs.pop('z') 
 
+		# set others
+		self.bands = filters.filtertools.surveybands[self.survey]
+		self.waverange = filters.filtertools.waverange[self.survey]
+
 		# define paths
 		self.fp_spec_decomposed = self.dir_obj+'spec_decomposed.ecsv'
+		self.fp_spec_contextrp = self.dir_obj+'spec_contextrp.ecsv'
 		self.fp_spec_mag = self.dir_obj+'spec_mag.csv'
 
 
@@ -136,6 +148,46 @@ class Spector(Operator):
 			return tab['spec'], tab['lcoord']
 
 
+	def get_spec_lcoord_from_spectab(self, component, fn=None):
+		"""
+		read certain spec table.ecsv to get spec of a given component
+		if fn not specified then use the default file that would contain the specified component,
+		e.g.:
+			'spec_decomposed.ecsv' for component = "all", "cont", "line"
+			'spec_contextrp.ecsv'    for component = "contextrp"
+
+		Param
+		-----
+		component: 
+			either ['all', 'line', 'cont', 'contextrp']
+		fn='spec_decomposed.ecsv'
+
+		Return
+		------
+		spec (astropy table column with unit)
+		lcoord (astropy table column with unit)
+
+		Default units
+		-------------
+		u_spec = 1.e-17*u.Unit('erg / (Angstrom cm2 s)')
+		u_lcoord = u.AA
+		"""
+		if fn == None:
+			if component in ['all', 'cont', 'line']:
+				fn = self.fp_spec_decomposed
+				self.make_spec_decomposed_ecsv(overwrite=False)
+			elif component in ['contextrp']:
+				fn = self.fp_spec_contextrp
+				self.make_spec_contextrp_ecsv(overwrite=False)
+			else: 
+				raise Exception("[spector] component not recognized")
+
+		tab = at.Table.read(fn, format='ascii.ecsv')
+		col = self.__get_spectab_colname(component)
+
+		return tab[col], tab['lcoord']
+
+
 	def get_filter_trans(self, band='i'):
 		"""
 		Params
@@ -170,13 +222,13 @@ class Spector(Operator):
 
 		if (not os.path.isfile(fn)) or overwrite:
 			spec, lcoord = self.get_spec_lcoord()
-			speccon, specline, lcoord = getconti.decompose_conti_line_t2AGN(spec, lcoord, self.z)
+			speccon, specline, lcoord = getconti.decompose_cont_line_t2AGN(spec, lcoord, self.z)
 
-			tab = at.Table([lcoord, spec, speccon, specline], names=['lcoord', 'spec', 'specconti', 'specline'])
+			tab = at.Table([lcoord, spec, speccon, specline], names=['lcoord', 'spec', 'speccont', 'specline'])
 			tab.write(fn, format='ascii.ecsv', overwrite=overwrite)
 
 			# sanity check: units are identical
-			units = [tab[col].unit for col in ['spec', 'specconti', 'specline']]
+			units = [tab[col].unit for col in ['spec', 'speccont', 'specline']]
 			if len(set(units)) > 1:
 				raise Exception("[spector] units in table spec_decomposed are not identical")
 
@@ -184,47 +236,32 @@ class Spector(Operator):
 		return status 
 
 
-	def get_specconti_lcoord(self):
-		"""
-		Return
-		------
-		specconti (astropy table column with unit)
-		lcoord (astropy table column with unit)
+	def make_spec_contextrp_ecsv(self, overwrite=False):
+		""" extrapolate continuum to cover all of the wavelength range of filters """
+		fn = self.fp_spec_contextrp
 
-		Default units
-		-------------
-		u_spec = 1.e-17*u.Unit('erg / (Angstrom cm2 s)')
-		u_lcoord = u.AA
-		"""
-		fn = self.fp_spec_decomposed
-		self.make_spec_decomposed_ecsv(overwrite=False)
+		if (not os.path.isfile(fn)) or overwrite:
+			speccon, lcoord = self.get_spec_lcoord_from_spectab(component='cont')
 
-		tab = at.Table.read(fn, format='ascii.ecsv')
+			l0, l1 = self.waverange
+			
+			speccon_ext, lcoord_ext = extrap.extrap_to_end(ys=speccon, xs=lcoord, x_end=l0, polydeg=1, extbase_length=1000.)
+			speccon_ext, lcoord_ext = extrap.extrap_to_end(ys=speccon_ext, xs=lcoord_ext, x_end=l1, polydeg=1, extbase_length=1000.)
 
-		return tab['specconti'], tab['lcoord']
+			col = self.__get_spectab_colname('contextrp')
+			tab = at.Table([lcoord_ext, speccon_ext], names=['lcoord', col])
+			tab.write(fn, format='ascii.ecsv', overwrite=overwrite)
+
+		status = os.path.isfile(fn)
+		return status 
 
 
-	def get_specline_lcoord(self):
-		"""
-		Return
-		------
-		specline (astropy table column with unit)
-		lcoord (astropy table column with unit)
-		"""
-		fn = self.fp_spec_decomposed
-		self.make_spec_decomposed_ecsv(overwrite=False)
-
-		tab = at.Table.read(fn, format='ascii.ecsv')
-
-		return tab['specline'], tab['lcoord']
-	
-
-	def get_Fnu_in_band(self, band, spec_component='all'):
+	def calc_Fnu_in_band(self, band, component='all'):
 		"""
 		Params
 		------
 		band=band
-		spec_component='all': from ['all', 'conti', 'line']
+		component='all': from ['all', 'cont', 'line']
 			which spectral component to operate on
 
 		Return
@@ -232,14 +269,7 @@ class Spector(Operator):
 		Fnu (quantity in units "erg s-1 cm-2 Hz-1")
 		"""
 
-		if spec_component == 'all':
-			spec, lcoord = self.get_spec_lcoord()
-		elif spec_component == 'conti':
-			spec, lcoord = self.get_specconti_lcoord()
-		elif spec_component == 'line':
-			spec, lcoord = self.get_specline_lcoord()
-		else:
-			raise Exception("[spector] spec_component not recognized")
+		spec, lcoord = self.get_spec_lcoord_from_spectab(component=component)
 
 		trans, lcoord_trans = self.get_filter_trans(band=band)
 
@@ -248,8 +278,8 @@ class Spector(Operator):
 		return Fnu
 
 
-	def get_mAB_in_band(self, band, spec_component='all'):
-		Fnu = self.get_Fnu_in_band(band=band, spec_component='all')
+	def calc_mAB_in_band(self, band, component='all'):
+		Fnu = self.calc_Fnu_in_band(band=band, component='all')
 		return Fnu.to(u.ABmag)
 
 
@@ -266,32 +296,29 @@ class Spector(Operator):
 		------
 		status
 		"""
-		def get_colname(band, spec_component, stype):
-			"""
-			band : e.g. 'i'
-			spec_component: from ['all', 'conti', 'line']
-			stype: from ['Fnu', 'Mag']
-			"""
-			scomponent = {'all': '', 'conti': 'conti', 'line': 'line'}
-			return 'spec{0}{1}_{2}'.format(scomponent[spec_component], stype, band)
-
 		#==========================================================================
 
 		fn = self.fp_spec_mag
+
+		self.make_spec_decomposed_ecsv(overwrite=False)
 
 		if not os.path.isfile(fn) or overwrite:
 			tabmag = at.Table()
 			tabfnu = at.Table()
 
-			for spec_component in ['all', 'conti', 'line']:
+			for component in ['all', 'cont', 'line', 'contextrp']:
 				for band in self.bands:
-					colfnu = get_colname(band, spec_component, stype='Fnu')
-					colmag = get_colname(band, spec_component, stype='Mag')
-					fnu = self.get_Fnu_in_band(band=band, spec_component=spec_component)
-					mag = fnu.to(u.ABmag)
-					fnu_nm = fnu.to(u.nanomaggy)				
-					tabmag[colmag] = [mag.value]
-					tabfnu[colfnu] = [fnu_nm.value]
+					colfnu = self.__get_specmag_colname(band, component=component, fluxquantity='fnu')
+					colmag = self.__get_specmag_colname(band, component=component, fluxquantity='mag')
+					try:
+						fnu = self.calc_Fnu_in_band(band=band, component=component)
+					except:
+						print("[spector] skip calculating fnu of {} in band {}".format(component, band))
+					else: 
+						mag = fnu.to(u.ABmag)
+						fnu_nm = fnu.to(u.nanomaggy)				
+						tabmag[colmag] = [mag.value]
+						tabfnu[colfnu] = [fnu_nm.value]
 
 			tab = at.hstack([tabmag, tabfnu])
 
@@ -308,13 +335,80 @@ class Spector(Operator):
 		return status 
 
 
+	def __get_specmag_colname(self, band, component, fluxquantity):
+		"""
+		band : e.g. 'i'
+		component: from ['all', 'cont', 'line']
+		fluxquantity: from ['fnu', 'mag']
+		"""
+		tag_component = {'all': '', 'cont': 'cont', 'line': 'line', 'contextrp': 'contextrp'}
+		tag_quantity = {'fnu': 'Fnu', 'mag': 'Mag'}
+		return 'spec{0}{1}_{2}'.format(tag_component[component], tag_quantity[fluxquantity], band)
+
+
+	def __get_spectab_colname(self, component):
+		"""
+		band : e.g. 'i'
+		component: from ['all', 'cont', 'line']
+		fluxquantity: from ['fnu', 'mag']
+		"""
+		if component == 'lcoord':
+			return 'lcoord'
+		else: 
+			tag_component = {'all': '', 'cont': 'cont', 'line': 'line', 'contextrp': 'contextrp'}
+			return 'spec{0}'.format(tag_component[component])
+
+
 	def get_spec_mag_tab(self):
 		""" return spec_mag table"""
 		self.make_spec_mag(overwrite=False)
 		return at.Table.read(self.fp_spec_mag, comment='#', format='ascii.csv')
 
 
-	def plot_spec(self, wfilters=True, wconti=False, overwrite=False):
+	def get_spec_mag_value(self, band, component='all', fluxquantity='mag'):
+		""" 
+		return requested value, reading from spec_mag.csv
+
+		Params
+		------
+		component='line'
+		fluxquantity='mag'
+		band='i'
+
+		Return
+		------
+		x (float): the value
+		"""
+		tab = self.get_spec_mag_tab()
+		col = self.__get_specmag_colname(band=band, component=component, fluxquantity=fluxquantity)
+		
+		return tab[col][0]
+
+
+	def get_fnu_ratio_band1_over_band2(self, band1, band2, component='all'):
+		""" 
+		return fnu_band1/fnu_band2
+
+		Params
+		------
+		band1, band2, component='all'
+
+		Return
+		------
+		x (float): the ratio
+		"""
+		fluxquantity = 'fnu'
+		tab = self.get_spec_mag_tab()
+		col1 = self.__get_specmag_colname(band=band1, component=component, fluxquantity=fluxquantity)
+		col2 = self.__get_specmag_colname(band=band2, component=component, fluxquantity=fluxquantity)
+
+		ratio = tab[col1][0]/tab[col2][0]
+		
+		return ratio
+
+
+
+	def plot_spec(self, wfilters=True, wconti=False, wcontextrp=False, wline=False, overwrite=True):
 		"""
 		Params
 		------
@@ -329,6 +423,7 @@ class Spector(Operator):
 		fn = self.dir_obj+'spec.pdf'
 
 		if not os.path.isfile(fn) or overwrite:
+			plt.close('all')
 			plt.figure(1, figsize=(12, 6))
 			plt.clf()
 			if wfilters:
@@ -339,12 +434,24 @@ class Spector(Operator):
 			spec, lcoord = self.get_spec_lcoord()
 			norm = max(spec)
 			
-			plt.plot(lcoord, spec/norm, color='black', lw=2, label='__nolabel__')
+			plt.plot(lcoord, spec/norm, color='0.3', lw=1.5, label='__nolabel__')
 			plt.plot(0., 0., ls='', color='black', label='z='+'%.3f'%self.z) # show z in legend
 
+			if wline:
+				speccont, lcoord = self.get_spec_lcoord_from_spectab(component='cont')
+				specline, lcoord = self.get_spec_lcoord_from_spectab(component='line')
+				specplot = specline+speccont
+				specplot[specline==0] = np.nan
+				plt.plot(lcoord, specplot/norm, color='black', lw=1.5, label='line')
+
 			if wconti:
-				specconti, lcoord = self.get_specconti_lcoord()
-				plt.plot(lcoord, specconti/norm, color='blue', lw=2, label='__nolabel__')
+				speccont, lcoord = self.get_spec_lcoord_from_spectab(component='cont')
+				plt.plot(lcoord, speccont/norm, color='cyan', lw=2, label='continuum')
+
+			if wcontextrp:
+				speccextrp, lcoord = self.get_spec_lcoord_from_spectab(component='contextrp')
+				plt.plot(lcoord, speccextrp/norm, color='grey', lw=0.5, label='extrapolated conti')
+
 
 			plt.legend(loc='upper right')
 			if self.survey_spec == 'sdss':
@@ -352,10 +459,45 @@ class Spector(Operator):
 			elif self.survey_spec == 'boss':
 				plt.xlim(3500.0, 12000.0)
 			plt.ylim(0., 1.)
-			plt.savefig(fn)
+			plt.savefig(fn, overwrite=overwrite)
 
 		status = os.path.isfile(fn)
 		return status 
 
 
 
+
+	# def get_speccont_lcoord(self):
+	# 	"""
+	# 	Return
+	# 	------
+	# 	speccont (astropy table column with unit)
+	# 	lcoord (astropy table column with unit)
+
+	# 	Default units
+	# 	-------------
+	# 	u_spec = 1.e-17*u.Unit('erg / (Angstrom cm2 s)')
+	# 	u_lcoord = u.AA
+	# 	"""
+	# 	fn = self.fp_spec_decomposed
+	# 	self.make_spec_decomposed_ecsv(overwrite=False)
+
+	# 	tab = at.Table.read(fn, format='ascii.ecsv')
+
+	# 	return tab['speccont'], tab['lcoord']
+
+
+	# def get_specline_lcoord(self):
+	# 	"""
+	# 	Return
+	# 	------
+	# 	specline (astropy table column with unit)
+	# 	lcoord (astropy table column with unit)
+	# 	"""
+	# 	fn = self.fp_spec_decomposed
+	# 	self.make_spec_decomposed_ecsv(overwrite=False)
+
+	# 	tab = at.Table.read(fn, format='ascii.ecsv')
+
+	# 	return tab['specline'], tab['lcoord']
+	

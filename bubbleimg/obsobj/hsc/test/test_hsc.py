@@ -21,10 +21,10 @@ def setUp_tearDown():
 	if os.path.isdir(dir_parent):
 		shutil.rmtree(dir_parent)
 
-	yield
-	# tear down
-	if os.path.isdir(dir_parent):
-		shutil.rmtree(dir_parent)
+	# yield
+	# # tear down
+	# if os.path.isdir(dir_parent):
+	# 	shutil.rmtree(dir_parent)
 
 
 @pytest.fixture
@@ -121,3 +121,10 @@ def test_HSCObj_identical_w_verification(obj_dirobj):
 	file_verification = './test_verification_data/SDSSJ0920+0034/'+f
 
 	assert filecmp.cmp(file_totest, file_verification)
+
+
+def test_get_psfsize(obj_dirobj):
+
+	assert obj_dirobj.get_psfsize(band='i')	== 0.297575027
+	assert obj_dirobj.get_psfsize(band='y')	== 0.369160265
+

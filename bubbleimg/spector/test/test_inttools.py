@@ -93,3 +93,33 @@ def test_inttools_arr_and_arr():
 	assert round(r0, 5) == round(r1, 5)
 
 
+def test_inttools_arr1_contains_arr2():
+
+	arr1 = np.linspace(0., 10.)
+	arr2 = np.linspace(1., 9.)
+	assert inttools.arr1_contains_arr2(arr1, arr2)
+
+	arr1 = np.linspace(1., 10.)
+	arr2 = np.linspace(1., 9.)
+	assert inttools.arr1_contains_arr2(arr1, arr2)
+
+	arr1 = np.linspace(2., 10.)
+	arr2 = np.linspace(1., 9.)
+	assert not inttools.arr1_contains_arr2(arr1, arr2)
+
+	arr1 = np.linspace(0., 8.)
+	arr2 = np.linspace(1., 9.)
+	assert not inttools.arr1_contains_arr2(arr1, arr2)
+
+
+def test_inttools_extrapolate_to_cover_range():
+	assert False
+
+
+def test_inttools_extrapolate():
+	assert False
+
+
+def test_inttools_int_arr_times_arr_over_dlnx_extrapolate():
+	assert False
+	

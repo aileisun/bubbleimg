@@ -10,7 +10,7 @@ import copy
 import numpy as np
 
 from ..hscbatch import hscBatch
-from .... import downloadimg
+from .... import imgdownload
 from .... import obsobj
 
 
@@ -120,10 +120,10 @@ def func_build(obj, overwrite=False, **kwargs):
 	humvi_bands = 'riz'
 
 	# running
-	L = downloadimg.hscimgLoader(obj=obj, environment=environment)
+	L = imgdownload.hscimgLoader(obj=obj, environment=environment)
 
 	statuss = [
-				L.hsc_status, 
+				L.status, 
 				L.add_obj_sdss(), 
 				]
 

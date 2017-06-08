@@ -61,7 +61,7 @@ class hscimgLoader(imgLoader):
 		self.semester = self.rerun.split('_')[0]
 		self.release_version = kwargs.pop('release_version', 'dr1')
 
-		self.hsc_status = super(self.__class__, self).add_obj_hsc(update=False, release_version=self.release_version, rerun=self.rerun)
+		self.status = super(self.__class__, self).add_obj_hsc(update=False, release_version=self.release_version, rerun=self.rerun)
 
 		self.survey = 'hsc'
 		self.bands = surveysetup.surveybands[self.survey]
@@ -76,7 +76,7 @@ class hscimgLoader(imgLoader):
 			self.__password = getCrendential("HSC_SSP_CAS_PASSWORD", cred_name = 'STARs password')
 
 
-	def make_stamp(self, band='r', overwrite=False, **kwargs):
+	def make_stamp(self, band, overwrite=False, **kwargs):
 		"""
 		make stamp image of the specified band of the object. takes care of overwrite with argument 'overwrite'. Default: do not overwrite. 
 
@@ -104,7 +104,7 @@ class hscimgLoader(imgLoader):
 		return self._imgLoader__make_files_core(func_download_file=self._download_stamp, func_naming_file=self.get_stamp_filename, overwrite=overwrite, **kwargs)
 
 
-	def _download_stamp(self, band='r', imgtype='coadd', tract='', rerun='', tokeepraw=False):
+	def _download_stamp(self, band, imgtype='coadd', tract='', rerun='', tokeepraw=False):
 		"""
 		download hsc cutout image and convert it to stamp images. 
 
@@ -115,7 +115,7 @@ class hscimgLoader(imgLoader):
 
 		Args
 		--------
-		band='r'
+		band
 		imgtype='coadd'
 		tract=''
 		rerun=''
@@ -165,7 +165,7 @@ class hscimgLoader(imgLoader):
 		overwrite=False: whether to overwrite existing psf file
 		to_keep_calexp=False: whether to keep the calexp file or not after psf files are made
 		"""
-		if self.environment!='iaa':
+		if self.environment != 'iaa':
 			status = self._imgLoader__make_file_core(func_download_file=self._calexp_to_psf, func_naming_file=self.get_psf_filename, band=band, overwrite=overwrite)
 
 			if not to_keep_calexp:
@@ -189,10 +189,12 @@ class hscimgLoader(imgLoader):
 			missings = [(not os.path.isfile(self.dir_obj+self.get_psf_filename(band))) for band in self.bands]
 			isfilesmissing = np.any(missings)
 
-			if isfilesmissing:
-				return self._download_psfs_at_iaa()
+			if isfilesmissing or overwrite:
+				print "[loader_hsc] running _download_psfs_at_iaa()"
+				status = self._download_psfs_at_iaa()
+				return status
 			else: 
-				print "skip _download_psfs_at_iaa() as file exists"
+				print "[loader_hsc] skip _download_psfs_at_iaa() as file exists"
 				return True
 
 
@@ -242,30 +244,34 @@ class hscimgLoader(imgLoader):
 		else: False
 
 
-	def make_calexp(self, band='r', overwrite=False):
+	def make_calexp(self, band, overwrite=False):
 		"""
 		make calexp image of the specified band of the object. takes care of overwrite with argument 'overwrite'. Default: do not overwrite. 
 
 		Params
 		----------
-		band (string) = 'r'
+		band (string)
 		overwrite (boolean) = False
 
 		Return
 		----------
 		status: True if downloaded or skipped, False if download fails
 		"""
-		return self._imgLoader__make_file_core(func_download_file=self._download_calexp, func_naming_file=self.get_calexp_filename, band=band, overwrite=overwrite)
+		status = self._imgLoader__make_file_core(func_download_file=self._download_calexp, func_naming_file=self.get_calexp_filename, band=band, overwrite=overwrite)
+
+		return status
 
 
 	def make_calexps(self, overwrite=False):
 		"""
 		make calexps of all bands, see make_calexp()
 		"""
-		return self._imgLoader__make_files_core(func_download_file=self._download_calexp, func_naming_file=self.get_calexp_filename, overwrite=overwrite)
+		status = self._imgLoader__make_files_core(func_download_file=self._download_calexp, func_naming_file=self.get_calexp_filename, overwrite=overwrite)
+
+		return status
 
 
-	def _download_calexp(self, band='r'):
+	def _download_calexp(self, band):
 
 		fn = self.dir_obj+self.get_calexp_filename(band=band)
 

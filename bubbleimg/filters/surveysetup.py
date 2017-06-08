@@ -17,3 +17,9 @@ surveybands = {
 pixsize = {'sdss': 0.396 * u.arcsec,
            'hsc': 0.168 * u.arcsec
            }
+
+waverange = {
+			'sdss': [2980.*u.AA, 11230.*u.AA],
+      'hsc': [3600.*u.AA, 11000.*u.AA],
+			'cfht': [3000.*u.AA, 5540.*u.AA],
+			}

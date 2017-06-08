@@ -113,6 +113,11 @@ class iaaButler(parentButler):
 
 
 	def download(self, remotepath, localpath):
+		""" force download """
+
+		if os.path.isfile(localpath):
+			os.remove(localpath)
+
 		try:
 			with self.ssh_client.open_sftp() as sftp_client:
 				try: 
@@ -175,11 +180,21 @@ class iaaButler(parentButler):
 		stdin, stdout, stderr = self.ssh_client.exec_command(command1+"; "+command2)
 
 		try: 
-			status = (stdout.read().splitlines()[0] == 'True')
+			status_makepsf_insumire = (stdout.read().splitlines()[0] == 'True')
 		except:
-			status = False
+			status_makepsf_insumire = False
 
-		return self.download(remotepsfpath, localpath)
+		if status_makepsf_insumire:
+			status_download = self.download(remotepsfpath, localpath)
+			stdin, stdout, stderr = self.ssh_client.exec_command('rm '+remotepsfpath)
+
+			return status_download
+
+		else:
+			print("[multibutler] iaaButler.download_psf() make psf in sumire failed")
+			print("[multibutler] please check if IAA_SUMIRE_CLUSTER_USERNAME is set to hscpipe")
+			return False
+
 
 	
 
@@ -210,6 +225,16 @@ class onlineButler(parentButler):
 		self.__password = getCrendential("HSC_SSP_CAS_PASSWORD", cred_name = 'STARs password')
 
 		self.root_path = self._get_root_path()
+
+
+	def __enter__(self):
+		""" nothing do be done"""
+		pass
+
+
+	def __exit__(self, exc_type, exc_value, traceback):
+		""" nothing do be done"""
+		pass
 
 
 	def download_file(self, localpath, tract, patch_s, filter, coadd='deepCoadd', filetype='calexp'): 

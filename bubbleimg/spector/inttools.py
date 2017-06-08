@@ -8,6 +8,7 @@ tool for integration
 import numpy as np
 import scipy.integrate as integrate
 from scipy.interpolate import interp1d
+import copy
 
 import astropy.units as u
 import astropy.constants as const
@@ -137,12 +138,26 @@ def int_arr_times_f_over_dlnx(arr, f, xs):
     return int_arr_over_dlnx(arr*arr2, xs)
 
 
-def int_arr_times_arr_over_dlnx(arr1, xs1, arr2, xs2):
+def int_arr_times_arr_over_dlnx(arr1, xs1, arr2, xs2, toexception=False):
     """
-    integrate over arr1*arr2 dlnx, where their x grids may be different
-    use arr1, xs1 as the integral reference, interpolate arr2 onto xs1
+    integrate over arr1*arr2 dlnx, where xs1 and xs2 may be on different grids. 
+    The integration is over d ln (xs1). arr2 is interpolated onto xs1 grids. 
+    If xs1 is more extended than xs2 then arr2 outside of xs2 coverage is assumed to be 0. 
+
+    If xs2 is more extended than xs1, raise error
+
     """
+    arr1 = copy.copy(arr1)
+    xs1 = copy.copy(xs1)
+
+    if not arr1_contains_arr2(xs1, xs2) and toexception:
+        raise Exception("[inttools] arr1 does not cover the domain of arr2")
 
     f = interp1d(xs2, arr2, kind='linear', bounds_error=False, fill_value=0.)
-
     return int_arr_times_f_over_dlnx(arr1, f, xs1)
+
+
+def arr1_contains_arr2(arr1, arr2):
+
+    return (max(arr1) >= max(arr2)) and (min(arr1) <= min(arr2))
+
