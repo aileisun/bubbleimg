@@ -46,3 +46,8 @@ bubbleimg/spector/test/test_verification_data/
 bubbleimg/trash_deprecated/
 bubbleimg/spector/fromspec_todeprecate.py
 
+# testing
+bubbleimg/*/testing/
+bubbleimg/*/*/testing/
+bubbleimg/*/*/*/testing/
+bubbleimg/*/*/*/*/testing/
