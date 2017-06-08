@@ -83,89 +83,13 @@ def test_decomposer_get_z_fromobj(obj_dirobj):
 	assert d.z == 0.
 
 
-
-def test_decomposer_make_stamp_psfmatch(decomposer1):
-	d = decomposer1
-
-	band = bandline
-	bandto = bandconti
-
-
-	status = d.make_stamp_psfmatch(band, bandto, overwrite=True)
-
-	assert status
-
-	status = d.make_stamp_psfmatch(band, bandto, overwrite=False)
-
-	assert status
-
-	fns = [d.get_fp_stamp_psfmatched(band, bandto), 
-			d.get_fp_psf_psfmatched(band, bandto),
-			d.get_fp_psf_kernelcnvl(band, bandto),
-			]
-
-	for fn in fns:
-		assert os.path.isfile(fn)
-
-
 def test_decomposer_get_conti_fnu_ratio_from_spector(decomposer1):
 	d = decomposer1
 
 	b1 = 'i'
 	b2 = 'z'
 	
-	x = d.get_conti_fnu_ratio_from_spector(band1=b1, band2=b2)
+	x = d._get_conti_fnu_ratio_from_spector(band1=b1, band2=b2)
 	assert round(x, 3) == round(0.7302813376166697, 3)
-
-
-def test_decomposer_subtract_img_w_ratio(decomposer1):
-	d = decomposer1
-
-	fn1 = d.dir_obj+'a1.fits'
-	fn2 = d.dir_obj+'a2.fits'
-	fnout = d.dir_obj+'answer.fits'
-
-	arr1 = np.ones([2, 2])
-	arr2 = np.array([[1, 0], [1, 0]])
-	arr_ans = np.array([[1, 2], [1, 2]])
-
-	fits.PrimaryHDU(arr1).writeto(fn1, overwrite=True)
-	fits.PrimaryHDU(arr2).writeto(fn2, overwrite=True)
-
-	d._subtract_img_w_ratio(fn1, fn2, fnout, a1=2., a2=1., overwrite=True)
-
-	arr_out = fits.getdata(fnout)
-
-	assert np.all(arr_out == arr_ans)
-
-
-def test_decomposer_make_stamp_contsub(decomposer1):
-
-	d = decomposer1
-
-	fn = d.get_fp_stamp_contsub(bandline, bandconti)
-
-	status = d.make_stamp_contsub(bandline, bandconti, overwrite=True)
-
-	assert status
-
-	assert os.path.isfile(fn)
-
-	status = d.make_stamp_contsub(bandline, bandconti='y', overwrite=True)
-	status = d.make_stamp_contsub('z', bandconti='y', overwrite=True)
-
-
-
-
-
-
-def test_decomposer_make_linemap(decomposer1):
-	d = decomposer1
-	assert False
-
-	d.make_linemap(line='oiii5007', bandline=bandline, bandconti=bandconti, z=None, overwrite=False)
-
-	assert os.path.isfile(obj.dir_obj+'stamp-lOIII5008_I.fits')
-
 
 
