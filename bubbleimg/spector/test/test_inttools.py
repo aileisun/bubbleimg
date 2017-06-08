@@ -111,15 +111,3 @@ def test_inttools_arr1_contains_arr2():
 	arr2 = np.linspace(1., 9.)
 	assert not inttools.arr1_contains_arr2(arr1, arr2)
 
-
-def test_inttools_extrapolate_to_cover_range():
-	assert False
-
-
-def test_inttools_extrapolate():
-	assert False
-
-
-def test_inttools_int_arr_times_arr_over_dlnx_extrapolate():
-	assert False
-	

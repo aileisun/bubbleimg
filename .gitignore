@@ -39,6 +39,7 @@ bubbleimg/downloadimg/hsc/stars_credential.py
 bubbleimg/imgdownload/sdss/test/test_verification_data_64pix/
 bubbleimg/imgdownload/hsc/test/test_verification_data_128pix/
 bubbleimg/imgdecompose/test/test_verification_data/
+bubbleimg/imgdecompose/test/test_verification_data/
 bubbleimg/spector/test/test_verification_data/
 
 # deprecated
