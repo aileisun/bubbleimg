@@ -5,16 +5,15 @@ import numpy as np
 import astropy.table as at
 import astropy.units as u
 import os 
-import abc
+# import abc
 
 from ..filters import surveysetup
 from .. import obsobj
-# from ..obsobj import obsObj, Operator
 from ..external_links import file_humvi_compose
 
 
 class imgLoader(obsobj.Operator):
-	__metaclass__ = abc.ABCMeta
+	# __metaclass__ = abc.ABCMeta
 
 	def __init__(self, **kwargs):
 		"""
@@ -71,29 +70,29 @@ class imgLoader(obsobj.Operator):
 		self.pixsize = -1
 
 
-	@abc.abstractmethod
+	# @abc.abstractmethod
 	def make_stamps(self, **kwargs):
 		raise NotImplementedError("Subclass must implement abstract method")
 
 
-	@abc.abstractmethod
+	# @abc.abstractmethod
 	def make_psfs(self, **kwargs):
 		raise NotImplementedError("Subclass must implement abstract method")
 
 
-	def get_stamp_filepath(self, band):
-		return self.dir_obj+self.get_stamp_filename(band)
+	def get_fp_stamp(self, band):
+		return self.dir_obj + self.get_fn_stamp(band)
 
 
-	def get_stamp_filename(self, band):
+	def get_fn_stamp(self, band):
 		return 'stamp-{0}.fits'.format(band)
 
 
-	def get_psf_filepath(self, band):
-		return self.dir_obj+self.get_psf_filename(band)
+	def get_fp_psf(self, band):
+		return self.dir_obj + self.get_fn_psf(band)
 
 
-	def get_psf_filename(self, band):
+	def get_fn_psf(self, band):
 		return 'psf-{0}.fits'.format(band)
 
 
@@ -276,7 +275,6 @@ class imgLoader(obsobj.Operator):
 		fn = self.dir_obj+'color_{img_type}-{bands}.png'.format(bands=bands, img_type=img_type)
 
 		fns_in = [self.dir_obj+img_type+'-'+band+'.fits' for band in bands[::-1]]
-
 
 		if (not os.path.isfile(fn)) or overwrite:
 			commandfiles = '{0} {1} {2} {3}'.format(fn, fns_in[0], fns_in[1], fns_in[2])

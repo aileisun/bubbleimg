@@ -55,7 +55,7 @@ class sdssimgLoader(imgLoader):
 			self._make_frame(band=band, overwrite=overwrite)
 
 		# make stamp images from frame
-		isstampfiles = np.all([os.path.isfile(self.get_stamp_filepath(b)) for b in self.bands])
+		isstampfiles = np.all([os.path.isfile(self.get_fp_stamp(b)) for b in self.bands])
 
 		if (not isstampfiles) or overwrite:
 			stamp.write_alignedstampImages(obj=self.obj, bands=self.bands, band_rf=band_rf, xwidth=self.img_width_pix, ywidth=self.img_height_pix, clipnegative=False, overwrite=True)
@@ -64,7 +64,7 @@ class sdssimgLoader(imgLoader):
 			for band in self.bands:
 				os.remove(self._get_frame_filepath(band))
 
-		isstampfiles = np.all([os.path.isfile(self.get_stamp_filepath(b)) for b in self.bands])
+		isstampfiles = np.all([os.path.isfile(self.get_fp_stamp(b)) for b in self.bands])
 		return isstampfiles
 
 
@@ -73,7 +73,7 @@ class sdssimgLoader(imgLoader):
 		read and return stamp-(band).fits, and calls make_stamps if file does not exist. If all fail, returns false. 
 		"""
 
-		fn = self.get_stamp_filepath(band=band)
+		fn = self.get_fp_stamp(band=band)
 
 		if os.path.isfile(fn):
 			return fits.getdata(fn)
@@ -105,7 +105,7 @@ class sdssimgLoader(imgLoader):
 
 	
 		# make psf-(band).fit from psField.fit
-		ispsffiles = np.all([os.path.isfile(self.get_psf_filepath(b)) for b in self.bands])
+		ispsffiles = np.all([os.path.isfile(self.get_fp_psf(b)) for b in self.bands])
 
 		if (not ispsffiles) or overwrite:
 			psf.psField_to_psfs(dir_obj=self.dir_obj, photoobj=self.obj.sdss.photoobj, bands=['u', 'g', 'r', 'i', 'z'])
@@ -113,7 +113,7 @@ class sdssimgLoader(imgLoader):
 		if not tokeepfield:
 			os.remove(self.dir_obj+filename_psfield)
 
-		ispsffiles = np.all([os.path.isfile(self.get_psf_filepath(b)) for b in self.bands])
+		ispsffiles = np.all([os.path.isfile(self.get_fp_psf(b)) for b in self.bands])
 		return ispsffiles
 		
 
@@ -122,7 +122,7 @@ class sdssimgLoader(imgLoader):
 		read and return psf-(band).fits, and calls make_psfs if file does not exist. If all fail, returns false. 
 		"""
 
-		fn = self.get_psf_filepath(band=band)
+		fn = self.get_fp_psf(band=band)
 
 		if os.path.isfile(fn):
 			return fits.getdata(fn)

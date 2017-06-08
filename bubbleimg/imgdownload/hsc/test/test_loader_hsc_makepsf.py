@@ -40,7 +40,7 @@ def L_fixture(request):
 
 def test_make_psf_filename(L_fixture):
 	L = L_fixture
-	fn = L.get_psf_filename(band='z')
+	fn = L.get_fn_psf(band='z')
 	assert fn == 'psf-z.fits'
 
 

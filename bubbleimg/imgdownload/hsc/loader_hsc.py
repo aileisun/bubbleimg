@@ -10,8 +10,8 @@ import re
 
 from ..loader import imgLoader
 from ...filters import surveysetup
+from ..get_credential import getCrendential
 from multibutler import multiButler
-from get_credential import getCrendential
 import psf
 
 nanomaggy = u.def_unit('nanomaggy', 3.631e-6*u.Jy)
@@ -94,14 +94,14 @@ class hscimgLoader(imgLoader):
 
 		# return self._imgLoader__make_stamp_core(func_download_stamp=self._download_stamp, band=band, overwrite=overwrite, **kwargs)
 
-		return self._imgLoader__make_file_core(func_download_file=self._download_stamp, func_naming_file=self.get_stamp_filename, band=band, overwrite=overwrite, **kwargs)
+		return self._imgLoader__make_file_core(func_download_file=self._download_stamp, func_naming_file=self.get_fn_stamp, band=band, overwrite=overwrite, **kwargs)
 
 
 	def make_stamps(self, overwrite=False, **kwargs):
 		"""
 		make stamps of all bands, see make_stamp()
 		"""
-		return self._imgLoader__make_files_core(func_download_file=self._download_stamp, func_naming_file=self.get_stamp_filename, overwrite=overwrite, **kwargs)
+		return self._imgLoader__make_files_core(func_download_file=self._download_stamp, func_naming_file=self.get_fn_stamp, overwrite=overwrite, **kwargs)
 
 
 	def _download_stamp(self, band, imgtype='coadd', tract='', rerun='', tokeepraw=False):
@@ -128,7 +128,7 @@ class hscimgLoader(imgLoader):
 		"""
 
 		# setting 
-		filepath_out = self.get_stamp_filepath(band)
+		filepath_out = self.get_fp_stamp(band)
 
 		
 		semi_width_inarcsec = (self.img_width_arcsec.to(u.arcsec).value/2.)-0.1 # to get pix number right
@@ -166,14 +166,14 @@ class hscimgLoader(imgLoader):
 		to_keep_calexp=False: whether to keep the calexp file or not after psf files are made
 		"""
 		if self.environment != 'iaa':
-			status = self._imgLoader__make_file_core(func_download_file=self._calexp_to_psf, func_naming_file=self.get_psf_filename, band=band, overwrite=overwrite)
+			status = self._imgLoader__make_file_core(func_download_file=self._calexp_to_psf, func_naming_file=self.get_fn_psf, band=band, overwrite=overwrite)
 
 			if not to_keep_calexp:
 				fn = self.dir_obj+self.get_calexp_filename(band=band)
 				if os.path.isfile(fn):
 					os.remove(fn)
 		else: 
-			status = self._imgLoader__make_file_core(func_download_file=self._download_psf_at_iaa, func_naming_file=self.get_psf_filename, band=band, overwrite=overwrite)
+			status = self._imgLoader__make_file_core(func_download_file=self._download_psf_at_iaa, func_naming_file=self.get_fn_psf, band=band, overwrite=overwrite)
 
 		return status
 
@@ -186,7 +186,7 @@ class hscimgLoader(imgLoader):
 				statuss[i] = self.make_psf(band=band, overwrite=overwrite, to_keep_calexp=to_keep_calexp)
 			return all(statuss)
 		else: 
-			missings = [(not os.path.isfile(self.dir_obj+self.get_psf_filename(band))) for band in self.bands]
+			missings = [(not os.path.isfile(self.dir_obj+self.get_fn_psf(band))) for band in self.bands]
 			isfilesmissing = np.any(missings)
 
 			if isfilesmissing or overwrite:
@@ -202,7 +202,7 @@ class hscimgLoader(imgLoader):
 		if self.environment!='iaa':
 			raise Exception("[hscimgLoader] _download_psf_at_iaa() can only be called when environment is iaa")
 
-		fn_out = self.dir_obj+self.get_psf_filename(band=band)
+		fn_out = self.dir_obj+self.get_fn_psf(band=band)
 
 		dataId = dict(tract=self.obj.hsc.tract, patch_s=self.obj.hsc.patch_s, filter=self.get_filter_name(band))
 
@@ -222,7 +222,7 @@ class hscimgLoader(imgLoader):
 		statuss = np.ndarray(len(self.bands), dtype=bool)
 		with b:
 			for i, band in enumerate(self.bands): 
-				fn_out = self.dir_obj+self.get_psf_filename(band=band)
+				fn_out = self.dir_obj+self.get_fn_psf(band=band)
 
 				dataId = dict(tract=self.obj.hsc.tract, patch_s=self.obj.hsc.patch_s, filter=self.get_filter_name(band))
 
@@ -232,7 +232,7 @@ class hscimgLoader(imgLoader):
 
 	def _calexp_to_psf(self, band):
 		fn_in = self.dir_obj+self.get_calexp_filename(band=band)
-		fn_out = self.dir_obj+self.get_psf_filename(band=band)
+		fn_out = self.dir_obj+self.get_fn_psf(band=band)
 
 		status_calexp = self.make_calexp(band=band, overwrite=False)
 
