@@ -1,10 +1,10 @@
-# test_loader_sdss_init.py
+# test_sdssimgloader_init.py
 # ALS 2017/05/02
 
 """
 to be used with pytest
 
-test sets for loader_sdss
+test sets for sdssimgloader
 
 test suite init
 """
@@ -17,9 +17,9 @@ import os
 
 import pytest
 
-from ..loader_sdss import sdssimgLoader
+from ..sdssimgloader import sdssimgLoader
 
-from ....class_obsobj import obsobj
+from ....obsobj import obsObj
 
 
 ra = 150.0547735
@@ -77,8 +77,7 @@ def test_instantiate_SDSSimgLoader_obsobj():
 	test that sdssimgLoader can be instantiated with obsobj
 	"""
 	
-	tab = at.Table([[ra], [dec]], names=['ra', 'dec'])
-	obj = obsobj(tab, catalog='SDSS', dir_parent=dir_parent2, towriteID=False)
+	obj = obsObj(ra=ra, dec=dec, dir_parent=dir_parent2)
 
 	L = sdssimgLoader(obj=obj, img_width=img_width, img_height=img_height)
 
@@ -96,8 +95,7 @@ def test_instantiate_SDSSimgLoader_error_radec_obsobj():
 	test that an error being raised when both obsobj and ra/dec/dir_obj are fed to sdssimgLoader
 	"""
 	
-	tab = at.Table([[ra], [dec]], names=['ra', 'dec'])
-	obj = obsobj(tab, catalog='SDSS', dir_parent=dir_parent2, towriteID=False)
+	obj = obsObj(ra=ra, dec=dec, dir_parent=dir_parent2)
 
 	with pytest.raises(Exception):
 		L = sdssimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, obj=obj, img_width=img_width, img_height=img_height)
@@ -186,12 +184,12 @@ def test_transform_img_widthheight_unit_to_pix(L_radec):
 
 	sdsspixsize = 0.396*u.arcsec/u.pix
 
-	assert L.img_width_pix == np.floor((L.img_width/sdsspixsize).to(u.pix))
-	assert L.img_height_pix == np.floor((L.img_height/sdsspixsize).to(u.pix))
+	assert L.img_width_pix == np.floor((L.img_width/sdsspixsize).to(u.pix)).value
+	assert L.img_height_pix == np.floor((L.img_height/sdsspixsize).to(u.pix)).value
 
 
 def test_SDSSimgLoader_get_img_width_pix(L_radec): 
 	L = L_radec
 	print L.img_width_pix
-	assert (L.img_width_pix.value).is_integer()
-	assert (L.img_width_pix.value) == 50.
+	assert type(L.img_width_pix) is int
+	assert (L.img_width_pix) == 50.

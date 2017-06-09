@@ -10,5 +10,5 @@ reload(sdss)
 reload(hsc)
 
 from loader import imgLoader
-from sdss.loader_sdss import sdssimgLoader
-from hsc.loader_hsc import hscimgLoader
+from sdss.sdssimgloader import sdssimgLoader
+from hsc.hscimgloader import hscimgLoader

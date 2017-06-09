@@ -10,7 +10,7 @@ from astropy.io import fits
 import filecmp
 # import glob
 
-from ..loader_hsc import hscimgLoader
+from ..hscimgloader import hscimgLoader
 
 ra = 140.099341430207
 dec = 0.580162492432517

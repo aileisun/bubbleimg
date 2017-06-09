@@ -1,13 +1,14 @@
-# test_loader_hsc.py
+# test_hscimgloader.py
 # ALS 2017/05/02
 
 """
 to be used with pytest
 
-test sets for loader_hsc
+test sets for hscimgloader
 
 """
 import numpy as np
+import astropy.table as at
 import astropy.units as u
 import shutil
 import os
@@ -16,7 +17,7 @@ from astropy.io import fits
 import filecmp
 import glob
 
-from ..loader_hsc import hscimgLoader
+from ..hscimgloader import hscimgLoader
 
 ra = 140.099341430207
 dec = 0.580162492432517
@@ -179,10 +180,10 @@ def test_make_stamp_correctcontent():
 		file_verification = './test_verification_data_128pix/SDSSJ0920+0034/'+f
 		assert filecmp.cmp(file_totest, file_verification)
 
-	for f in ['hsc_xid.csv']:
-		file_totest = dir_obj+f
-		file_verification = './test_verification_data_128pix/SDSSJ0920+0034/'+f
-		assert filecmp.cmp(file_totest, file_verification)
+	f = 'hsc_xid.csv'
+	tab = at.Table.read(f, format='ascii.csv')
+	for col in ['ra', 'dec', 'patch_id', 'tract', 'patch', 'patch_s', 'parent_id', ]:
+		assert col in tab.colnames
 
 
 def test_header_w_BUNIT(L_radec):

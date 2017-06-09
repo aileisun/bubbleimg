@@ -1,10 +1,10 @@
-# test_loader_hsc.py
+# test_hscimgloader.py
 # ALS 2017/05/02
 
 """
 to be used with pytest
 
-test sets for loader_hsc
+test sets for hscimgloader
 
 """
 import numpy as np
@@ -16,7 +16,7 @@ from astropy.io import fits
 import filecmp
 import glob
 
-from ..loader_hsc import hscimgLoader
+from ..hscimgloader import hscimgLoader
 
 ra = 140.099341430207
 dec = 0.580162492432517

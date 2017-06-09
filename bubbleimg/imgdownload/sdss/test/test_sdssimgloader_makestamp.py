@@ -1,10 +1,10 @@
-# test_loader_sdss.py
+# test_sdssimgloader.py
 # ALS 2017/05/02
 
 """
 to be used with pytest
 
-test sets for loader_sdss
+test sets for sdssimgloader
 """
 
 import numpy as np
@@ -15,7 +15,7 @@ import pytest
 from astropy.io import fits
 import filecmp
 
-from ..loader_sdss import sdssimgLoader
+from ..sdssimgloader import sdssimgLoader
 # from ...class_obsobj import obsobj
 
 ra = 150.0547735

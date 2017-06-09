@@ -1,19 +1,17 @@
 # __init__.py
 # ALS 2017/05/03
 
-__all__ = ['loader_hsc']
+__all__ = ['hscimgloader']
 
-import loader_hsc
+import hscimgloader
 
-reload(loader_hsc)
+reload(hscimgloader)
 
-from loader_hsc import hscimgLoader
+from hscimgloader import hscimgLoader
 
 
-import multibutler
+import downloadbutler
 import psf
-import get_credential
 
-reload(multibutler)
+reload(downloadbutler)
 reload(psf)
-reload(get_credential)

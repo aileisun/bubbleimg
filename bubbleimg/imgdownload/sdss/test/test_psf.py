@@ -8,7 +8,7 @@ import astropy.table as at
 import os
 import shutil
 
-from ....class_obsobj import obsobj
+from ....obsobj import obsObj
 from .. import psf
 
 
@@ -35,8 +35,10 @@ def setUp_tearDown():
 
 @pytest.fixture
 def obj_j1000():
-	tab = at.Table([[ra], [dec]], names=['ra', 'dec'])
-	return obsobj(tab, catalog='SDSS', dir_parent=dir_parent, towriteID=True)
+	obj = obsObj(ra=ra, dec=dec, dir_parent=dir_parent)
+	obj.add_sdss()
+
+	return obj
 
 
 def test_download_psField(obj_j1000):

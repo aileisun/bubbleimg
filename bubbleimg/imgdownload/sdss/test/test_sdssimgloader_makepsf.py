@@ -1,10 +1,10 @@
-# test_loader_sdss_makepsf.py
+# test_sdssimgloader_makepsf.py
 # ALS 2017/05/08
 
 """
 to be used with pytest
 
-test sets for loader_sdss make_psf
+test sets for sdssimgloader make_psf
 """
 
 import numpy as np
@@ -16,8 +16,7 @@ from astropy.io import fits
 import filecmp
 
 
-from ..loader_sdss import sdssimgLoader
-from ....class_obsobj import obsobj
+from ..sdssimgloader import sdssimgLoader
 
 ra = 150.0547735
 dec = 12.7073027

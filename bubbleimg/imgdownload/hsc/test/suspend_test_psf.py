@@ -1,3 +1,5 @@
+""" currently suspended as verfication data calexp-r is too big """
+
 import pytest
 from astropy.io import fits
 import os 

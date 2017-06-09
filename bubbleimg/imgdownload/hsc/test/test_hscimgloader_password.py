@@ -1,4 +1,4 @@
-# test_loader_hsc_password.py
+# test_hscimgloader_password.py
 """
 please create a python file STARs.py with your STARs account
 user = 'XXXX'
@@ -14,7 +14,7 @@ import os
 
 import pytest
 
-from ..loader_hsc import hscimgLoader
+from ..hscimgloader import hscimgLoader
 
 
 ra = 140.099341430207

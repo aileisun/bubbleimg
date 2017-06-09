@@ -1,10 +1,10 @@
 # __init__.py
 # ALS 2017/05/03
 
-__all__ = ['loader_sdss']
+__all__ = ['sdssimgloader']
 
-import loader_sdss
+import sdssimgloader
 
-reload(loader_sdss)
+reload(sdssimgloader)
 
-from loader_sdss import sdssimgLoader
+from sdssimgloader import sdssimgLoader

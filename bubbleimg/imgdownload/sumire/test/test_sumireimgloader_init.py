@@ -1,10 +1,10 @@
-# test_loader_hsc_init.py
+# test_sumireimgloader_init.py
 # ALS 2017/05/02
 
 """
 to be used with pytest
 
-test sets for loader_hsc
+test sets for sumireimgloader
 
 test suite init
 
@@ -22,7 +22,7 @@ import os
 
 import pytest
 
-from ..loader_hsc import hscimgLoader
+from ..sumireimgloader import sumireimgLoader
 from ....obsobj import obsObj
 
 
@@ -59,39 +59,39 @@ def setUp_tearDown():
 
 @pytest.fixture
 def L_radec():
-	""" returns a hscimgLoader object initiated with the ra dec above"""
-	return hscimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=img_width, img_height=img_height)
+	""" returns a sumireimgLoader object initiated with the ra dec above"""
+	return sumireimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=img_width, img_height=img_height)
 
 
 def test_automatically_generate_dir_obj_w_SDSSNAME():
-	L = hscimgLoader(ra=ra , dec=dec, dir_parent=dir_parent1, img_width=img_width, img_height=img_height)
+	L = sumireimgLoader(ra=ra , dec=dec, dir_parent=dir_parent1, img_width=img_width, img_height=img_height)
 	assert L.dir_obj == dir_obj
 
 
-def test_instantiate_HSCimgLoader_radec(L_radec):
+def test_instantiate_sumireimgLoader_radec(L_radec):
 	"""
-	test that hscimgLoader can be instantiated with ra dec 
+	test that sumireimgLoader can be instantiated with ra dec 
 	"""
 
 	L = L_radec
 
-	assert isinstance(L, hscimgLoader)
+	assert isinstance(L, sumireimgLoader)
 	assert L.ra == ra
 	assert L.img_width == img_width
 	assert L.img_height == img_height
 	assert L.dir_obj == dir_obj
 
 
-def test_instantiate_HSCimgLoader_obsobj():
+def test_instantiate_sumireimgLoader_obsobj():
 	"""
-	test that hscimgLoader can be instantiated with obsobj
+	test that sumireimgLoader can be instantiated with obsobj
 	"""
 	
 	obj = obsObj(ra=ra, dec=dec, dir_parent=dir_parent2)
 
-	L = hscimgLoader(obj=obj, img_width=img_width, img_height=img_height)
+	L = sumireimgLoader(obj=obj, img_width=img_width, img_height=img_height)
 
-	assert isinstance(L, hscimgLoader)
+	assert isinstance(L, sumireimgLoader)
 	assert L.ra == ra
 	assert L.ra == obj.ra
 	assert L.img_height == img_height
@@ -100,24 +100,24 @@ def test_instantiate_HSCimgLoader_obsobj():
 	assert L.dec == L.obj.dec
 
 
-def test_instantiate_HSCimgLoader_error_radec_obsobj():
+def test_instantiate_sumireimgLoader_error_radec_obsobj():
 	"""
-	test that an error being raised when both obsobj and ra/dec/dir_obj are fed to hscimgLoader
+	test that an error being raised when both obsobj and ra/dec/dir_obj are fed to sumireimgLoader
 	"""
 	
 	obj = obsObj(ra=ra, dec=dec, dir_parent=dir_parent2)
 
 	with pytest.raises(Exception):
-		L = hscimgLoader(ra=ra , dec=dec, dir_obj=dir_obj+'fortesting/', obj=obj, img_width=img_width, img_height=img_height)
+		L = sumireimgLoader(ra=ra , dec=dec, dir_obj=dir_obj+'fortesting/', obj=obj, img_width=img_width, img_height=img_height)
 
 
-def test_instantiate_HSCimgLoader_error():
+def test_instantiate_sumireimgLoader_error():
 	"""
-	test that an error being raised when none of obsobj or ra/dec/dir_obj are fed to hscimgLoader
+	test that an error being raised when none of obsobj or ra/dec/dir_obj are fed to sumireimgLoader
 	"""
 
 	with pytest.raises(TypeError):
-		L = hscimgLoader(img_width=img_width, img_height=img_height)
+		L = sumireimgLoader(img_width=img_width, img_height=img_height)
 
 
 def test_init_survey(L_radec):
@@ -188,28 +188,28 @@ def test_add_obj_hsc(L_radec):
 	assert L.obj.hsc.xid == xid
 
 
-def test_instantiate_HSCimgLoader_floatwidth():
+def test_instantiate_sumireimgLoader_floatwidth():
 	"""
 	test img_width can be input with float (with units assumed to be pix)
 	"""
 
-	L = hscimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=64., img_height=64)
+	L = sumireimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=64., img_height=64)
 
-	assert isinstance(L, hscimgLoader)
+	assert isinstance(L, sumireimgLoader)
 	assert L.ra == ra
 	assert L.img_width == 64*u.pix
 	assert L.img_height == 64*u.pix
 	assert L.dir_obj == dir_obj
 
 
-def test_instantiate_HSCimgLoader_pixwidth():
+def test_instantiate_sumireimgLoader_pixwidth():
 	"""
 	test img_width can be input with float (with units assumed to be pix)
 	"""
 
-	L = hscimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=64.*u.pix, img_height=64.*u.pix)
+	L = sumireimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=64.*u.pix, img_height=64.*u.pix)
 
-	assert isinstance(L, hscimgLoader)
+	assert isinstance(L, sumireimgLoader)
 	assert L.ra == ra
 	assert L.img_width == 64*u.pix
 	assert L.img_height == 64*u.pix
@@ -225,16 +225,16 @@ def test_transform_img_widthheight_unit_to_pix(L_radec):
 	assert L.img_height_pix == int(np.floor((L.img_height/hscpixsize).to(u.pix).value))
 
 
-def test_HSCimgLoader_get_img_width_pix(L_radec): 
+def test_sumireimgLoader_get_img_width_pix(L_radec): 
 	L = L_radec
 	print L.img_width_pix
 	assert type(L.img_width_pix) is int
 	assert (L.img_width_pix) == 119.
 
 
-def test_HSCimgLoader_get_img_width_arcsec(): 
+def test_sumireimgLoader_get_img_width_arcsec(): 
 	
-	L = hscimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=120, img_height=120)
+	L = sumireimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=120, img_height=120)
 	
 	assert round(L.img_width_arcsec.value, 3) == 20.160
 	assert round(L.img_height_arcsec.value, 3) == 20.160

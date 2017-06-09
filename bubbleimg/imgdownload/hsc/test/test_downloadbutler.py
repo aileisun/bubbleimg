@@ -3,7 +3,7 @@ import pytest
 from astropy.io import fits
 import os 
 
-from .. import multibutler
+from .. import downloadbutler
 
 
 
@@ -28,16 +28,16 @@ def setUp_tearDown():
 		os.remove(fileout)
 
 
-def test_multibutler_download_iaa():
-	multibutler_download(environment='iaa')
+def test_downloadbutler_download_iaa():
+	downloadbutler_download(environment='iaa')
 
 
-def test_multibutler_download_online():
-	multibutler_download(environment='online')
+def test_downloadbutler_download_online():
+	downloadbutler_download(environment='online')
 
 
-def multibutler_download(environment='iaa'):
-	b = multibutler.multiButler(environment=environment, release_version='dr1', semester='s16a', rerun='s16a_wide').butler
+def downloadbutler_download(environment='iaa'):
+	b = downloadbutler.multiButler(environment=environment, release_version='dr1', semester='s16a', rerun='s16a_wide').butler
 
 	with b:
 		dataId = dict(tract=tract, patch_s=patch_s, filter="HSC-G")
@@ -52,9 +52,9 @@ def multibutler_download(environment='iaa'):
 		assert not os.path.isfile(fileout)
 
 
-def test_multibutler_download_psf_iaa():
+def test_downloadbutler_download_psf_iaa():
 	fileout = 'test_psf.fits'
-	b = multibutler.multiButler(environment='iaa', release_version='dr1', semester='s16a', rerun='s16a_wide').butler
+	b = downloadbutler.multiButler(environment='iaa', release_version='dr1', semester='s16a', rerun='s16a_wide').butler
 
 	with b:
 		dataId = dict(tract=tract, patch_s=patch_s, filter="HSC-G")

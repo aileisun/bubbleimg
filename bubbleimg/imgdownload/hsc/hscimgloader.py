@@ -1,4 +1,4 @@
-# loader.py 
+# hscimgloader.py 
 # ALS 2017/05/02
 
 import numpy as np
@@ -11,7 +11,7 @@ import re
 from ..loader import imgLoader
 from ...filters import surveysetup
 from ..get_credential import getCrendential
-from multibutler import multiButler
+from downloadbutler import multiButler
 import psf
 
 nanomaggy = u.def_unit('nanomaggy', 3.631e-6*u.Jy)
@@ -25,6 +25,11 @@ class hscimgLoader(imgLoader):
 		""" 
 		hscimgLoader, child of imgLoader
 
+		download stamps from HSC DAS Quarry
+		download psf by either: 
+			(iaa) call sumire to infer psf from calexp and download psf from sumire
+			(online) download calexp from server and infer psf locally
+
 		on top of imgLoader init, set self.survey = 'hsc', 
 		add attributes self.img_width_pix, self.img_height_pix
 		do not load obj.sdss.xid by default unless to_make_obj_sdss= True
@@ -32,12 +37,26 @@ class hscimgLoader(imgLoader):
 
 		Additional Params
 		-----------------
-		environment = 'iaa' (str)
-			: 'iaa', 'sumire', or 'online', chooses how large files are downloaded, see multibutler.py
 		rerun = 's16a_wide' (str)
 		release_version = 'dr1' (str)
+
+		environment = 'iaa' (str)
+			: 'iaa', or 'online', chooses how psf are downloaded, see multibutler.py
 		username (optional) (str): STARs account
 		password (optional) (str): STARs account
+
+
+		Public Methods
+		--------------
+		__init__(self, **kwargs)
+
+		make_stamp(self, band, overwrite=False, **kwargs)
+
+		make_stamps(self, overwrite=False, **kwargs)
+
+		make_psf(self, band, overwrite=False, to_keep_calexp=False)
+
+		make_psfs(self, overwrite=False, to_keep_calexp=False)
 
 
 		Instruction for stars username and password
@@ -56,19 +75,20 @@ class hscimgLoader(imgLoader):
 		"""
 		super(hscimgLoader, self).__init__(**kwargs)
 
-		self.environment = kwargs.pop('environment', 'iaa')
+		# set data release parameters
 		self.rerun = kwargs.pop('rerun', 's16a_wide')
 		self.semester = self.rerun.split('_')[0]
 		self.release_version = kwargs.pop('release_version', 'dr1')
 
+		# set hsc object parameters
 		self.status = super(self.__class__, self).add_obj_hsc(update=False, release_version=self.release_version, rerun=self.rerun)
-
 		self.survey = 'hsc'
 		self.bands = surveysetup.surveybands[self.survey]
 		self.pixsize = surveysetup.pixsize[self.survey]
 		self._add_attr_img_width_pix_arcsec()
 
-		# get stars username ans password
+		# set connection parameters
+		self.environment = kwargs.pop('environment', 'iaa')
 		self.__username = kwargs.pop('username', '')
 		self.__password = kwargs.pop('password', '')
 		if self.__username == '' or self.__password == '':
@@ -76,9 +96,17 @@ class hscimgLoader(imgLoader):
 			self.__password = getCrendential("HSC_SSP_CAS_PASSWORD", cred_name = 'STARs password')
 
 
+	def _get_fn_calexp(self, band):
+		return 'calexp-{0}.fits'.format(band)
+
+
+	def _get_filter_name(self, band):
+		return "HSC-{band}".format(band=band.upper())
+
+
 	def make_stamp(self, band, overwrite=False, **kwargs):
 		"""
-		make stamp image of the specified band of the object. takes care of overwrite with argument 'overwrite'. Default: do not overwrite. 
+		make stamp image of the specified band of the object. takes care of overwrite with argument 'overwrite'. Default: do not overwrite. See _download_stamp() for specific implementation. 
 
 		Params
 		----------
@@ -86,14 +114,12 @@ class hscimgLoader(imgLoader):
 		overwrite (boolean) = False
 		**kwargs: to be passed to _download_stamp()
 			e.g., imgtype='coadd', tract='', rerun='', see _download_stamp()
+			if not specified then use self.rerun. 
 
 		Return
 		----------
 		status: True if downloaded or skipped, False if download fails
 		"""
-
-		# return self._imgLoader__make_stamp_core(func_download_stamp=self._download_stamp, band=band, overwrite=overwrite, **kwargs)
-
 		return self._imgLoader__make_file_core(func_download_file=self._download_stamp, func_naming_file=self.get_fn_stamp, band=band, overwrite=overwrite, **kwargs)
 
 
@@ -104,9 +130,11 @@ class hscimgLoader(imgLoader):
 		return self._imgLoader__make_files_core(func_download_file=self._download_stamp, func_naming_file=self.get_fn_stamp, overwrite=overwrite, **kwargs)
 
 
-	def _download_stamp(self, band, imgtype='coadd', tract='', rerun='', tokeepraw=False):
+	def _download_stamp(self, band, imgtype='coadd', tract='', rerun='', tokeepraw=False, **kwargs):
 		"""
-		download hsc cutout image and convert it to stamp images. 
+		download hsc cutout img using HSC DAS Querry. Provides only ra, dec to DAS Querry and download the default coadd. 
+
+		 convert it to stamp images. 
 
 		ra, dec can be decimal degrees (12.345) or sexagesimal (1:23:35)
 
@@ -118,14 +146,15 @@ class hscimgLoader(imgLoader):
 		band
 		imgtype='coadd'
 		tract=''
-		rerun=''
+		rerun = self.rerun
 		tokeepraw=False (bool): whether to keep the downloaded raw HSC image, which has four extensions. 
 
 		Return
 		----------
 		status: True if downloaded, False if download fails
-
 		"""
+		if rerun == '':
+			rerun = self.rerun
 
 		# setting 
 		filepath_out = self.get_fp_stamp(band)
@@ -169,7 +198,7 @@ class hscimgLoader(imgLoader):
 			status = self._imgLoader__make_file_core(func_download_file=self._calexp_to_psf, func_naming_file=self.get_fn_psf, band=band, overwrite=overwrite)
 
 			if not to_keep_calexp:
-				fn = self.dir_obj+self.get_calexp_filename(band=band)
+				fn = self.dir_obj+self._get_fn_calexp(band=band)
 				if os.path.isfile(fn):
 					os.remove(fn)
 		else: 
@@ -190,11 +219,11 @@ class hscimgLoader(imgLoader):
 			isfilesmissing = np.any(missings)
 
 			if isfilesmissing or overwrite:
-				print "[loader_hsc] running _download_psfs_at_iaa()"
+				print "[hscimgloader] running _download_psfs_at_iaa()"
 				status = self._download_psfs_at_iaa()
 				return status
 			else: 
-				print "[loader_hsc] skip _download_psfs_at_iaa() as file exists"
+				print "[hscimgloader] skip _download_psfs_at_iaa() as file exists"
 				return True
 
 
@@ -204,7 +233,7 @@ class hscimgLoader(imgLoader):
 
 		fn_out = self.dir_obj+self.get_fn_psf(band=band)
 
-		dataId = dict(tract=self.obj.hsc.tract, patch_s=self.obj.hsc.patch_s, filter=self.get_filter_name(band))
+		dataId = dict(tract=self.obj.hsc.tract, patch_s=self.obj.hsc.patch_s, filter=self._get_filter_name(band))
 
 		b = multiButler(environment=self.environment, release_version=self.release_version, semester=self.semester, rerun=self.rerun).butler
 
@@ -224,17 +253,17 @@ class hscimgLoader(imgLoader):
 			for i, band in enumerate(self.bands): 
 				fn_out = self.dir_obj+self.get_fn_psf(band=band)
 
-				dataId = dict(tract=self.obj.hsc.tract, patch_s=self.obj.hsc.patch_s, filter=self.get_filter_name(band))
+				dataId = dict(tract=self.obj.hsc.tract, patch_s=self.obj.hsc.patch_s, filter=self._get_filter_name(band))
 
 				statuss[i] = b.download_psf(fn_out, ra=self.ra, dec=self.dec, **dataId)
 		return all(statuss)
 
 
 	def _calexp_to_psf(self, band):
-		fn_in = self.dir_obj+self.get_calexp_filename(band=band)
+		fn_in = self.dir_obj+self._get_fn_calexp(band=band)
 		fn_out = self.dir_obj+self.get_fn_psf(band=band)
 
-		status_calexp = self.make_calexp(band=band, overwrite=False)
+		status_calexp = self._make_calexp(band=band, overwrite=False)
 
 		if status_calexp:
 			psf.exposureF_to_psf(fn_in, fn_out, self.ra, self.dec)
@@ -244,7 +273,7 @@ class hscimgLoader(imgLoader):
 		else: False
 
 
-	def make_calexp(self, band, overwrite=False):
+	def _make_calexp(self, band, overwrite=False):
 		"""
 		make calexp image of the specified band of the object. takes care of overwrite with argument 'overwrite'. Default: do not overwrite. 
 
@@ -257,25 +286,25 @@ class hscimgLoader(imgLoader):
 		----------
 		status: True if downloaded or skipped, False if download fails
 		"""
-		status = self._imgLoader__make_file_core(func_download_file=self._download_calexp, func_naming_file=self.get_calexp_filename, band=band, overwrite=overwrite)
+		status = self._imgLoader__make_file_core(func_download_file=self._download_calexp, func_naming_file=self._get_fn_calexp, band=band, overwrite=overwrite)
 
 		return status
 
 
-	def make_calexps(self, overwrite=False):
+	def _make_calexps(self, overwrite=False):
 		"""
-		make calexps of all bands, see make_calexp()
+		make calexps of all bands, see _make_calexp()
 		"""
-		status = self._imgLoader__make_files_core(func_download_file=self._download_calexp, func_naming_file=self.get_calexp_filename, overwrite=overwrite)
+		status = self._imgLoader__make_files_core(func_download_file=self._download_calexp, func_naming_file=self._get_fn_calexp, overwrite=overwrite)
 
 		return status
 
 
 	def _download_calexp(self, band):
 
-		fn = self.dir_obj+self.get_calexp_filename(band=band)
+		fn = self.dir_obj+self._get_fn_calexp(band=band)
 
-		dataId = dict(tract=self.obj.hsc.tract, patch_s=self.obj.hsc.patch_s, filter=self.get_filter_name(band))
+		dataId = dict(tract=self.obj.hsc.tract, patch_s=self.obj.hsc.patch_s, filter=self._get_filter_name(band))
 
 		b = multiButler(environment=self.environment, release_version=self.release_version, semester=self.semester, rerun=self.rerun).butler
 
@@ -308,7 +337,7 @@ class hscimgLoader(imgLoader):
 		return filepath_raw
 
 
-	def _make_hsc_cutout_url(sefl, ra, dec, band='i', sw='5asec', sh='5asec', imgtype='coadd', tract='', rerun='', mask='on', variance='on'):
+	def _make_hsc_cutout_url(self, ra, dec, band='i', sw='5asec', sh='5asec', imgtype='coadd', tract='', rerun='', mask='on', variance='on'):
 		"""
 		see hsc query manual
 		https://hscdata.mtk.nao.ac.jp/das_quarry/manual.html 
@@ -410,10 +439,3 @@ class hscimgLoader(imgLoader):
 		hdu_abbrv = fits.PrimaryHDU(data, header=header_combine)
 		hdu_abbrv.writeto(fileout, overwrite=True)
 
-
-	def get_calexp_filename(self, band):
-		return 'calexp-{0}.fits'.format(band)
-
-
-	def get_filter_name(self, band):
-		return "HSC-{band}".format(band=band.upper())

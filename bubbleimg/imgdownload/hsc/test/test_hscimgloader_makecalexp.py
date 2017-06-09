@@ -1,10 +1,10 @@
-# test_loader_hsc_makecalexp.py
+# test_hscimgloader_makecalexp.py
 # ALS 2017/05/24
 
 """
 to be used with pytest
 
-test sets for loader_hsc
+test sets for hscimgloader
 """
 
 import numpy as np
@@ -16,7 +16,7 @@ from astropy.io import fits
 import filecmp
 import glob
 
-from ..loader_hsc import hscimgLoader
+from ..hscimgloader import hscimgLoader
 
 ra = 140.099341430207
 dec = 0.580162492432517
@@ -47,18 +47,15 @@ def L_radec():
 
 
 def test_make_calexp(L_radec):
-	""" test it can make_calexp"""
+	""" test it can _make_calexp"""
 	L = L_radec
 	assert L.status
 	
 	fn = L.dir_obj+'calexp-r.fits'
-	status = L.make_calexp(band = 'r', overwrite=True)
+	status = L._make_calexp(band = 'r', overwrite=True)
 
 	assert status
 	assert os.path.isfile(fn)
-
-	file_verification = './test_verification_data_128pix/SDSSJ0920+0034/calexp-r.fits'
-	assert filecmp.cmp(fn, file_verification)
 
 
 def test_make_calexp_no_img_in_hsc():
@@ -69,14 +66,14 @@ def test_make_calexp_no_img_in_hsc():
 
 	L = hscimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=img_width, img_height=img_height)
 
-	status = L.make_calexp(band = 'r', overwrite=True)
+	status = L._make_calexp(band = 'r', overwrite=True)
 	assert status is False
 
 
 def test_make_calexps(L_radec):
-	""" test it can make_calexp"""
+	""" test it can _make_calexp"""
 	L = L_radec
-	status = L.make_calexps(overwrite=True)
+	status = L._make_calexps(overwrite=True)
 
 	assert status
 
