@@ -1,4 +1,4 @@
-# test_sumireloader.py
+# test_sumireimgloader.py
 # ALS 2017/05/02
 
 """
@@ -17,7 +17,7 @@ from astropy.io import fits
 import filecmp
 import glob
 
-from ..sumireloader import sumireLoader
+from ..sumireimgloader import sumireimgLoader
 
 ra = 140.099341430207
 dec = 0.580162492432517
@@ -33,18 +33,18 @@ def setUp_tearDown():
 
 	# setup
 	if os.path.isdir(dir_parent):
-		shutil.rmtree(dir_parent)
+		shutil.rmtree(dir_parent, ignore_errors=True)
 
-	yield
-	# tear down
-	if os.path.isdir(dir_parent):
-		shutil.rmtree(dir_parent)
+	# yield
+	# # tear down
+	# if os.path.isdir(dir_parent):
+	# 	shutil.rmtree(dir_parent, ignore_errors=True)
 
 
 @pytest.fixture
 def L_radec():
 	""" returns a imgLoader object initiated with the ra dec above"""
-	return sumireLoader(ra=ra , dec=dec, dir_parent=dir_parent, img_width=img_width, img_height=img_height)
+	return sumireimgLoader(ra=ra , dec=dec, dir_parent=dir_parent, img_width=img_width, img_height=img_height)
 
 
 
@@ -70,7 +70,7 @@ def test_make_stamp_no_img_in_hsc():
 	dec = 12.7073027
 	dir_obj = './testing/SDSSJ1000+1242/'
 
-	L = sumireLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=img_width, img_height=img_height)
+	L = sumireimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=img_width, img_height=img_height)
 
 	assert L.make_stamp(band = 'r', overwrite=True) is False
 
@@ -90,7 +90,7 @@ def test_make_stamps_no_img_in_hsc():
 	dec = 12.7073027
 	dir_obj = './testing/SDSSJ1000+1242/'
 
-	L = sumireLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=img_width, img_height=img_height)
+	L = sumireimgLoader(ra=ra , dec=dec, dir_obj=dir_obj, img_width=img_width, img_height=img_height)
 
 	assert L.make_stamps(overwrite=True) is False
 
@@ -163,59 +163,59 @@ def test_make_stamps_overwriteFalse(L_radec):
 def test_make_stamp_correctimgsize():
 
 	for pixnum in [64, 128, 256]:
-		L = sumireLoader(ra=ra , dec=dec, dir_parent=dir_parent, img_width=pixnum, img_height=pixnum)
+		L = sumireimgLoader(ra=ra , dec=dec, dir_parent=dir_parent, img_width=pixnum, img_height=pixnum)
 		L.make_stamp(band='r', overwrite=True)
 		data = fits.getdata(L.dir_obj+'stamp-r.fits')
 		assert data.shape == (pixnum, pixnum)
 
 
-def test_make_stamp_correctcontent():
-	assert False
-	L = sumireLoader(ra=ra , dec=dec, dir_parent=dir_parent, img_width=128, img_height=128)
+# def test_make_stamp_correctcontent():
+# 	assert False
+# 	L = sumireimgLoader(ra=ra , dec=dec, dir_parent=dir_parent, img_width=128, img_height=128)
 
-	L.make_stamps(overwrite=True)
+# 	L.make_stamps(overwrite=True)
 
- 	for band in L.bands:
- 		f = 'stamp-{0}.fits'.format(band)
-		file_totest = dir_obj+f
-		file_verification = './test_verification_data_128pix/SDSSJ0920+0034/'+f
-		assert filecmp.cmp(file_totest, file_verification)
+#  	for band in L.bands:
+#  		f = 'stamp-{0}.fits'.format(band)
+# 		file_totest = dir_obj+f
+# 		file_verification = './test_verification_data_128pix/SDSSJ0920+0034/'+f
+# 		assert filecmp.cmp(file_totest, file_verification)
 
-	f = 'hsc_xid.csv'
-	tab = at.Table.read(f, format='ascii.csv')
-	for col in ['ra', 'dec', 'patch_id', 'tract', 'patch', 'patch_s', 'parent_id', ]:
-		assert col in tab.colnames
-
-
-def test_header_w_BUNIT(L_radec):
-	L = L_radec
-	L.make_stamp(band='r')
-
-	header = fits.getheader(L.dir_obj+'stamp-r.fits')
-	assert header['BUNIT'] == '1.58479740e-02 nanomaggy'
-	# assert 'FLUXMAG0' not in header
+# 	f = 'hsc_xid.csv'
+# 	tab = at.Table.read(f, format='ascii.csv')
+# 	for col in ['ra', 'dec', 'patch_id', 'tract', 'patch', 'patch_s', 'parent_id', ]:
+# 		assert col in tab.colnames
 
 
-def test_unit_conversion(L_radec):
-	L = L_radec
+# def test_header_w_BUNIT(L_radec):
+# 	L = L_radec
+# 	L.make_stamp(band='r')
 
-	filein = dir_obj+'test_filein.fits'
-	fileout = dir_obj+'test_fileout.fits'
+# 	header = fits.getheader(L.dir_obj+'stamp-r.fits')
+# 	assert header['BUNIT'] == '1.58479740e-02 nanomaggy'
+# 	# assert 'FLUXMAG0' not in header
 
-	data = np.array([[63095734448.0194]])
-	hdu = fits.PrimaryHDU(data)
-	hdu.header['FLUXMAG0'] = 63095734448.0194
-	hdu1 = fits.ImageHDU(data)
-	hdus = fits.HDUList([hdu, hdu1])
-	hdus.writeto(filein, overwrite=True)
 
-	assert hdu.header['FLUXMAG0'] == 63095734448.0194
+# def test_unit_conversion(L_radec):
+# 	L = L_radec
 
-	L._write_fits_unit_converted_to_nanomaggy(filein, fileout)
+# 	filein = dir_obj+'test_filein.fits'
+# 	fileout = dir_obj+'test_fileout.fits'
 
-	dataout = fits.getdata(fileout)
-	headerout = fits.getheader(fileout)
+# 	data = np.array([[63095734448.0194]])
+# 	hdu = fits.PrimaryHDU(data)
+# 	hdu.header['FLUXMAG0'] = 63095734448.0194
+# 	hdu1 = fits.ImageHDU(data)
+# 	hdus = fits.HDUList([hdu, hdu1])
+# 	hdus.writeto(filein, overwrite=True)
 
-	assert round(dataout[0, 0],3) == 10.**9
-	assert headerout['BUNIT'] == 'nanomaggy'
+# 	assert hdu.header['FLUXMAG0'] == 63095734448.0194
+
+# 	L._write_fits_unit_converted_to_nanomaggy(filein, fileout)
+
+# 	dataout = fits.getdata(fileout)
+# 	headerout = fits.getheader(fileout)
+
+# 	assert round(dataout[0, 0],3) == 10.**9
+# 	assert headerout['BUNIT'] == 'nanomaggy'
 

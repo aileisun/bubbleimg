@@ -10,7 +10,6 @@ import filecmp
 from ...obsobj import obsObj
 
 from .. import spector
-from .. import inttools
 
 ra = 140.099341430207
 dec = 0.580162492432517
@@ -32,10 +31,10 @@ def setUp_tearDown():
 	# shutil.copytree(dir_verif, dir_obj)
 	shutil.copyfile(dir_verif+'spec.fits', dir_obj+'spec.fits')
 
-	yield
-	# tear down
-	if os.path.isdir(dir_parent):
-		shutil.rmtree(dir_parent)
+	# yield
+	# # tear down
+	# if os.path.isdir(dir_parent):
+	# 	shutil.rmtree(dir_parent)
 
 
 @pytest.fixture
@@ -52,9 +51,9 @@ def spector1(obj_dirobj):
 def test_spector_init(spector1):
 	s = spector1
 
-	spec, lcoord = s.get_spec_lcoord()
+	spec, ws = s.get_spec_ws()
 
-	assert len(spec) == len(lcoord)
+	assert len(spec) == len(ws)
 
 
 def test_spector_init_error_survey_spec(obj_dirobj):
@@ -120,19 +119,19 @@ def test_spector_make_spec_contextrp_ecsv(spector1):
 
 	tab = at.Table.read(fn, format='ascii.ecsv')
 
-	assert tab['lcoord'].unit == u.AA
+	assert tab['ws'].unit == u.AA
 	assert tab['speccontextrp'].unit == u.Unit("erg / (Angstrom cm2 s)")
 
 
 def test_spector_get_contline(spector1):
 	s = spector1
 
-	spec, lcoord = s.get_spec_lcoord_from_spectab(component='all')
-	speccont, __ = s.get_spec_lcoord_from_spectab(component='cont')
-	specline, __ = s.get_spec_lcoord_from_spectab(component='line')
+	spec, ws = s.get_spec_ws_from_spectab(component='all')
+	speccont, __ = s.get_spec_ws_from_spectab(component='cont')
+	specline, __ = s.get_spec_ws_from_spectab(component='line')
 
-	assert len(speccont) == len(lcoord)
-	assert len(specline) == len(lcoord)
+	assert len(speccont) == len(ws)
+	assert len(specline) == len(ws)
 
 	assert max(speccont) <= max(spec)
 	assert max(specline) <= max(spec)
@@ -145,17 +144,6 @@ def test_spector_plot_spec(spector1):
 	assert os.path.isfile(s.dir_obj+'spec.pdf')
 
 
-def test_inttools_calc_Fnu_in_band(spector1):
-	s = spector1
-	spec, lcoord = s.get_spec_lcoord()
-	trans, lcoord_trans = s.get_filter_trans(band='i')
-
-	Fnu = inttools.calc_Fnu_in_band_from_fl(fl=spec, ls=lcoord, trans=trans, ls_trans=lcoord_trans)
-
-
-	assert (Fnu/u.Unit("erg s-1 cm-2 Hz-1")).unit == u.dimensionless_unscaled
-
-
 
 def test_spector_calc_Fnu_in_band(obj_dirobj):
 	obj = obj_dirobj
@@ -163,8 +151,8 @@ def test_spector_calc_Fnu_in_band(obj_dirobj):
 	s.obj.sdss.load_photoobj()
 
 	for band in s.bands:
-		Fnu = s.calc_Fnu_in_band(band=band, component='all')
-		mAB = s.calc_mAB_in_band(band=band, component='all')
+		Fnu = s._calc_Fnu_in_band(band=band, component='all')
+		mAB = s._calc_mAB_in_band(band=band, component='all')
 
 		convovledflux = Fnu.to(u.nanomaggy).value
 		fiber2flux = s.obj.sdss.photoobj['fiber2Flux_'+band] # in nanomaggy
@@ -215,16 +203,84 @@ def test_spector_get_spec_mag_value(spector1):
 
 	x = s.get_spec_mag_value(component='line', fluxquantity='mag', band='i')
 	assert isinstance(x, np.float64)
-	assert round(x, 3) == round(21.7336867073556, 3)
+	assert round(x, 3) == round(21.726328586041113, 3)
 
 	x = s.get_spec_mag_value(component='cont', fluxquantity='fnu', band='g')
-	assert round(x, 3) == round(1.678181807435394, 3)
+	assert round(x, 3) == round(1.6768567248522026, 3)
 
 
 def test_spector_get_fnu_ratio_band1_over_band2(spector1):
 	s = spector1
 	b1 = 'i'
 	b2 = 'z'
-	x = s.get_fnu_ratio_band1_over_band2(band1=b1, band2=b2, component='cont')
+	x = s.get_fnu_ratio_band1_over_band2(band1=b1, band2=b2, component='contextrp')
 	
-	assert round(x, 3) == round(0.7302813376166697, 3)
+	assert round(x, 3) == round(0.7281524829527901, 3)
+
+
+def test_spector_get_line_flux(spector1):
+	s = spector1
+
+	f, ferr = s._get_line_flux(line='OIII5008', wunit=False)
+	assert round(f, 3) == round(499.73093, 3)
+	assert round(ferr, 3) == round(3.2179329, 3)
+	assert round(w, 3) == round(7068.724090912, 3)
+
+	f, ferr = s._get_line_flux(line='OIII5008', wunit=True)
+	assert f.unit == u.Unit("1E-17 erg cm-2 s-1")
+	assert ferr.unit == u.Unit("1E-17 erg cm-2 s-1")
+	assert w.unit == u.Unit("AA")
+
+
+def test_spector_get_line_obs_wave(spector1):
+	s = spector1
+
+	w = s._get_line_obs_wave(line='OIII5008', wunit=False)
+	assert round(w, 3) == round(7068.724090912, 3)
+
+	w = s._get_line_obs_wave(line='OIII5008', wunit=True)
+	assert w.unit == u.Unit("AA")
+
+
+
+def test_spector_calc_fline_over_fnuband(spector1):
+	s = spector1
+
+
+	ri = s.calc_fline_over_fnuband(band='i', line='OIII5008')
+	assert ri.unit == u.Unit('Hz')
+
+	r4 = s.calc_fline_over_fnuband(band='i', line='OIII4960')
+
+	assert ri > r4
+
+	# the line is marginally within the coverage of r so the correction factor should be larger
+	rr = s.calc_fline_over_fnuband(band='r', line='OIII5008')
+	assert ri < rr
+
+	with pytest.raises(Exception) as e:
+		r = s.calc_fline_over_fnuband(band='z', line='OIII5008')
+
+	with pytest.raises(Exception) as e:
+		r = s.calc_fline_over_fnuband(band='y', line='OIII5008')
+
+
+def test_spector_list_lines_in_band(spector1):
+	s = spector1
+
+	band = 'i'
+	l = s._list_stronglines_in_band(band=band, threshold=0.01)
+	assert set(l) == set(['Hb', 'OIII4960', 'OIII5008'])
+	
+	band = 'z'
+	l = s._list_stronglines_in_band(band=band, threshold=0.01)
+	assert set(l) == set(['OI6302', 'NII6550', 'Ha', 'NII6585', 'SII6718'])
+	
+	band = 'r'
+	l = s._list_stronglines_in_band(band=band, threshold=0.2)
+	assert set(l) == set(['NeIII3870', 'NeIII3969', 'Hg', 'OIII4364', 'Hb', 'OIII4960'])
+	
+	band = 'y'
+	l = s._list_stronglines_in_band(band=band, threshold=0.2)
+	assert set(l) == set(['NII6585', 'SII6718', 'SII6733'])
+	

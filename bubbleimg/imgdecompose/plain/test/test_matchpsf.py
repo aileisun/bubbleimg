@@ -3,6 +3,7 @@ import shutil
 import numpy as np
 import pytest
 
+import astropy.table as at
 from astropy.io import fits
 import astropy.convolution as ac
 
@@ -13,7 +14,7 @@ b0 = 'i'
 b1 = 'z'
 dir_parent = './testing/'
 dir_obj = './testing/SDSSJ0920+0034/'
-dir_verif = 'test_verification_data/SDSSJ0920+0034/'
+dir_verif = 'verification_data/SDSSJ0920+0034/'
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -108,7 +109,7 @@ def test_normalize_kernel():
 	assert round(np.sum(kernel_norm), 7) == 1.
 
 
-def test_deconvl_psf_data():
+def test_psf_data():
 
 	psf0 = fits.getdata(dir_obj+'psf-{}.fits'.format(b0))
 	psf1 = fits.getdata(dir_obj+'psf-{}.fits'.format(b1))
@@ -120,7 +121,7 @@ def test_deconvl_psf_data():
 	assert two_kernels_are_similar(psf1, psf1_trial)
 
 
-def test_deconvl_match_psf():
+def test_match_psf():
 	""" test that match_psf can infer the simulated moffat kernel """
 
 	band = b0
@@ -140,4 +141,97 @@ def test_deconvl_match_psf():
 	assert two_kernels_are_similar(psf_cnvled, psfto)
 	assert two_kernels_are_similar(img_cnvled, img_cnvled_veri)
 
+
+
+
+def test_match_psf_fits():
+
+	bandfrom = b0
+	bandto = b1
+
+	fp_img = dir_obj+'stamp-{}.fits'.format(bandfrom)
+	fp_psf = dir_obj+'psf-{}.fits'.format(bandfrom)
+	fp_psfto = dir_obj+'psf-{}.fits'.format(bandto)
+
+	fp_img_out = dir_obj+'stamp-{}_psfmt-{}.fits'.format(bandfrom, bandto)
+	fp_psf_out = dir_obj+'psf-{}_psfmt-{}.fits'.format(bandfrom, bandto)
+	fp_psk_out = dir_obj+'psk-{}_psfmt-{}.fits'.format(bandfrom, bandto)
+
+	matchpsf.match_psf_fits(fp_img, fp_psf, fp_psfto, fp_img_out, fp_psf_out, fp_psk_out, overwrite=True, towrite_psk=True)	
+
+	# check that file exists
+	for fp in [fp_img_out,fp_psf_out,fp_psk_out,]:
+		assert os.path.isfile(fp)
+
+
+	img = fits.getdata(fp_img)
+	psf = fits.getdata(fp_psf)
+	psfto = fits.getdata(fp_psfto)
+
+	# check that the final image content is correct
+	img_out, psf_out, psk_out = matchpsf.match_psf(img, psf, psfto)
+
+	assert np.all(img_out == fits.getdata(fp_img_out))
+	assert np.all(psf_out == fits.getdata(fp_psf_out))
+
+
+
+def test_get_xy_grid():
+	nx = 3
+	ny = 5
+	x, y = matchpsf.get_xy_grid(nx, ny)
+
+	assert x[0,0] == - x[-1,0]
+	assert y[0,0] == - y[0,-1]
+	assert x.shape == (nx, ny)
+	assert y.shape == (nx, ny)
+
+	with pytest.raises(Exception) as e:
+		x, y = matchpsf.get_xy_grid(4, 6)
+
+
+@pytest.mark.parametrize("fit_psf_func, frac_peak_err", [(matchpsf.fit_moffat, 0.05), (matchpsf.fit_gaussian, 0.5)])
+def test_fit_psf_func(fit_psf_func, frac_peak_err):
+	"""fit psf with moffat and return best fit model
+	frac_peak_err is the tolerable error as a fraction of the peak psf value 
+	"""
+
+	psf = fits.getdata(dir_verif+'psf-r.fits')
+	x, y = matchpsf.get_xy_grid(*psf.shape)
+
+	model = fit_psf_func(psf)
+
+	psf_model = model(x, y)
+
+	diff = (psf-psf_model)/psf
+	diff[~np.isfinite(diff)] = 0.
+
+	assert np.absolute(psf-psf_model).max() < frac_peak_err*psf.max()
+
+
+def test_calc_psf_fwhm_inpix():
+	psf = fits.getdata(dir_verif+'psf-r.fits')
+
+
+	for mode in ['moffat', 'gaussian']:
+		fwhm_inpix = matchpsf.calc_psf_fwhm(psf, mode=mode)
+
+		# fwhm_inpix = matchpsf.calc_psf_fwhm_inpix_moffat(psf)
+
+		fwhm_manual_measured_inpix = 4.869
+
+		fracerr = np.absolute((fwhm_inpix - fwhm_manual_measured_inpix)/fwhm_manual_measured_inpix)
+		print fracerr
+		assert fracerr < 0.2
+
+	# moffat is more accurate
+
+
+
+
+def test_has_smaller_psf_fits():
+
+	for mode in ['quick', 'moffat', 'gaussian']:
+		assert matchpsf.has_smaller_psf_fits(dir_verif+'psf-i.fits', dir_verif+'psf-r.fits', mode=mode)
+		assert matchpsf.has_smaller_psf_fits(dir_verif+'psf-i.fits', dir_verif+'psf-y.fits', mode=mode)
 

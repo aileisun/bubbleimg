@@ -10,7 +10,6 @@ from astropy.table import Table, Row
 
 import filtertools
 import getllambda
-import surveysetup
 
 
 def findzrange_wline_OIIIs(threshold=0.6, survey='sdss'):
@@ -34,7 +33,8 @@ def findzrange_wline_HaNII(threshold=0.6, survey='sdss'):
     """
     fileprefix = 'HaNII'
     l1 = getllambda.getllambda(ion='Ha')[0]
-    l2,l3 = getllambda.getllambda(ion='NII')
+    l2 = getllambda.getllambda(ion='NII', lid=6550)
+    l3 = getllambda.getllambda(ion='NII', lid=6585)
 
     lmin = min(l1,l2,l3)
     lmax = max(l1,l2,l3)
@@ -48,7 +48,8 @@ def findzrange_nline_HaNII(threshold=0.2, survey='sdss'):
     """
     fileprefix = 'HaNII'
     l1 = getllambda.getllambda(ion='Ha')[0]
-    l2,l3 = getllambda.getllambda(ion='NII')
+    l2 = getllambda.getllambda(ion='NII', lid=6550)
+    l3 = getllambda.getllambda(ion='NII', lid=6585)
 
     lmin = min(l1,l2,l3)
     lmax = max(l1,l2,l3)
@@ -61,7 +62,8 @@ def findzrange_nline_HaNIISII(threshold=0.2, survey='sdss'):
     """
     fileprefix = 'HaNIISII'
     l1 = getllambda.getllambda(ion='Ha')[0]
-    l2,l3 = getllambda.getllambda(ion='NII')
+    l2 = getllambda.getllambda(ion='NII', lid=6550)
+    l3 = getllambda.getllambda(ion='NII', lid=6585)
     l4,l5 = getllambda.getllambda(ion='SII')[1:]
 
     lmin = min(l1, l2, l3, l4, l5)
@@ -110,7 +112,7 @@ def findzrange_line(linelist, l0, l1, inside=True, threshold=0.2, survey='sdss')
         fileout = localpath+survey+'/'+'zrange_nline_'+linelist+'_'+'%.1f'%threshold+'.txt'
 
     # setup params
-    bands = surveysetup.surveybands[survey]
+    bands = filtertools.surveybands[survey]
 
     # make table
     lmin, lmax = np.sort(np.array([l0,l1]))
@@ -134,7 +136,7 @@ def findzrange_line(linelist, l0, l1, inside=True, threshold=0.2, survey='sdss')
         tabout.add_row([band,z0,z1])
 
     # output
-    tabout.write(fileout, format='ascii.fixed_width', delimiter='')
+    tabout.write(fileout, format='ascii.fixed_width', delimiter='', overwrite=True)
     return tabout
 
 

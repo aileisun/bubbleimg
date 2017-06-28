@@ -1,10 +1,10 @@
-# test_hscimgloader.py
+# test_sumireimgloader.py
 # ALS 2017/05/02
 
 """
 to be used with pytest
 
-test sets for hscimgloader
+test sets for sumireimgloader
 
 """
 import numpy as np
@@ -16,7 +16,7 @@ from astropy.io import fits
 import filecmp
 import glob
 
-from ..hscimgloader import hscimgLoader
+from ..sumireimgloader import sumireimgLoader
 
 ra = 140.099341430207
 dec = 0.580162492432517
@@ -43,7 +43,7 @@ def setUp_tearDown():
 @pytest.fixture
 def L_radec():
 	""" returns a imgLoader object initiated with the ra dec above"""
-	return hscimgLoader(ra=ra , dec=dec, dir_parent=dir_parent, img_width=img_width, img_height=img_height)
+	return sumireimgLoader(ra=ra , dec=dec, dir_parent=dir_parent, img_width=img_width, img_height=img_height)
 
 
 def test_make_stamp(L_radec):

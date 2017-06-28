@@ -221,7 +221,10 @@ class sdssObj(plainObj):
 		"""
 		fn = self.dir_obj+self.get_spec_filename()
 
-		if self.make_spec(overwrite=False):
+		if not os.path.isfile(fn):
+			self.make_spec(overwrite=False)
+
+		if os.path.isfile(fn):
 			sp = fits.open(fn)
 			return sp
 		else: 

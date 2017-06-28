@@ -34,7 +34,7 @@ class parentButler(object):
 
 
 	@abc.abstractmethod
-	def download_file(self, localpath, tract, patch_s, flter, coadd='deepCoadd', filetype='calexp'): 
+	def download_file(self, localpath, tract, patch_s, filter, coadd='deepCoadd', filetype='calexp'): 
 		"""
 		download specified file to localpath
 
@@ -43,7 +43,7 @@ class parentButler(object):
 		localpath (string): path/file name to save to 
 		tract (int): tract number
 		patch_s (str): e.g., '7,3' patch_s number
-		flter (str): e.g., 'HSC-G'
+		filter (str): e.g., 'HSC-G'
 		coadd='deepCoadd'
 		filetype='calexp'
 
@@ -66,11 +66,11 @@ class parentButler(object):
 		return '{dr}/{semester}/data/{rerun}/'.format(dr=self.release_version, semester=self.semester, rerun=self.rerun)
 
 
-	def _get_tail_path(self, tract, patch_s, flter, coadd='deepCoadd', filetype='calexp'):
+	def _get_tail_path(self, tract, patch_s, filter, coadd='deepCoadd', filetype='calexp'):
 		"""
 		e.g., "deepCoadd/HSC-R/9564/7,3/calexp-HSC-R-9564-7,3.fits"
 		"""
-		return '{coadd}/{flter}/{tract}/{patch_s}/{filetype}-{flter}-{tract}-{patch_s}.fits'.format(coadd=coadd, filetype=filetype, tract=str(tract), patch_s=str(patch_s), flter=flter)
+		return '{coadd}/{filter}/{tract}/{patch_s}/{filetype}-{filter}-{tract}-{patch_s}.fits'.format(coadd=coadd, filetype=filetype, tract=str(tract), patch_s=str(patch_s), filter=filter)
 
 
 
@@ -110,6 +110,10 @@ class iaaButler(parentButler):
 		self.ssh_client.close()
 
 
+	def _get_root_path(self):
+		return '/array2/SSP/'
+
+
 	def download(self, remotepath, localpath):
 		""" force download """
 
@@ -136,15 +140,15 @@ class iaaButler(parentButler):
 			return False
 
 
-	def download_file(self, localpath, tract, patch_s, flter, coadd='deepCoadd', filetype='calexp'): 
+	def download_file(self, localpath, tract, patch_s, filter, coadd='deepCoadd', filetype='calexp'): 
 
 		# assemble path
-		tail_path = super(self.__class__, self)._get_tail_path(tract=tract, patch_s=patch_s, flter=flter, coadd=coadd, filetype=filetype)
+		tail_path = super(self.__class__, self)._get_tail_path(tract=tract, patch_s=patch_s, filter=filter, coadd=coadd, filetype=filetype)
 		remotepath = self.root_path + self.rerun_path + tail_path
 		return self.download(remotepath, localpath)
 
 
-	def download_psf(self, localpath, ra, dec, tract, patch_s, flter, coadd='deepCoadd', filetype='calexp'): 
+	def download_psf(self, localpath, ra, dec, tract, patch_s, filter, coadd='deepCoadd', filetype='calexp'): 
 		"""
 		download psf 
 
@@ -155,7 +159,7 @@ class iaaButler(parentButler):
 		dec (float)
 		tract (int): tract number
 		patch_s (str): e.g., '7,3' patch_s number
-		flter (str): e.g., 'HSC-G'
+		filter (str): e.g., 'HSC-G'
 		coadd='deepCoadd'
 		filetype='calexp'
 
@@ -165,7 +169,7 @@ class iaaButler(parentButler):
 		"""
 
 		# assemble path
-		tail_path = super(self.__class__, self)._get_tail_path(tract=tract, patch_s=patch_s, flter=flter, coadd=coadd, filetype=filetype)
+		tail_path = super(self.__class__, self)._get_tail_path(tract=tract, patch_s=patch_s, filter=filter, coadd=coadd, filetype=filetype)
 		remotepath = self.root_path + self.rerun_path + tail_path
 
 		dir_working = '/data/home/hscpipe/alsun/get_psf/'
@@ -195,10 +199,6 @@ class iaaButler(parentButler):
 
 
 	
-
-	def _get_root_path(self):
-
-		return '/array2/SSP/'
 
 
 
@@ -235,10 +235,10 @@ class onlineButler(parentButler):
 		pass
 
 
-	def download_file(self, localpath, tract, patch_s, flter, coadd='deepCoadd', filetype='calexp'): 
+	def download_file(self, localpath, tract, patch_s, filter, coadd='deepCoadd', filetype='calexp'): 
 
 		# assemble path
-		tail_path = super(self.__class__, self)._get_tail_path(tract=tract, patch_s=patch_s, flter=flter, coadd=coadd, filetype=filetype)
+		tail_path = super(self.__class__, self)._get_tail_path(tract=tract, patch_s=patch_s, filter=filter, coadd=coadd, filetype=filetype)
 		remotepath = self.root_path + self.rerun_path + tail_path
 
 		# download

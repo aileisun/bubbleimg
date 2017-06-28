@@ -2,9 +2,69 @@
 # ALS 2017/06/05
 
 import os
-import astropy.convolution as ac
-import scipy.optimize as so
 import numpy as np
+
+import scipy.optimize as so
+import scipy.interpolate as si
+
+import astropy.convolution as ac
+import astropy.modeling as am
+from astropy.io import fits
+
+
+def match_psf_fits(fp_img, fp_psf, fp_psfto, fp_img_out, fp_psf_out, fp_psk_out, overwrite=True, towrite_psk=False):
+	""" 
+	match the psf of the image to that of psfto, given fits file names. For details, see match_psf().
+
+	Params
+	------
+	fp_img		(str):
+		(read) filepath to the image to be psf matched
+	fp_psf		(str):
+		(read) filepath to the psf of image
+	fp_psfto	(str):
+		(read) filepath to the psf to be matched to
+	fp_img_out	(str):
+		(write) filepath to the psf matched image output
+	fp_psf_out	(str):
+		(write) filepath to the psf of the matched image
+	fp_psk_out	(str):
+		(write) filepath to the psf matching kernel
+	overwrite=True (bool)
+	towrite_psf=False (bool):
+		whether to write psf matching kernel
+
+	Write output
+	------------
+	fp_img_out
+	fp_psf_out
+	fp_psk_out
+	"""
+
+	img = fits.getdata(fp_img)
+	psf = fits.getdata(fp_psf)
+	psfto = fits.getdata(fp_psfto)
+
+	# sanity check -- normalization of psf
+	for a in [psf, psfto]:
+		if np.absolute(np.sum(a) - 1.) > 1.e-5:
+			raise ValueError("[matchpsf] input psf is not normalized")
+
+	img_out, psf_out, psk_out, = match_psf(img, psf, psfto)
+
+	# construct hdus for outputs
+	hdus = fits.open(fp_img)
+	hdus[0].data = img_out
+	hdus[0].header['COMMENT'] = "PSF matched by ALS"
+	hdus[0].header['COMMENT'] = "    from {} to {}".format(os.path.basename(fp_psf), os.path.basename(fp_psfto))
+	hdus.writeto(fp_img_out, overwrite=overwrite)
+
+	fits.PrimaryHDU(psf_out).writeto(fp_psf_out, overwrite=overwrite)
+	if towrite_psk:
+		fits.PrimaryHDU(psk_out).writeto(fp_psk_out, overwrite=overwrite)
+
+
+
 
 def match_psf(img, psf, psfto): 
 	"""
@@ -12,17 +72,17 @@ def match_psf(img, psf, psfto):
 
 	Params
 	------
-	img
-	psf
-	psfto
+	img (np 2d array)
+	psf (np 2d array)
+	psfto (np 2d array)
 
 	Return
 	------
-	img_cnvled:
+	img_cnvled (np 2d array):
 		the psf matched image
-	psf_cnvled:
+	psf_cnvled (np 2d array):
 		the matched psf (psf convolved with kernel_cnvl)
-	kernel_cnvl:
+	kernel_cnvl (np 2d array):
 		the moffat kernel that can smear psf into psfto
 	"""
 
@@ -141,3 +201,199 @@ def normalize_kernel(kernel):
 	return kernel/np.sum(kernel)
 
 
+#======================== about fitting model to psf and psf size measure =================
+
+def get_xy_grid(nx, ny):
+	"""
+	return x_grid, y_grid symmetric and centered on central pixel
+	accepting only odd nx, ny
+	"""
+	for n in [nx, ny]:
+		if not isodd(n):
+			raise Exception("[get_xy_grid] only accept odd number")
+
+	x, y = np.mgrid[-(nx-1)/2:(nx+1)/2, -(ny-1)/2:(ny+1)/2]
+
+	return x, y
+
+
+
+def fit_moffat(arr):
+	"""
+	Params
+	------
+	arr (2d np array of odd sizes)
+
+	Return
+	------
+	model (astropy model object)
+	"""
+
+	# sanity check of input data type
+	if isinstance(arr, ac.kernels.Kernel):
+		arr = arr.array
+	elif isinstance(arr, np.ndarray):
+		pass
+	else: 
+		raise Exception("[psfmatch] input needs to be a kernel or array")
+
+	nx, ny = arr.shape
+	x, y = get_xy_grid(nx, ny)
+
+	model_init = am.functional_models.Moffat2D(amplitude=arr.max(), x_0=0, y_0=0, gamma=1, alpha=1)
+	fitter = am.fitting.LevMarLSQFitter()
+
+	# with warnings.catch_warnings():
+		# warnings.simplefilter('ignore')
+	model_best = fitter(model_init, x, y, arr)
+
+	if model_best.gamma < 0:
+		model_best.gamma = -model_best.gamma
+
+	return model_best
+
+
+def fit_gaussian(arr):
+	"""
+	Params
+	------
+	arr (2d np array of odd sizes)
+
+	Return
+	------
+	model (astropy model object)
+	"""
+	if isinstance(arr, ac.kernels.Kernel):
+		arr = arr.array
+	elif isinstance(arr, np.ndarray):
+		pass
+	else: 
+		raise Exception("[psfmatch] input needs to be a kernel or array")
+
+	nx, ny = arr.shape
+	x, y = get_xy_grid(nx, ny)
+
+	model_init = am.functional_models.Gaussian2D(amplitude=arr.max(), x_mean=0., y_mean=0., x_stddev=5., y_stddev=5., theta=0.)
+	fitter = am.fitting.LevMarLSQFitter()
+
+	# with warnings.catch_warnings():
+		# warnings.simplefilter('ignore')
+	model_best = fitter(model_init, x, y, arr)
+
+	return model_best
+
+
+
+def calc_psf_fwhm(arr, mode='moffat'):
+	""" 
+	calculate the fwhm of psf by fitting the psf with model (either moffat or gaussian) and then calculate the analytic fwhm based on the params of the best fit. fwhm is expressed in pixel units. 
+
+	Params
+	------
+	arr (2d np arr)
+	mode (str):
+		moffat, gaussian
+
+	Return
+	------
+	fwhm (float)
+		fwhm of psf in pix
+	"""
+
+	if mode == 'moffat':
+		return calc_psf_fwhm_inpix_moffat(arr)
+	elif mode == 'gaussian':
+		return calc_psf_fwhm_inpix_gaussian(arr)
+	else:
+		raise ValueError("mode not recognized")
+
+
+def calc_psf_fwhm_inpix_moffat(arr):
+	""" 
+	Params
+	------
+	arr (2d np arr)
+
+	Return
+	------
+	fwhm (float)
+		fwhm of psf in pix
+	"""
+	model = fit_moffat(arr)
+
+	fwhm = 2.* model.gamma * np.sqrt( 2.**(1./model.alpha) - 1. )
+
+	return fwhm
+
+
+def calc_psf_fwhm_inpix_gaussian(arr):
+	""" 
+	takes the fwhm of the major axis
+
+	Params
+	------
+	arr (2d np arr)
+
+	Return
+	------
+	fwhm (float)
+		fwhm of psf in pix
+	"""
+	model = fit_gaussian(arr)
+
+	sigma = max(model.y_stddev, model.x_stddev)
+	fwhm = 2.355 * sigma
+
+	return fwhm
+
+
+def calc_psf_size_inpix_quick(arr):
+	""" quick and dirty way to calculate the size of the psf with arbitrary scaling, just for comparison. about 5 times faster than the other methods """
+	arr1d = arr.sum(axis=0)
+	x = np.arange(arr1d.size)
+	spline = si.UnivariateSpline(x, arr1d-np.max(arr1d)/2, s=0)
+	r1, r2 = spline.roots()
+
+	return np.absolute(r2 - r1)
+
+
+def has_smaller_psf_fits(fp1, fp2, mode='quick', fracdiff_threshold=0.1):
+	""" 
+	whether psf1 is smaller than psf2
+
+	Params
+	------
+	fp1 (str):
+		filepath to psf fits
+	fp2 (str):
+		filepath to psf fits
+	mode (str):
+		quick, moffat, or gaussian
+	fracdiff_threshold (float):
+		the fractional difference of psf sizes only beyond which will it be qualified as 'smaller'. 
+
+	Return
+	------
+	results (bool)
+	"""
+
+	psf1 = fits.getdata(fp1)
+	psf2 = fits.getdata(fp2)
+
+	return has_smaller_psf(psf1, psf2, mode=mode, fracdiff_threshold=fracdiff_threshold)
+
+
+def has_smaller_psf(psf1, psf2, mode='quick', fracdiff_threshold=0.1):
+	""" given two psf 2d arrays determine if psf1 is smaller than psf2 """
+	if mode == 'quick': 
+		size1 = calc_psf_size_inpix_quick(psf1)
+		size2 = calc_psf_size_inpix_quick(psf2)
+	elif mode in ['moffat', 'gaussian']:
+		size1 = calc_psf_fwhm(psf1, mode=mode)
+		size2 = calc_psf_fwhm(psf2, mode=mode)
+	else:
+		raise ValueError("mode not recognized")
+
+
+	return (size2 - size1)/size1 > fracdiff_threshold
+	# return (size1 < size2)

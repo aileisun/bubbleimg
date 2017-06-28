@@ -28,17 +28,21 @@ def test_sumirebutler_get():
 
 	assert b.datasetExists("deepCoadd_calexp", dataId)
 
-	exp = b.get("deepCoadd_calexp", dataId, immediate=True)
+	exp = b.get("deepCoadd_calexp", dataId)
 	assert isinstance(exp, afwImage.imageLib.ExposureF)
 
 
 def test_sumirebutler_get_gzfiles():
 	""" get file even if its compressed """
-	assert False
+	
+	# this file has only gz version
+	# fn_in = '/array2/SSP/dr1/s16a/data/s16a_wide/deepCoadd/HSC-R/9011/6,3/calexp-HSC-R-9011-6,3.fits.gz'
+
+	dataId = dict(tract=9011, patch='6,3', filter="HSC-R")
 
 	b = Butler(rerunpath)
 
 	assert b.datasetExists("deepCoadd_calexp", dataId)
 
-	exp = b.get("deepCoadd_calexp", dataId, immediate=True)
+	exp = b.get("deepCoadd_calexp", dataId)
 	assert isinstance(exp, afwImage.imageLib.ExposureF)

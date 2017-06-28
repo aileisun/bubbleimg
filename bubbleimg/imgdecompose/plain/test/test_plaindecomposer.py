@@ -6,7 +6,7 @@ import numpy as np
 
 from astropy.io import fits
 import astropy.convolution as ac
-
+import astropy.units as u
 
 from ....obsobj import obsObj
 
@@ -17,7 +17,7 @@ dec = 0.580162492432517
 dir_parent = './testing/'
 dir_obj = './testing/SDSSJ0920+0034/'
 
-dir_verif = 'test_verification_data/SDSSJ0920+0034/'
+dir_verif = 'verification_data/SDSSJ0920+0034/'
 bandline = 'i'
 bandconti = 'r'
 survey = 'hsc'
@@ -34,10 +34,10 @@ def setUp_tearDown():
 	os.makedirs(dir_parent)
 	shutil.copytree(dir_verif, dir_obj)
 
-	yield
-	# tear down
-	if os.path.isdir(dir_parent):
-		shutil.rmtree(dir_parent)
+	# yield
+	# # tear down
+	# if os.path.isdir(dir_parent):
+	# 	shutil.rmtree(dir_parent)
 
 
 @pytest.fixture
@@ -51,7 +51,22 @@ def decomposer1(obj_dirobj):
 	return plainDecomposer(obj=obj, survey='hsc', z=z)
 
 
-def test_decomposerr_init_getsurvey_fromobj(obj_dirobj):
+def test_plaindecomposer_get_fp_psf(decomposer1):
+	d = decomposer1
+
+	fp_stamp = d.get_fp_stamp(band='i')
+	fp_psf = d.get_fp_psf(fp_stamp)
+	print fp_stamp
+	print fp_psf
+
+	assert os.path.dirname(fp_stamp) == os.path.dirname(fp_psf)
+	assert os.path.basename(fp_stamp)[5:] == os.path.basename(fp_psf)[3:]
+	assert os.path.basename(fp_psf)[:3] == 'psf'
+
+	assert 'psf-oiii5008_over-halpha' == d.get_fp_psf('stamp-oiii5008_over-halpha')
+
+
+def test_decomposer_init_getsurvey_fromobj(obj_dirobj):
 	""" complain when the survey_spec is set to a wrong value"""
 	obj = obj_dirobj
 	obj.z = z
@@ -101,22 +116,23 @@ def test_decomposer_make_stamp_psfmatch(decomposer1):
 	bandto = bandconti
 
 
-	status = d._make_stamp_psfmatch(band, bandto, overwrite=True)
+	status = d.make_stamp_psfmatch(band, bandto, overwrite=True)
 
 	assert status
 
-	status = d._make_stamp_psfmatch(band, bandto, overwrite=False)
+	status = d.make_stamp_psfmatch(band, bandto, overwrite=False, )
 
 	assert status
 
-	fns = [d.get_fp_stamp_psfmatched(band, bandto), 
-			d.get_fp_psf_psfmatched(band, bandto),
-			d.get_fp_psf_kernelcnvl(band, bandto),
-			]
+	fp = d.get_fp_stamp_psfmatched(band, bandto)
 
-	for fn in fns:
+	for fn in [fp, d.get_fp_psf(fp)]:
 		assert os.path.isfile(fn)
 
+	status = d.make_stamp_psfmatch(band, bandto, overwrite=True, towrite_psk=True)
+
+	for fn in [fp, d.get_fp_psf(fp), d.get_fp_psk(fp)]:
+		assert os.path.isfile(fn)
 
 
 def test_decomposer_subtract_img_w_ratio(decomposer1):
@@ -140,33 +156,57 @@ def test_decomposer_subtract_img_w_ratio(decomposer1):
 	assert np.all(arr_out == arr_ans)
 
 
+def test_decomposer_has_smaller_psf(decomposer1):
+	d = decomposer1
+
+
+	assert d._band_has_smaller_psf(band='i', bandto='r')
+	assert d._band_has_smaller_psf(band='i', bandto='y')
+
+
+
 def test_decomposer_make_stamp_contsub(decomposer1):
 
 	d = decomposer1
 
-	fn = d.get_fp_stamp_contsub(bandline, bandconti)
+	for bandconti in ['r', 'y']:
+		fn = d.get_fp_stamp_contsub(bandline, bandconti)
+		fn_psf = d.get_fp_psf(fn)
 
-	status = d.make_stamp_contsub(bandline, bandconti, overwrite=True)
+		status = d.make_stamp_contsub(bandline, bandconti, overwrite=True)
 
-	assert status
+		assert status
 
-	assert os.path.isfile(fn)
-
-	status = d.make_stamp_contsub(bandline, bandconti='y', overwrite=True)
-	status = d.make_stamp_contsub('z', bandconti='y', overwrite=True)
-
-
-
-
+		assert os.path.isfile(fn)
+		assert os.path.isfile(fn_psf)
 
 
 def test_decomposer_make_linemap(decomposer1):
 	d = decomposer1
-	assert False
 
-	d.make_linemap(line='oiii5007', bandline=bandline, bandconti=bandconti, z=None, overwrite=False)
+	bandline = 'i'
 
-	assert os.path.isfile(obj.dir_obj+'stamp-lOIII5008_I.fits')
+	for bandconti in ['r', 'y']:
+		d.make_stamp_linemap(bandline=bandline, bandconti=bandconti, line='OIII5008', overwrite=True)
 
 
+		assert os.path.isfile(d.dir_obj+'stamp-OIII5008.fits')
+		assert os.path.isfile(d.dir_obj+'psf-OIII5008.fits')
+
+		hdus = fits.open(d.dir_obj+'stamp-OIII5008.fits')
+		assert u.Unit(hdus[0].header['BUNIT']) == u.Unit('1e-17 erg s-1 cm-2')
+
+		fn_contsub = d.get_fp_stamp_contsub(bandline, bandconti)
+		fn_psf_contsub = d.get_fp_psf(fn_contsub)
+		assert np.all(fits.getdata(d.dir_obj+'psf-OIII5008.fits') == fits.getdata(fn_psf_contsub))
+
+
+def test_decomposer_make_linemap_I(decomposer1):
+	d = decomposer1
+	for bandconti in ['r', 'y']:
+		d.make_stamp_linemap(bandline=bandline, bandconti=bandconti, line='OIII5008', overwrite=True)
+		d.make_stamp_linemap_I(bandline=bandline, bandconti=bandconti, line='OIII5008', overwrite=True)
+
+		assert os.path.isfile(d.dir_obj+'stamp-OIII5008_I.fits')
+		assert os.path.isfile(d.dir_obj+'psf-OIII5008_I.fits')
 

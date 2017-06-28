@@ -2,9 +2,9 @@
 # ALS 2017/06/01
 
 from ..obsobj import Operator
-from .. import filters
 from .. import spector
 from .. import imgdownload
+from ..filters import surveysetup
 
 
 class Decomposer(Operator):
@@ -73,27 +73,63 @@ class Decomposer(Operator):
 			self.z = kwargs.pop('z') 
 
 		# set other attributes
-		self.bands = filters.filtertools.surveybands[self.survey]
+		self.bands = surveysetup.surveybands[self.survey]
 
 
 	def get_fp_stamp(self, band):
 		L = imgdownload.imgLoader(obj=self.obj)
 		return L.get_fp_stamp(band)
-		# return self.dir_obj+'stamp-{0}.fits'.format(band)
-
-
-	def get_fp_psf(self, band):
-		L = imgdownload.imgLoader(obj=self.obj)
-		return L.get_fp_psf(band)
-		# return self.dir_obj+'psf-{0}.fits'.format(band)
 
 
 	def get_fp_stamp_psfmatched(self, band, bandto):
-		return self.dir_obj+'stamp-{0}_psfmatched-{1}.fits'.format(band, bandto)
+		return self.dir_obj+'stamp-{0}_psfmt-{1}.fits'.format(band, bandto)
 
 
 	def get_fp_stamp_contsub(self, band, bandconti):
 		return self.dir_obj+'stamp-{0}_contsub-{1}.fits'.format(band, bandconti)
+
+
+	def get_fp_stamp_line(self, line):
+		""" e.g., stamp-OIII5008.fits, for stamp in observed frame in flux """
+		return self.dir_obj+'stamp-{0}.fits'.format(line)
+
+
+	def get_fp_stamp_line_I(self, line):
+		""" e.g., stamp-OIII5008_I.fits for stamp in rest frame in intensity"""
+		return self.dir_obj+'stamp-{0}_I.fits'.format(line)
+
+
+	def make_stamp_linemap_I(self, bandline, bandconti, line='OIII5008', overwrite=False):
+		""" 
+		make stamp of line map in rest frame intensity in units of [erg s-1 cm-2 arcsec-2]
+		Converted from stamp_linemap depending on self.z. Ready for isophotal measurements. 
+
+		See make_stamp_linemap for details. 
+		"""
+		raise NotImplementedError("Subclass must implement abstract method")
+
+
+	def make_stamp_linemap(self, bandline, bandconti, line='OIII5008', overwrite=False):
+		"""
+		make stamp of line map in observed frame flux in units of [erg s-1 cm-2]
+
+		Params
+		------
+		self
+		bandline  (str)
+		bandconti (str)
+		line = 'OIII5008' (str)
+		overwrite = False (bool)
+
+		Return
+		------
+		status (bool)
+
+		Write Output 
+		------------
+		e.g., stamp-OIII5008.fits
+		"""
+		raise NotImplementedError("Subclass must implement abstract method")
 
 
 	def make_stamp_contsub(self, band, bandconti, overwrite=True):
@@ -111,18 +147,44 @@ class Decomposer(Operator):
 		------
 		status
 
+		Write Output
+		------------
+		e.g., stamp-i_contsub-z.fits  (if band = 'i', bandto = 'z')
+		"""
+		raise NotImplementedError("Subclass must implement abstract method")
+
+
+	def make_stamp_psfmatch(self, band, bandto, overwrite=True):
+		""" 
+		make stamp that has psf matched to stamp of another band
+
+		Params
+		------
+		self
+		band (str)
+		bandto (str)
+		overwrite=False
+
+		Return
+		------
+		status
+
 		Write Output (e.g., if band = 'i', bandto = 'z')
 		------------
-		stamp-i_contsub-z.fits
+		stamp-i_psfmatched-z.fits
+		(possibly others)
 		"""
 		raise NotImplementedError("Subclass must implement abstract method")
 
 
 	def _get_conti_fnu_ratio_from_spector(self, band1, band2):
 		""" return fnu_band1 / fnu_band2 of the continuum from spector """
-		s = spector.Spector(obj=self.obj, survey=self.survey, z=self.z)
+		s = self._get_spector()
 		ratio = s.get_fnu_ratio_band1_over_band2(band1=band1, band2=band2, component='contextrp')
 
 		return ratio
 
 
+	def _get_spector(self):
+		s = spector.Spector(obj=self.obj, survey=self.survey, z=self.z)
+		return s

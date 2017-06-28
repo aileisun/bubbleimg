@@ -4,10 +4,7 @@ __all__ = ['plaindecomposer']
 
 import plaindecomposer
 
-reload(plaindecomposer)
+import matchpsf
 
 from plaindecomposer import plainDecomposer
 
-
-import matchpsf
-reload(matchpsf)

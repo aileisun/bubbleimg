@@ -123,7 +123,7 @@ class imgLoader(obsobj.Operator):
 			    os.makedirs(self.dir_obj)
 
 			if (not os.path.isfile(filepath)) or overwrite:
-				print("[loader] make file ".format(filename))
+				print("[loader] making file ".format(filename))
 				# try: 
 				return func_download_file(band=band, **kwargs) # if failed then return False
 				# except:

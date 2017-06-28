@@ -8,7 +8,7 @@ tools to extrapolate spectrum. Currently works on continuum.
 import numpy as np
 import getconti
 
-def extrapolate(ys1, xs1, xs2, polydeg=1, extbase_length=1000., epsilon=1.e-5):
+def extrapolate(ys1, xs1, xs2, polydeg=1, extbase_length=2000., epsilon=1.e-5):
 	""" extrapolate ys1 to cover the entire range of xs2 """
 	if not (min(xs1) <= min(xs2)):# ys1 is short at the low x end
 		x_end = min(xs2)+epsilon
@@ -23,7 +23,7 @@ def extrapolate(ys1, xs1, xs2, polydeg=1, extbase_length=1000., epsilon=1.e-5):
 	return ys1, xs1
 
 
-def extrap_to_end(ys, xs, x_end, polydeg=1, extbase_length=1000.):
+def extrap_to_end(ys, xs, x_end, polydeg=1, extbase_length=2000.):
 	""" get ys_ext, xs_ext that is extrapolated ys, xs out to x_end
 
 	Params
@@ -32,7 +32,7 @@ def extrap_to_end(ys, xs, x_end, polydeg=1, extbase_length=1000.):
 	xs: ys's coord system
 	x_end: to extrapolate to
 	polydeg: deg of poly
-	extbase_length: the length on the side of array in x space to do poly fitting on
+	extbase_length: the length on the side of array in x space to do poly fitting on in units of xs's unit (usually Anstrom). 
 
 	Return
 	------

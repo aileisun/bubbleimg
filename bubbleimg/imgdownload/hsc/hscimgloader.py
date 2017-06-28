@@ -132,7 +132,7 @@ class hscimgLoader(imgLoader):
 
 	def _download_stamp(self, band, imgtype='coadd', tract='', rerun='', tokeepraw=False, **kwargs):
 		"""
-		download hsc cutout img using HSC DAS Querry. Provides only ra, dec to DAS Querry and download the default coadd. 
+		download hsc cutout img using HSC DAS Querry. Provides only ra, dec to DAS Querry and download the default coadd. always overwrite. 
 
 		 convert it to stamp images. 
 
@@ -180,7 +180,7 @@ class hscimgLoader(imgLoader):
 
 			return True
 		else:  
-			print "image cannot be retrieved"
+			print "[hscimgloader] image cannot be retrieved"
 			return False
 
 

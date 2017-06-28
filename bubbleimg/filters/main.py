@@ -27,11 +27,14 @@ def main():
 	make the following files: 
 	"""
 
-	for survey in ['sdss', 'hsc', 'cfht', 'ukirt']:
+	for survey in ['sdss', 'hsc']: #, 'cfht', 'ukirt']:
 		filtertools.writeFilterCentroids(survey=survey)
-		for threshold in [0.2, 0.6, 0.8]:
+		filtertools.write_int_response_dlnl(survey=survey)
+		filtertools.writeNormTransFunc(survey=survey)
+
+		for threshold in [0.01, 0.2, 0.6, 0.8]:
 			print threshold
-			filtertools.writeFilterBoundaries(threshold=threshold,toplot=False, survey=survey)
+			filtertools.writeFilterBoundaries(threshold=threshold, toplot=False, survey=survey)
 
 		# write files
 		getzrange_line.findzrange_wline_OIIIs(threshold=0.6, survey=survey)
