@@ -268,7 +268,7 @@ class sdssObj(plainObj):
 				if len(sp) == 1: 
 					sp=sp[0]
 					self.make_dir_obj()
-					sp.writeto(fn)
+					sp.writeto(fn, overwrite=overwrite)
 					return True
 				else: 
 					raise ValueError("SDSS spec obj not uniquely identified. ")

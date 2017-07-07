@@ -152,6 +152,8 @@ class Batch(object):
 		else: 
 			self.args_to_list_dtype = None
 
+		self.list.sort('ra')
+
 
 	def _make_attr_list_good(self):
 		if os.path.isfile(self.fp_list_good):
@@ -161,6 +163,9 @@ class Batch(object):
 		else:
 			self.list_good = self._create_empty_list_table()
 
+		self.list_good.sort('ra')
+
+
 
 	def _make_attr_list_except(self):
 		if os.path.isfile(self.fp_list_except):
@@ -169,6 +174,8 @@ class Batch(object):
 				self.list_except = self._create_empty_list_table()
 		else:
 			self.list_except = self._create_empty_list_table()
+
+		self.list_except.sort('ra')
 
 
 	def _create_empty_list_table(self):
@@ -207,7 +214,7 @@ class Batch(object):
 		Params
 		------
 		func (function):
-		    a function that takes in parameter (obj, overwrite, **kwargs), where kwargs includes listargs
+		    a function that takes in parameter (obj, overwrite, **kwargs), where kwargs includes listargs, and returns result (usually status [bool]). 
 
 		listargs=[] (list of str): names of arguments to pass to func from self.list
 
@@ -220,7 +227,8 @@ class Batch(object):
 
 	    Return
 	    ------
-	    status (bool array)
+	    results (list):
+	    	a list of all the results returned by fun, usually "status" (bool array)
 		"""
 		if listname == 'good':
 			lst = self.list_good
@@ -229,7 +237,8 @@ class Batch(object):
 			lst = self.list_except
 			dir_parent = self.dir_except
 
-		statuss = np.ndarray(len(lst), dtype=bool)
+		# statuss = np.ndarray(len(lst), dtype=bool)
+		results = []
 		for i, row in enumerate(lst):
 
 			ra = row['ra']
@@ -244,9 +253,97 @@ class Batch(object):
 			obj = obsobj.obsObj(ra=ra, dec=dec, dir_parent=dir_parent, obj_naming_sys=self.obj_naming_sys, overwrite=overwrite)
 			obj.survey = self.survey		
 
-			statuss[i] = func(obj, overwrite=overwrite, **kwargs)
+			result = func(obj, overwrite=overwrite, **kwargs)
+			results += [result]
+			# statuss[i] = func(obj, overwrite=overwrite, **kwargs)
 
-		return statuss
+		return results
+		# return statuss
+
+
+	def compile_table(self, fn_tab, overwrite=False):
+		"""
+		compile table fn_tab for the entire batch and creates self.dir_batch+fn_tab.
+
+		Params
+		------
+		self
+		fn_tab (str):
+			file name of the table to be compiled, e.g., 'sdss_photoobj.csv'.
+		overwrite (bool)
+
+		Return
+		------
+		status (bool)
+
+		Write output
+		------------
+		self.dir_batch + fn_tab:
+			e.g., 'batch_rz/sdss_photoobj.csv'
+		"""		
+		fp = self.dir_batch+fn_tab
+
+		if not os.path.isfile(fp) or overwrite:
+			print("[batch] compiling table {}".format(fn_tab))
+
+			if len(self.list_good)>0:
+				kwargs = dict(fn_tab=fn_tab)
+				list_data = self.iterlist(func=self._iterfunc_read_table, listargs=[], listname='good', overwrite=False, **kwargs)
+				tab_data = at.vstack(list_data)
+				self._rename_list_args(tab_data)
+				tab_good = at.hstack([self.list_good, tab_data])
+			else:
+				tab_good = at.Table()
+
+			if len(self.list_good)>0 and len(self.list_except)>0:
+				row_masked = at.Table(tab_data[0], masked=True)
+				row_masked.mask = True
+				tab_masked = at.vstack([row_masked for i in range(len(self.list_except))])
+				self._rename_list_args(tab_masked)
+				tab_except = at.hstack([self.list_except, tab_masked])
+			else:
+				tab_except = at.Table()
+
+			tab = at.vstack([tab_good, tab_except])
+
+			if len(tab) > 0:
+				tab.sort('ra')
+				tab.write(fp, overwrite=overwrite)
+			else:
+				# in case if there is no good object
+				print("[batch] skipped compiling table {} as no data to compile")
+
+		else:
+			print("[batch] skipped compiling table {} as file exists".format(fn_tab))
+
+		status = os.path.isfile(fp)	
+		return status 
+
+
+	def _iterfunc_read_table(self, obj, fn_tab, overwrite=False):
+		""" 
+		function to be iterated for each object to access the table being compiled
+
+		Params
+		------
+		self
+		obj
+		fn_tab (str):
+			file name of the table to be compiled, e.g., 'sdss_photoobj.csv'.
+		overwrite (bool):
+			can be ignored
+		"""
+		return at.Table.read(obj.dir_obj+fn_tab)
+
+
+	def _rename_list_args(self, tab):
+		""" rename the arguments that could conflict with the ones in list """
+
+		args = ['ra', 'dec', 'obj_name'] + self.args_to_list
+
+		for arg in args:
+			if arg in tab.colnames:
+				tab.rename_column(arg, arg+'_1')
 
 
 	def _check_list_good_except_updated(self):

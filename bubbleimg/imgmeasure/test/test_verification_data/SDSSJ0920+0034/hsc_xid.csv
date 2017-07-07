@@ -1,0 +1,2 @@
+object_id,ra,dec,patch_id,tract,patch,patch_s,parent_id,deblend_nchild,detect_is_patch_inner,detect_is_tract_inner,detect_is_primary,gflux_kron_psfradius,rflux_kron_psfradius,iflux_kron_psfradius,zflux_kron_psfradius,yflux_kron_psfradius
+42063891789801134,140.099364238908123,0.580160150759375104,95640703,9564,703,"7,3",42063891789781322,0,t,t,t,0.46287775,0.484417379,0.297575027,0.515529096,0.369160265

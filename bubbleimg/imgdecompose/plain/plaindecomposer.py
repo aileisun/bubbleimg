@@ -6,7 +6,6 @@ from astropy.io import fits
 import astropy.units as u
 
 from ..decomposer import Decomposer
-from ...filters import surveysetup
 import matchpsf
 
 
@@ -239,8 +238,7 @@ class plainDecomposer(Decomposer):
 		img_in = hdus[0].data * u.Unit(hdus[0].header['BUNIT'])
 
 		# calc ratio
-		pixsize = surveysetup.pixsize[self.survey]
-		invOmega = 1./(pixsize**2)
+		invOmega = 1./(self.pixsize**2)
 		zdimming = (1.+self.z)**4
 
 		# scale to line flux
@@ -373,32 +371,4 @@ class plainDecomposer(Decomposer):
 		fn_psf_in = self.get_fp_psf(fn_in)
 		fn_psf_out = self.get_fp_psf(fn_out)
 		copyfile(fn_psf_in, fn_psf_out)
-
-
-
-	# old code:
-	# def _band_has_smaller_psf(self, band, bandto, diffpsf_threshold=0.01):
-	# 	"""
-	# 	whether band has smaller psf than bandto by a margin of "diffpsf_threshold" in arcsec. 
-	# 	get psf size from hsc_xid if the survey = 'hsc'. 
-
-	# 	Params
-	# 	------
-	# 	band (str)
-	# 	bandto (str)
-	# 	diffpsf_threshold=0.1:
-	# 		the threshold of psf difference in arcsec. If the diff is larger than return True. 
-
-	# 	Return
-	# 	------
-	# 	answer (bool)
-	# 	"""
-
-	# 	if self.survey == 'hsc':
-	# 		psize_from = self.obj.hsc.get_psfsize(band=band)
-	# 		psize_to = self.obj.hsc.get_psfsize(band=bandto)
-
-	# 		return psize_to - psize_from > diffpsf_threshold
-	# 	else:
-	# 		raise Exception("[decomposer] _band_has_smaller_psf() for this survey is not constructed")
 

@@ -1,10 +1,13 @@
 # decomposer.py 
 # ALS 2017/06/01
 
+import os
+
 from ..obsobj import Operator
 from .. import spector
 from .. import imgdownload
 from ..filters import surveysetup
+from .. import visualtools
 
 
 class Decomposer(Operator):
@@ -45,6 +48,8 @@ class Decomposer(Operator):
 			survey of the photometric system
 		z (float): 
 			redshift
+		pixsize (astropy angle quantity):
+			in unit of arcsec
 		bands (list): 
 			e.g., ['g', 'r', 'i', 'z', 'y'] for survey = 'hsc'
 		"""
@@ -72,8 +77,11 @@ class Decomposer(Operator):
 		else: 
 			self.z = kwargs.pop('z') 
 
+
 		# set other attributes
+		self.pixsize = surveysetup.pixsize[self.survey]
 		self.bands = surveysetup.surveybands[self.survey]
+
 
 
 	def get_fp_stamp(self, band):
@@ -97,6 +105,32 @@ class Decomposer(Operator):
 	def get_fp_stamp_line_I(self, line):
 		""" e.g., stamp-OIII5008_I.fits for stamp in rest frame in intensity"""
 		return self.dir_obj+'stamp-{0}_I.fits'.format(line)
+
+
+	def plot_stamp_linemap_I(self, line='OIII5008', overwrite=False, vmin=None, vmax=10.):
+		""" 
+		plot line map I as png. 
+
+		Params
+		------
+		self
+		line='OIII5008' (str)
+		overwrite=False (bool)
+
+		Return
+		------
+		status (bool)
+		"""
+		fn = self.get_fp_stamp_line_I(line=line)
+		fn_out = os.path.splitext(fn)[0]+'.png'
+
+		if not os.path.isfile(fn_out) or overwrite:
+			print("[decomposer] plotting linemap")
+			visualtools.fits_to_png(fn_in=fn, fn_out=fn_out, vmin=vmin, vmax=vmax, scaling='arcsinh')
+		else: 
+			print("[decomposer] skip plotting linemap as files exist")
+
+		return os.path.isfile(fn_out)
 
 
 	def make_stamp_linemap_I(self, bandline, bandconti, line='OIII5008', overwrite=False):

@@ -1,9 +1,8 @@
-# manually created by ALS
+# manually created by ALS 
 bandline    bandconti
+       g            z
        g            i
        g            r
        r            z
        r            i
-       i            y
        i            z
-       z            y

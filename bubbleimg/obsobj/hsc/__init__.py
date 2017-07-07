@@ -4,7 +4,8 @@
 __all__ = ['hscobj']
 
 import hscobj
+import hscsspquery
 
 reload(hscobj)
-
+reload(hscsspquery)
 from hscobj import hscObj

@@ -21,6 +21,7 @@ dir_batch_bad = 'testing/batch_ri_bad/'
 name = 'batch_ri'
 fn_cat = 'test_verification_data/example_catalog.fits'
 fn_cat_bad = 'test_verification_data/bad_catalog.fits' # the last row of bad cat has bad ra, dec
+
 catalog = at.Table.read(fn_cat, format='fits')
 survey ='hsc'
 obj_naming_sys = 'sdss'
@@ -49,7 +50,6 @@ def batch1():
 @pytest.fixture
 def batch_bad():
 	return hscBatch(dir_batch=dir_batch_bad, fn_cat=fn_cat_bad)
-
 
 
 def test_batch_iterlist(batch1):

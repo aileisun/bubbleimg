@@ -54,6 +54,9 @@ class imgLoader(obsobj.Operator):
 		img_width_pix (quantity of unit u.pix): floor integer of img_width in pixels
 		img_height_pix (quantity of unit u.pix): floor integer of img_width in pixels
 
+		Attributes to be overwritten by subclass:
+			survey (str)
+			pixsize (astropy quantity in arcsec)
 		"""
 		#===== unparse input
 		super(imgLoader, self).__init__(**kwargs)
@@ -123,7 +126,7 @@ class imgLoader(obsobj.Operator):
 			    os.makedirs(self.dir_obj)
 
 			if (not os.path.isfile(filepath)) or overwrite:
-				print("[loader] making file ".format(filename))
+				print("[loader] making file {}".format(filename))
 				# try: 
 				return func_download_file(band=band, **kwargs) # if failed then return False
 				# except:

@@ -11,8 +11,9 @@ import re
 from ..loader import imgLoader
 from ...filters import surveysetup
 from ..get_credential import getCrendential
-from downloadbutler import multiButler
-import psf
+import hscurl
+# from downloadbutler import multiButler
+# import psf
 
 nanomaggy = u.def_unit('nanomaggy', 3.631e-6*u.Jy)
 u.add_enabled_units([nanomaggy])
@@ -130,7 +131,7 @@ class hscimgLoader(imgLoader):
 		return self._imgLoader__make_files_core(func_download_file=self._download_stamp, func_naming_file=self.get_fn_stamp, overwrite=overwrite, **kwargs)
 
 
-	def _download_stamp(self, band, imgtype='coadd', tract='', rerun='', tokeepraw=False, **kwargs):
+	def _download_stamp(self, band, imgtype='coadd', tract='', rerun='', tokeepraw=False):
 		"""
 		download hsc cutout img using HSC DAS Querry. Provides only ra, dec to DAS Querry and download the default coadd. always overwrite. 
 
@@ -157,7 +158,7 @@ class hscimgLoader(imgLoader):
 			rerun = self.rerun
 
 		# setting 
-		filepath_out = self.get_fp_stamp(band)
+		fp_out = self.get_fp_stamp(band)
 
 		
 		semi_width_inarcsec = (self.img_width_arcsec.to(u.arcsec).value/2.)-0.1 # to get pix number right
@@ -166,17 +167,17 @@ class hscimgLoader(imgLoader):
 		sh = '%.5f'%semi_height_inarcsec+'asec'
 
 		# get url
-		url = self._make_hsc_cutout_url(self.ra, self.dec, band=band, sw=sw, sh=sh, imgtype=imgtype, tract=tract, rerun=rerun)
+		url = hscurl.get_hsc_cutout_url(self.ra, self.dec, band=band, rerun=rerun, tract=tract, imgtype=imgtype, sw=sw, sh=sh)
 
 		# query, download, and convert to new unit
 		# writing two files (if successful): raw img file and stamp img file. 
 		rqst = requests.get(url, auth=(self.__username, self.__password))
 		if rqst.status_code == 200:
-			filepath_raw = self._write_request_to_file(rqst)
-			self._write_fits_unit_specified_in_nanomaggy(filein=filepath_raw, fileout=filepath_out)
+			fp_raw = self._write_request_to_file(rqst)
+			self._write_fits_unit_specified_in_nanomaggy(filein=fp_raw, fileout=fp_out)
 
 			if not tokeepraw:
-				os.remove(filepath_raw)
+				os.remove(fp_raw)
 
 			return True
 		else:  
@@ -184,168 +185,224 @@ class hscimgLoader(imgLoader):
 			return False
 
 
-	def make_psf(self, band, overwrite=False, to_keep_calexp=False):
+
+	def make_psf(self, band, overwrite=False, **kwargs):
 		"""
-		make psf files by downloading calexp file using selected method depending on self.environment and read psf info from it using psf.py
-
-		Params
-		------
-		band (str): e.g., 'r'
-		overwrite=False: whether to overwrite existing psf file
-		to_keep_calexp=False: whether to keep the calexp file or not after psf files are made
-		"""
-		if self.environment != 'iaa':
-			status = self._imgLoader__make_file_core(func_download_file=self._calexp_to_psf, func_naming_file=self.get_fn_psf, band=band, overwrite=overwrite)
-
-			if not to_keep_calexp:
-				fn = self.dir_obj+self._get_fn_calexp(band=band)
-				if os.path.isfile(fn):
-					os.remove(fn)
-		else: 
-			status = self._imgLoader__make_file_core(func_download_file=self._download_psf_at_iaa, func_naming_file=self.get_fn_psf, band=band, overwrite=overwrite)
-
-		return status
-
-
-	def make_psfs(self, overwrite=False, to_keep_calexp=False):
-
-		if self.environment!='iaa':
-			statuss = np.ndarray(5, dtype=bool)
-			for i, band in enumerate(self.bands): 
-				statuss[i] = self.make_psf(band=band, overwrite=overwrite, to_keep_calexp=to_keep_calexp)
-			return all(statuss)
-		else: 
-			missings = [(not os.path.isfile(self.dir_obj+self.get_fn_psf(band))) for band in self.bands]
-			isfilesmissing = np.any(missings)
-
-			if isfilesmissing or overwrite:
-				print "[hscimgloader] running _download_psfs_at_iaa()"
-				status = self._download_psfs_at_iaa()
-				return status
-			else: 
-				print "[hscimgloader] skip _download_psfs_at_iaa() as file exists"
-				return True
-
-
-	def _download_psf_at_iaa(self, band):
-		if self.environment!='iaa':
-			raise Exception("[hscimgLoader] _download_psf_at_iaa() can only be called when environment is iaa")
-
-		fn_out = self.dir_obj+self.get_fn_psf(band=band)
-
-		dataId = dict(tract=self.obj.hsc.tract, patch_s=self.obj.hsc.patch_s, filter=self._get_filter_name(band))
-
-		b = multiButler(environment=self.environment, release_version=self.release_version, semester=self.semester, rerun=self.rerun).butler
-
-		with b:
-			status = b.download_psf(fn_out, ra=self.ra, dec=self.dec, **dataId)
-		return status
-
-
-	def _download_psfs_at_iaa(self):
-		if self.environment!='iaa':
-			raise Exception("[hscimgLoader] _download_psf_at_iaa() can only be called when environment is iaa")
-
-		b = multiButler(environment=self.environment, release_version=self.release_version, semester=self.semester, rerun=self.rerun).butler
-
-		statuss = np.ndarray(len(self.bands), dtype=bool)
-		with b:
-			for i, band in enumerate(self.bands): 
-				fn_out = self.dir_obj+self.get_fn_psf(band=band)
-
-				dataId = dict(tract=self.obj.hsc.tract, patch_s=self.obj.hsc.patch_s, filter=self._get_filter_name(band))
-
-				statuss[i] = b.download_psf(fn_out, ra=self.ra, dec=self.dec, **dataId)
-		return all(statuss)
-
-
-	def _calexp_to_psf(self, band):
-		fn_in = self.dir_obj+self._get_fn_calexp(band=band)
-		fn_out = self.dir_obj+self.get_fn_psf(band=band)
-
-		status_calexp = self._make_calexp(band=band, overwrite=False)
-
-		if status_calexp:
-			psf.exposureF_to_psf(fn_in, fn_out, self.ra, self.dec)
-
-			status = os.path.isfile(fn_out)
-			return status
-		else: False
-
-
-	def _make_calexp(self, band, overwrite=False):
-		"""
-		make calexp image of the specified band of the object. takes care of overwrite with argument 'overwrite'. Default: do not overwrite. 
+		make psf image of the specified band of the object.  See _download_psf() for details. 
 
 		Params
 		----------
-		band (string)
+		band (string) = 'r'
 		overwrite (boolean) = False
+		**kwargs: to be passed to _download_psf()
+			e.g., imgtype='coadd'
 
 		Return
 		----------
 		status: True if downloaded or skipped, False if download fails
 		"""
-		status = self._imgLoader__make_file_core(func_download_file=self._download_calexp, func_naming_file=self._get_fn_calexp, band=band, overwrite=overwrite)
-
-		return status
+		return self._imgLoader__make_file_core(func_download_file=self._download_psf, func_naming_file=self.get_fn_psf, band=band, overwrite=overwrite, **kwargs)
 
 
-	def _make_calexps(self, overwrite=False):
+	def make_psfs(self, overwrite=False, **kwargs):
 		"""
-		make calexps of all bands, see _make_calexp()
+		make psfs of all bands, see make_psf()
 		"""
-		status = self._imgLoader__make_files_core(func_download_file=self._download_calexp, func_naming_file=self._get_fn_calexp, overwrite=overwrite)
-
-		return status
+		return self._imgLoader__make_files_core(func_download_file=self._download_psf, func_naming_file=self.get_fn_psf, overwrite=overwrite, **kwargs)
 
 
-	def _download_calexp(self, band):
+	def _download_psf(self, band, imgtype='coadd'):
+		"""
+		download hsc cutout img using HSC DAS Querry. Provides only ra, dec to DAS Querry and download the default coadd. always overwrite. 
 
-		fn = self.dir_obj+self._get_fn_calexp(band=band)
+		for details see manual https://hscdata.mtk.nao.ac.jp/psf/4/manual.html#Bulk_mode
+		https://hscdata.mtk.nao.ac.jp/das_quarry/manual.html 
 
-		dataId = dict(tract=self.obj.hsc.tract, patch_s=self.obj.hsc.patch_s, filter=self._get_filter_name(band))
+		Args
+		--------
+		band
+		imgtype='coadd'
 
-		b = multiButler(environment=self.environment, release_version=self.release_version, semester=self.semester, rerun=self.rerun).butler
+		Return
+		----------
+		status: True if downloaded, False if download fails
+		"""
 
-		with b:
-			status = b.download_file(fn, **dataId)
-		return status
+		# setting 
+		fp_out = self.get_fp_psf(band)
+
+		# get url
+		url = hscurl.get_hsc_psf_url(ra=self.ra, dec=self.dec, band=band, rerun=self.rerun, tract=self.obj.hsc.tract, patch=self.obj.hsc.patch_s, imgtype=imgtype)
+
+		# download
+		rqst = requests.get(url, auth=(self.__username, self.__password))
+		if rqst.status_code == 200:
+			self._write_request_to_file(rqst, fn=os.path.basename(fp_out))
+
+			return True
+		else:  
+			print("[hscimgloader] psf cannot be retrieved")
+			return False
+
+
+	# def make_psf(self, band, overwrite=False, to_keep_calexp=False):
+	# 	"""
+	# 	make psf files by downloading calexp file using selected method depending on self.environment and read psf info from it using psf.py
+
+	# 	Params
+	# 	------
+	# 	band (str): e.g., 'r'
+	# 	overwrite=False: whether to overwrite existing psf file
+	# 	to_keep_calexp=False: whether to keep the calexp file or not after psf files are made
+	# 	"""
+	# 	if self.environment != 'iaa':
+	# 		status = self._imgLoader__make_file_core(func_download_file=self._calexp_to_psf, func_naming_file=self.get_fn_psf, band=band, overwrite=overwrite)
+
+	# 		if not to_keep_calexp:
+	# 			fn = self.dir_obj+self._get_fn_calexp(band=band)
+	# 			if os.path.isfile(fn):
+	# 				os.remove(fn)
+	# 	else: 
+	# 		status = self._imgLoader__make_file_core(func_download_file=self._download_psf_at_iaa, func_naming_file=self.get_fn_psf, band=band, overwrite=overwrite)
+
+	# 	return status
+
+
+	# def make_psfs(self, overwrite=False, to_keep_calexp=False):
+
+	# 	if self.environment!='iaa':
+	# 		statuss = np.ndarray(5, dtype=bool)
+	# 		for i, band in enumerate(self.bands): 
+	# 			statuss[i] = self.make_psf(band=band, overwrite=overwrite, to_keep_calexp=to_keep_calexp)
+	# 		return all(statuss)
+	# 	else: 
+	# 		missings = [(not os.path.isfile(self.dir_obj+self.get_fn_psf(band))) for band in self.bands]
+	# 		isfilesmissing = np.any(missings)
+
+	# 		if isfilesmissing or overwrite:
+	# 			print "[hscimgloader] running _download_psfs_at_iaa()"
+	# 			status = self._download_psfs_at_iaa()
+	# 			return status
+	# 		else: 
+	# 			print "[hscimgloader] skip _download_psfs_at_iaa() as file exists"
+	# 			return True
+
+
+	# def _download_psf_at_iaa(self, band):
+	# 	if self.environment!='iaa':
+	# 		raise Exception("[hscimgLoader] _download_psf_at_iaa() can only be called when environment is iaa")
+
+	# 	fn_out = self.dir_obj+self.get_fn_psf(band=band)
+
+	# 	dataId = dict(tract=self.obj.hsc.tract, patch_s=self.obj.hsc.patch_s, filter=self._get_filter_name(band))
+
+	# 	b = multiButler(environment=self.environment, release_version=self.release_version, semester=self.semester, rerun=self.rerun).butler
+
+	# 	with b:
+	# 		status = b.download_psf(fn_out, ra=self.ra, dec=self.dec, **dataId)
+	# 	return status
+
+
+	# def _download_psfs_at_iaa(self):
+	# 	if self.environment!='iaa':
+	# 		raise Exception("[hscimgLoader] _download_psf_at_iaa() can only be called when environment is iaa")
+
+	# 	b = multiButler(environment=self.environment, release_version=self.release_version, semester=self.semester, rerun=self.rerun).butler
+
+	# 	statuss = np.ndarray(len(self.bands), dtype=bool)
+	# 	with b:
+	# 		for i, band in enumerate(self.bands): 
+	# 			fn_out = self.dir_obj+self.get_fn_psf(band=band)
+
+	# 			dataId = dict(tract=self.obj.hsc.tract, patch_s=self.obj.hsc.patch_s, filter=self._get_filter_name(band))
+
+	# 			statuss[i] = b.download_psf(fn_out, ra=self.ra, dec=self.dec, **dataId)
+	# 	return all(statuss)
+
+
+	# def _calexp_to_psf(self, band):
+	# 	fn_in = self.dir_obj+self._get_fn_calexp(band=band)
+	# 	fn_out = self.dir_obj+self.get_fn_psf(band=band)
+
+	# 	status_calexp = self._make_calexp(band=band, overwrite=False)
+
+	# 	if status_calexp:
+	# 		psf.exposureF_to_psf(fn_in, fn_out, self.ra, self.dec)
+
+	# 		status = os.path.isfile(fn_out)
+	# 		return status
+	# 	else: False
+
+
+	# def _make_calexp(self, band, overwrite=False):
+	# 	"""
+	# 	make calexp image of the specified band of the object. takes care of overwrite with argument 'overwrite'. Default: do not overwrite. 
+
+	# 	Params
+	# 	----------
+	# 	band (string)
+	# 	overwrite (boolean) = False
+
+	# 	Return
+	# 	----------
+	# 	status: True if downloaded or skipped, False if download fails
+	# 	"""
+	# 	status = self._imgLoader__make_file_core(func_download_file=self._download_calexp, func_naming_file=self._get_fn_calexp, band=band, overwrite=overwrite)
+
+	# 	return status
+
+
+	# def _make_calexps(self, overwrite=False):
+	# 	"""
+	# 	make calexps of all bands, see _make_calexp()
+	# 	"""
+	# 	status = self._imgLoader__make_files_core(func_download_file=self._download_calexp, func_naming_file=self._get_fn_calexp, overwrite=overwrite)
+
+	# 	return status
+
+
+	# def _download_calexp(self, band):
+
+	# 	fn = self.dir_obj+self._get_fn_calexp(band=band)
+
+	# 	dataId = dict(tract=self.obj.hsc.tract, patch_s=self.obj.hsc.patch_s, filter=self._get_filter_name(band))
+
+	# 	b = multiButler(environment=self.environment, release_version=self.release_version, semester=self.semester, rerun=self.rerun).butler
+
+	# 	with b:
+	# 		status = b.download_file(fn, **dataId)
+	# 	return status
 
 
 
 
-	def _write_request_to_file(self, rqst):
+	def _write_request_to_file(self, rqst, fn=''):
 		""" 
-		write requested file under self.dir_obj with original filename
+		write requested file under self.dir_obj with original filename unless filename specified
 
 		Args
 		--------
 		rqst: request result
+		fn ='' (str):
+			the filename to be saved to. default: use original filename. 
 
 		Return
 		--------
-		filepath_raw (string): the entire filepath to the file written
+		fp_out (string): the entire filepath to the file written
 		"""
 		d = rqst.headers['content-disposition']
-		filename_raw = re.findall("filename=(.+)", d)[0][1:-1]
-		filepath_raw = self.dir_obj + filename_raw
 
-		with open(filepath_raw, 'wb') as out:
+		if fn == '':
+			fn = re.findall("filename=(.+)", d)[0][1:-1]
+
+		fp_out = self.dir_obj + fn
+
+		with open(fp_out, 'wb') as out:
 			for bits in rqst.iter_content():
 				out.write(bits)
-		return filepath_raw
+		return fp_out
 
 
-	def _make_hsc_cutout_url(self, ra, dec, band='i', sw='5asec', sh='5asec', imgtype='coadd', tract='', rerun='', mask='on', variance='on'):
-		"""
-		see hsc query manual
-		https://hscdata.mtk.nao.ac.jp/das_quarry/manual.html 
-		"""
-
-		url = 'https://hscdata.mtk.nao.ac.jp:4443/das_quarry/cgi-bin/quarryImage?ra={0}&dec={1}&sw={2}&sh={3}&type={4}&image=on&mask={5}&variance={6}&filter=HSC-{7}&tract={8}&rerun={9}'.format(ra, dec, sw, sh, imgtype, mask, variance, band.capitalize(), tract, rerun)
-
-		return url
 
 
 	def _write_fits_unit_converted_to_nanomaggy(self, filein, fileout):

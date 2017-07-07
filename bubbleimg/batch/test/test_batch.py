@@ -88,28 +88,9 @@ def test_batch_init_with_fn_cat():
 def test_batch_write_list(batch1):
 	b = batch1
 
-	b.write_list()
+	b._write_list()
 
 	lst = at.Table.read(b.dir_batch+'list.csv')
 	assert len(lst) > 0
-
-
-def test_batch_domap(batch1):
-	"""
-	check that domap can be call func to all objects in catalogue
-	"""
-	def func(ra, dec, dir_parent):
-		L = imgdownload.sdssimgLoader(ra=ra, dec=dec, dir_parent=dir_parent)
-
-
-	b = batch1
-
-	kwargs = {'dir_parent': dir_batch+'good/'}
-
-	b.domap(func, **kwargs)
-
-	for row in catalog:
-		obj_name = obsobj.objnaming.get_obj_name(ra=row['RA'], dec=row['DEC'])
-		assert os.path.isfile(dir_batch+'good/'+obj_name+'/sdss_xid.csv')
 
 

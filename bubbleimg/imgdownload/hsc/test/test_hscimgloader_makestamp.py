@@ -181,7 +181,7 @@ def test_make_stamp_correctcontent():
 		assert filecmp.cmp(file_totest, file_verification)
 
 	f = 'hsc_xid.csv'
-	tab = at.Table.read(f, format='ascii.csv')
+	tab = at.Table.read(L.dir_obj+f, format='ascii.csv')
 	for col in ['ra', 'dec', 'patch_id', 'tract', 'patch', 'patch_s', 'parent_id', ]:
 		assert col in tab.colnames
 

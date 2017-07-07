@@ -3,7 +3,7 @@
 
 __all__ = ['filters', 'denoiseimg', 'external_links', 'standards', 'imgdownload', 'obsobj', 'batch', 'spector']
 
-import filters, denoiseimg, external_links, fitpsf, contaminants, standards, imgdownload, obsobj, batch, spector, imgdecompose
+import filters, denoiseimg, external_links, fitpsf, contaminants, standards, imgdownload, obsobj, batch, spector, imgdecompose, imgmeasure
 
 #reload(measureimg)
 reload(denoiseimg)
@@ -16,4 +16,6 @@ reload(obsobj)
 reload(batch)
 reload(spector)
 reload(imgdecompose)
+reload(imgmeasure)
+reload(standards)
 # from obsobj import obsObj

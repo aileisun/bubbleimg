@@ -82,6 +82,7 @@ def hscSspQuery(sql, filename_out='results.csv', **kwargs):
             =True
         api_url
             ='https://hscdata.mtk.nao.ac.jp/datasearch/api/catalog_jobs/'
+
     """
 
     kwargs.setdefault('username_env', 'HSC_SSP_CAS_USERNAME')
@@ -92,7 +93,14 @@ def hscSspQuery(sql, filename_out='results.csv', **kwargs):
     kwargs.setdefault('nomail', True)
     kwargs.setdefault('preview', True)
     kwargs.setdefault('skip_syntax_check', True)
-    kwargs.setdefault('api_url', 'https://hscdata.mtk.nao.ac.jp/datasearch/api/catalog_jobs/')
+
+    if kwargs['release_version'][:2] == 'dr': # internal data release
+        kwargs.setdefault('api_url', 'https://hscdata.mtk.nao.ac.jp/datasearch/api/catalog_jobs/')
+    elif kwargs['release_version'][:3] == 'pdr': # external data release
+        kwargs.setdefault('api_url', 'https://hsc-release.mtk.nao.ac.jp/datasearch/api/catalog_jobs/')
+    else:
+        raise ValueError("[hscsspquery] release_version not understood")
+
 
     args = Struct(**kwargs)
 

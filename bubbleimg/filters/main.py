@@ -32,21 +32,23 @@ def main():
 		filtertools.write_int_response_dlnl(survey=survey)
 		filtertools.writeNormTransFunc(survey=survey)
 
-		for threshold in [0.01, 0.2, 0.6, 0.8]:
-			print threshold
+		for threshold in [0.01, 0.2, 0.4, 0.6, 0.8]:
 			filtertools.writeFilterBoundaries(threshold=threshold, toplot=False, survey=survey)
 
 		# write files
 		getzrange_line.findzrange_wline_OIIIs(threshold=0.6, survey=survey)
 		getzrange_line.findzrange_wline_HaNII(threshold=0.6, survey=survey)
+		getzrange_line.findzrange_nline_HaNII(threshold=0.4, survey=survey)
 		getzrange_line.findzrange_nline_HaNII(threshold=0.2, survey=survey)
 		getzrange_line.findzrange_nline_HaNIISII(threshold=0.2, survey=survey)
+		getzrange_line.findzrange_nline_HaNIISII(threshold=0.4, survey=survey)
 		getzrange_line.findzrange_nline_OII(threshold=0.2, survey=survey)
 	
-		getzrange_batch.write_zranges(survey=survey, wline='OIII', nline='HaNIISII')
+		getzrange_batch.write_zranges(survey=survey, wline='OIII', nline='HaNIISII', wthreshold=0.6, nthreshold=0.2)
+		getzrange_batch.write_zranges(survey=survey, wline='OIII', nline='HaNII', wthreshold=0.6, nthreshold=0.4)
 		
 	survey = 'hsc'
-	getzrange_batch.write_zranges(survey=survey, wline='OIII', nline='OII')
+	getzrange_batch.write_zranges(survey=survey, wline='OIII', nline='OII', wthreshold=0.6, nthreshold=0.2)
 
 	print " wOIII nOII combination (usually i-r) has only been implemented on hsc but no other surveys"
 
