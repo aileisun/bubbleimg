@@ -253,6 +253,8 @@ class imgLoader(obsobj.Operator):
 
 		if (not hasattr(self.obj, 'hsc')) or update:
 			status = self.obj.add_hsc(**kwargs)
+		else:
+			status = True
 
 		# sanity check
 		if self.obj.dir_obj != self.dir_obj: 

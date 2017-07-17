@@ -6,7 +6,7 @@ import astropy.table as at
 import os
 import sys
 import shutil
-
+import copy
 
 from .. import obsobj
 
@@ -78,6 +78,7 @@ class Batch(object):
 			self.dir_parent = kwargs.pop('dir_parent', None)
 			self.name = kwargs.pop('name', None)
 			self.dir_batch = self.dir_parent+self.name+'/'
+
 		else:
 			raise Exception("[batch] dir_batch or dir_parent/name not specified")
 
@@ -91,11 +92,19 @@ class Batch(object):
 		# set catalog
 		if 'catalog' in kwargs:
 			self.catalog = kwargs.pop('catalog', None)
+
 		elif 'fn_cat' in kwargs:
 			fn_cat = kwargs.pop('fn_cat', None)
-			self.catalog = at.Table.read(fn_cat)
+			if os.path.splitext(fn_cat)[1] == '.fits':
+				self.catalog = at.Table.read(fn_cat)
+			elif os.path.splitext(fn_cat)[1] == '.csv':
+				self.catalog = at.Table.read(fn_cat, format='ascii.csv', comment='#')
+			else:
+				raise Exception("[batch] input catalog file extension not recognized")
+
 		elif os.path.isfile(self.fp_list):
 			self.catalog = at.Table.read(fp_list)
+
 		else:
 			raise Exception("[batch] input catalog not specified")
 
@@ -110,6 +119,7 @@ class Batch(object):
 		# sanity check
 		if self.dir_batch[-1] != '/':
 			raise Exception("[batch] dir_batch not a directory path")
+
 		if self.survey not in ['sdss', 'hsc']:
 			raise Exception("[batch] survey not recognized")
 
@@ -350,12 +360,14 @@ class Batch(object):
 		""" raise exception if not """
 		# sanity check -- directories consistent with list_good
 		dirs_obj_good = [x[0].split('/')[-1] for x in os.walk(self.dir_good)][1::]
-		if dirs_obj_good.sort() != self.list_good['obj_name'].sort():
+		obj_names_good = copy.copy(self.list_good['obj_name'])
+		if dirs_obj_good.sort() != obj_names_good.sort():
 			raise Exception("[batch] list_good inconsistent with directories under dirbatch/good/.")
 
 		# sanity check -- directories consistent with list_except
 		dirs_obj_except = [x[0].split('/')[-1] for x in os.walk(self.dir_except)][1::]
-		if dirs_obj_except.sort() != self.list_except['obj_name'].sort():
+		obj_names_except = copy.copy(self.list_except['obj_name'])
+		if dirs_obj_except.sort() != obj_names_except.sort():
 			raise Exception("[batch] list_except inconsistent with directories under dirbatch/except/.")
 
 
@@ -435,7 +447,9 @@ class Batch(object):
 			if len(lst)>0:
 				list_ran += list(lst['obj_name'])
 
-		status = (self.list['obj_name'].sort() == (list_ran).sort())
+		obj_names = self.list['obj_name']
+		status = (obj_names.sort() == (list_ran).sort())
+
 		if status: 
 			print("[batch] building batch {0} done".format(self.name))
 		else: 

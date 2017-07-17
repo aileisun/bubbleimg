@@ -32,7 +32,6 @@ setup(name='bubbleimg',
           'shapely',
           'PyAstronomy',
           'lsst',
-          'catalogue',
           'paramiko',
           'requests',
 

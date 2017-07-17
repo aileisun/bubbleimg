@@ -128,3 +128,132 @@ class sumireimgLoader(imgLoader):
 
 
 
+
+	# taken from the old hscimgloader:
+	# def make_psf(self, band, overwrite=False, to_keep_calexp=False):
+	# 	"""
+	# 	make psf files by downloading calexp file using selected method depending on self.environment and read psf info from it using psf.py
+
+	# 	Params
+	# 	------
+	# 	band (str): e.g., 'r'
+	# 	overwrite=False: whether to overwrite existing psf file
+	# 	to_keep_calexp=False: whether to keep the calexp file or not after psf files are made
+	# 	"""
+	# 	if self.environment != 'iaa':
+	# 		status = self._imgLoader__make_file_core(func_download_file=self._calexp_to_psf, func_naming_file=self.get_fn_psf, band=band, overwrite=overwrite)
+
+	# 		if not to_keep_calexp:
+	# 			fn = self.dir_obj+self._get_fn_calexp(band=band)
+	# 			if os.path.isfile(fn):
+	# 				os.remove(fn)
+	# 	else: 
+	# 		status = self._imgLoader__make_file_core(func_download_file=self._download_psf_at_iaa, func_naming_file=self.get_fn_psf, band=band, overwrite=overwrite)
+
+	# 	return status
+
+
+	# def make_psfs(self, overwrite=False, to_keep_calexp=False):
+
+	# 	if self.environment!='iaa':
+	# 		statuss = np.ndarray(5, dtype=bool)
+	# 		for i, band in enumerate(self.bands): 
+	# 			statuss[i] = self.make_psf(band=band, overwrite=overwrite, to_keep_calexp=to_keep_calexp)
+	# 		return all(statuss)
+	# 	else: 
+	# 		missings = [(not os.path.isfile(self.dir_obj+self.get_fn_psf(band))) for band in self.bands]
+	# 		isfilesmissing = np.any(missings)
+
+	# 		if isfilesmissing or overwrite:
+	# 			print "[hscimgloader] running _download_psfs_at_iaa()"
+	# 			status = self._download_psfs_at_iaa()
+	# 			return status
+	# 		else: 
+	# 			print "[hscimgloader] skip _download_psfs_at_iaa() as file exists"
+	# 			return True
+
+
+	# def _download_psf_at_iaa(self, band):
+	# 	if self.environment!='iaa':
+	# 		raise Exception("[hscimgLoader] _download_psf_at_iaa() can only be called when environment is iaa")
+
+	# 	fn_out = self.dir_obj+self.get_fn_psf(band=band)
+
+	# 	dataId = dict(tract=self.obj.hsc.tract, patch_s=self.obj.hsc.patch_s, filter=self._get_filter_name(band))
+
+	# 	b = multiButler(environment=self.environment, release_version=self.release_version, semester=self.semester, rerun=self.rerun).butler
+
+	# 	with b:
+	# 		status = b.download_psf(fn_out, ra=self.ra, dec=self.dec, **dataId)
+	# 	return status
+
+
+	# def _download_psfs_at_iaa(self):
+	# 	if self.environment!='iaa':
+	# 		raise Exception("[hscimgLoader] _download_psf_at_iaa() can only be called when environment is iaa")
+
+	# 	b = multiButler(environment=self.environment, release_version=self.release_version, semester=self.semester, rerun=self.rerun).butler
+
+	# 	statuss = np.ndarray(len(self.bands), dtype=bool)
+	# 	with b:
+	# 		for i, band in enumerate(self.bands): 
+	# 			fn_out = self.dir_obj+self.get_fn_psf(band=band)
+
+	# 			dataId = dict(tract=self.obj.hsc.tract, patch_s=self.obj.hsc.patch_s, filter=self._get_filter_name(band))
+
+	# 			statuss[i] = b.download_psf(fn_out, ra=self.ra, dec=self.dec, **dataId)
+	# 	return all(statuss)
+
+
+	# def _calexp_to_psf(self, band):
+	# 	fn_in = self.dir_obj+self._get_fn_calexp(band=band)
+	# 	fn_out = self.dir_obj+self.get_fn_psf(band=band)
+
+	# 	status_calexp = self._make_calexp(band=band, overwrite=False)
+
+	# 	if status_calexp:
+	# 		psf.exposureF_to_psf(fn_in, fn_out, self.ra, self.dec)
+
+	# 		status = os.path.isfile(fn_out)
+	# 		return status
+	# 	else: False
+
+
+	# def _make_calexp(self, band, overwrite=False):
+	# 	"""
+	# 	make calexp image of the specified band of the object. takes care of overwrite with argument 'overwrite'. Default: do not overwrite. 
+
+	# 	Params
+	# 	----------
+	# 	band (string)
+	# 	overwrite (boolean) = False
+
+	# 	Return
+	# 	----------
+	# 	status: True if downloaded or skipped, False if download fails
+	# 	"""
+	# 	status = self._imgLoader__make_file_core(func_download_file=self._download_calexp, func_naming_file=self._get_fn_calexp, band=band, overwrite=overwrite)
+
+	# 	return status
+
+
+	# def _make_calexps(self, overwrite=False):
+	# 	"""
+	# 	make calexps of all bands, see _make_calexp()
+	# 	"""
+	# 	status = self._imgLoader__make_files_core(func_download_file=self._download_calexp, func_naming_file=self._get_fn_calexp, overwrite=overwrite)
+
+	# 	return status
+
+
+	# def _download_calexp(self, band):
+
+	# 	fn = self.dir_obj+self._get_fn_calexp(band=band)
+
+	# 	dataId = dict(tract=self.obj.hsc.tract, patch_s=self.obj.hsc.patch_s, filter=self._get_filter_name(band))
+
+	# 	b = multiButler(environment=self.environment, release_version=self.release_version, semester=self.semester, rerun=self.rerun).butler
+
+	# 	with b:
+	# 		status = b.download_file(fn, **dataId)
+	# 	return status
