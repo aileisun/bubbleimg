@@ -31,7 +31,6 @@ setup(name='bubbleimg',
           'scikit-image',
           'shapely',
           'PyAstronomy',
-          'lsst',
           'paramiko',
           'requests',
 
