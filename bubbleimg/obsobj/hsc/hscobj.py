@@ -41,7 +41,7 @@ class hscObj(plainObj):
 		
 		rerun = 's16a_wide' (string): which data base to search for
 		release_version = 'dr1' (string): which data base to search for
-		writefile=True (bool): whether to write xid 
+		search_radius = 2.* u.arcsec
 
 
 		Attributes
@@ -51,36 +51,37 @@ class hscObj(plainObj):
 		dir_obj (string)
 		rerun (string): e.g., 's16a_wide'
 		release_version (string): e.g., 'dr1'
+		search_radius (angle quantity object)
+
 		status (whether the xid and photoboj query were successful)
 
 		optional attr (if querry successful):
 			xid
+			photoobj
 		
 		"""
 		super(self.__class__, self).__init__(**kwargs)
-		writefile = kwargs.pop('writefile', True)
 		self.rerun = kwargs.pop('rerun', 's16a_wide')
 		self.release_version = kwargs.pop('release_version', 'dr1')
+		self.search_radius = kwargs.pop('search_radius', 2.*u.arcsec)
 
 		self.fp_xid = self.dir_obj+'hsc_xid.csv'
-		self.status = self.load_xid(writefile=writefile)
+		self.status = self.load_xid()
 
 
-	def load_xid(self, writefile=True):
+	def load_xid(self):
 		"""
-		load xid either locally or remotely and add it as attribute self.xid
+		load xid either locally or remotely and add it as attribute self.xid. If query remotely then save the file to self.fp_xid. 
 
 		Params
 		------
 		self 
-		writefile=True: 
-			if true then write loaded xid to file self.dir_obj/'hsc_xid.csv', if it does not already exists
 
 		Return
 		------
 		status (bool): if true then the loading was successful, false if not
 		"""
-		xid = self._get_xid(rerun=self.rerun, release_version=self.release_version, writefile=writefile)
+		xid = self._get_xid()
 
 		if xid is not None:
 			self.xid = xid
@@ -92,7 +93,7 @@ class hscObj(plainObj):
 			return False
 
 
-	def _get_xid(self, rerun='s16a_wide', release_version='dr1', writefile=True):
+	def _get_xid(self):
 		"""
 		return xid.
 		Read xid locally if self.dir_obj+'hsc_xid.csv' exist. Otherwise query. 
@@ -102,7 +103,6 @@ class hscObj(plainObj):
 		self: obj
 			contains: 
 			self.dir_obj, self.ra, self.dec
-		writefile=True
 
 		Returns:
 		------
@@ -120,8 +120,8 @@ class hscObj(plainObj):
 		else: # download xid from sdss
 			print "[hscObj] querying xid from server"
 			self.make_dir_obj()	
-			sql = _get_sql(ra=self.ra, dec=self.dec, rerun=rerun)
-			hscSspQuery(sql, filename_out=fn, release_version=release_version)
+			sql = _get_sql(ra=self.ra, dec=self.dec, rerun=self.rerun, radius=float(self.search_radius/u.arcsec))
+			hscSspQuery(sql, filename_out=fn, release_version=self.release_version)
 
 		if os.path.isfile(fn): # retrieve xid locally
 			if os.stat(fn).st_size > 0:
@@ -164,12 +164,11 @@ class hscObj(plainObj):
 		
 		a = np.array([c.separation(crow).value for crow in crows])
 		xid = at.Table(xid[np.argmin(a)])
+		if len(xid) > 1:
+			raise Exception("[hscobj] more than one closest object is selected")
+
 		return xid
 
-
-	def get_psfsize(self, band='i'):
-		""" return the {band}flux_kron_psfradius that is queried in hsx_xid.csv"""
-		return self.xid[band+'flux_kron_psfradius']
 
 
 def _get_sql(ra, dec, radius=2, rerun='s16a_wide'):

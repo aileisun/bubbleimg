@@ -51,7 +51,7 @@ def test_HSCObj_init_dir_parent():
 def test_HSCObj_xid(obj_dirobj):
 
 	obj = obj_dirobj
-	status = obj.load_xid(writefile=False)
+	status = obj.load_xid()
 
 	assert status
 	assert np.absolute(obj.xid['ra'][0] - ra) < 0.0003
@@ -73,7 +73,7 @@ def test_HSCObj_xid_writefile(obj_dirobj):
 		os.remove(fn)
 	assert not os.path.isfile(fn)
 
-	status = obj.load_xid(writefile=True)
+	status = obj.load_xid()
 
 	assert status
 	assert np.absolute(obj.xid['ra'][0] - ra) < 0.0003
@@ -89,7 +89,7 @@ def test_HSCObj_xid_fails():
 	dec = -89.
 	obj = hscObj(ra=ra, dec=dec, dir_obj = './testing/badobject/')
 
-	status = obj.load_xid(writefile=True)
+	status = obj.load_xid()
 
 	assert status == False
 
@@ -122,9 +122,4 @@ def test_HSCObj_identical_w_verification(obj_dirobj):
 
 	assert filecmp.cmp(file_totest, file_verification)
 
-
-def test_get_psfsize(obj_dirobj):
-
-	assert obj_dirobj.get_psfsize(band='i')	== 0.297575027
-	assert obj_dirobj.get_psfsize(band='y')	== 0.369160265
 
