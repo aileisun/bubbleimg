@@ -40,9 +40,6 @@ class hscimgLoader(imgLoader):
 		-----------------
 		rerun = 's16a_wide' (str)
 		release_version = 'dr1' (str)
-
-		environment = 'iaa' (str)
-			: 'iaa', or 'online', chooses how psf are downloaded, see multibutler.py
 		username (optional) (str): STARs account
 		password (optional) (str): STARs account
 
@@ -73,6 +70,21 @@ class hscimgLoader(imgLoader):
 
 		3) enter from terminal
 
+
+		Attributes
+		----------
+		(in addition to loader attributes)
+
+		rerun = s16a_wide
+		semester = s16a
+		release_version = dr1
+		survey = 'hsc'
+		bands = ['g', 'r', 'i', 'z', 'y']
+		username
+		password
+		status (bool)
+			whether an hsc object is successfully identified
+
 		"""
 		super(hscimgLoader, self).__init__(**kwargs)
 
@@ -89,7 +101,6 @@ class hscimgLoader(imgLoader):
 		self._add_attr_img_width_pix_arcsec()
 
 		# set connection parameters
-		self.environment = kwargs.pop('environment', 'iaa')
 		self.__username = kwargs.pop('username', '')
 		self.__password = kwargs.pop('password', '')
 		if self.__username == '' or self.__password == '':
@@ -160,7 +171,6 @@ class hscimgLoader(imgLoader):
 		# setting 
 		fp_out = self.get_fp_stamp(band)
 
-		
 		semi_width_inarcsec = (self.img_width_arcsec.to(u.arcsec).value/2.)-0.1 # to get pix number right
 		semi_height_inarcsec = (self.img_height_arcsec.to(u.arcsec).value/2.)-0.1
 		sw = '%.5f'%semi_width_inarcsec+'asec'
@@ -183,7 +193,6 @@ class hscimgLoader(imgLoader):
 		else:  
 			print "[hscimgloader] image cannot be retrieved"
 			return False
-
 
 
 	def make_psf(self, band, overwrite=False, **kwargs):
