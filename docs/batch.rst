@@ -134,6 +134,10 @@ If you want to do the downloading again and overwrite the previously downloaded 
 
 	>>> status = b.build(overwrite=True)
 
+If you want to include other columns from your input catalog into the batch list, include them as ``
+listargs
+--------
+
 
 Customizing your build
 ----------------------
@@ -201,10 +205,10 @@ To run it, one can do
 	>>> status = b.build(func_build)
 
 
-Iterlist
+iterlist
 --------
 
-Once a batch is built then you can perform operations on the built batch by ``iterlist()``. 
+Once a batch is built then you can perform operations, usually calculating values, on the built batch with ``iterlist()``. 
 
 	>>> status = b.iterlist(func_iterlist, **kwargs)
 
@@ -214,15 +218,14 @@ By default the operation is applied to each of the ``good`` objects and the ``ex
 You will need to define a function, for example, ``func_iterlist`` to be applied to each of the objects in the batch. For example:
 
 
-	>>>def func_iterlist(obj, overwrite=False, **kwargs):
+	>>>	def func_iterlist(obj, overwrite=False, **kwargs):
 	>>>
-	>>>	fn = obj.dir_parent+fn_testing
-	>>>	print fn
-	>>>	with open(fn, 'a') as f:
-	>>>		f.write(obj.name+'\n')
-	>>>
-	>>>	return True
-
+	>>>		fn = obj.dir_parent+fn_testing
+	>>>		print fn
+	>>>		with open(fn, 'a') as f:
+	>>>			f.write(obj.name+'\n')
+	>>>	
+	>>>		return True
 
 This function has to take ``obj`` (``obsobj`` instance) and ``overwrite`` (bool) as arguments, and optionally other arguments as ``**kwargs``. It should also return status (bool). 
 
@@ -231,9 +234,46 @@ If in a rare occasion where you want to iterate the function through the ``excep
 
 	>>> status = b.iterlist(func_iterlist, listname='except', **kwargs)
 
-listargs
---------
+
+``func_list`` can take in additional arguments from the batch list, for example, to have redshift ``z`` as an additional argument one can have
+
+	>>>	def iterfunc_make_spec_mag(obj, z, overwrite=False):
+	>>>		""" 
+	>>>		make file spec_mag.csv 
+	>>>	
+	>>>		Params
+	>>>		------
+	>>>		obj
+	>>>		overwrite=False
+	>>>	
+	>>>		Return
+	>>>		------
+	>>>		status
+	>>>		"""
+	>>>		s = bubbleimg.spector.Spector(obj=obj, z=z)
+	>>>	
+	>>>		statuss = [
+	>>>					s.plot_spec(wfilters=True, wconti=True, overwrite=overwrite),
+	>>>					s.make_spec_mag(overwrite=overwrite),
+	>>>					]
+	>>>	
+	>>>		return all(statuss)
+
+Can call it by
+
+	>>>		statuss = b.iterlist(iterfunc_make_spec_mag, listargs=['z'], overwrite=False)
+
+This will create a one row table ``spec_mag.csv`` for each of the objects containing the spectroscopic magnitudes, which can be compiled over the entire sample by ``compile_table()``. The return value of ``iterlist()`` is a list containing the ``iterfunc()`` return value of each of the objects. 
 
 
 compile_table
 -------------
+
+To compile the results table that resides in each of the object directories, one can do, for example
+
+	>>> status = b.compile_table('spec_mag.csv', overwrite=True)
+
+This will create ``dir_batch/spec_mag.csv`` that contains the ``spec_mag.csv`` for all of the objects in the list, including the ``exclude`` objects. Just that the content of the ``exclude`` object will be empty. 
+
+
+
