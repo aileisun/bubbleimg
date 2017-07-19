@@ -8,8 +8,8 @@ The module imgdownload is for downloading and constructing stamp (cut-out) image
 Download SDSS stamp images
 ==========================
 
-Specify Source
---------------
+Create Loader
+-------------
 
 One ways is to provide a ``ra``, ``dec`` pair (decimal in degree) and a directory ``dir_obj``. 
 
@@ -101,7 +101,7 @@ Downloading HSC images is largely the same as SDSS, except that you need to prov
 Otherwise you will be asked to enter it manually each time bubbleimg access HSC data. 
 
 
-Specify Source
+Create loader
 --------------
 
 Just like SDSS, to initiate and HSC, you can use parameters (``ra``, ``dec``, ``dir_obj``) or an ``obsobj`` instance as parameter. For example if you have an obsobj

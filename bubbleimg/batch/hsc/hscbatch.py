@@ -61,11 +61,11 @@ class hscBatch(Batch):
 
 		if L.status:
 			statuss = 	[ 
-						L.add_obj_sdss(), 
 						L.make_stamps(overwrite=overwrite), 
 						L.make_psfs(overwrite=overwrite), 
-						L.obj.sdss.make_spec(overwrite=overwrite),
 						L.plot_colorimg(bands=humvi_bands, img_type='stamp', overwrite=overwrite)
+						L.add_obj_sdss(), 
+						L.obj.sdss.make_spec(overwrite=overwrite),
 						]
 
 			return all(statuss)

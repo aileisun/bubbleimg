@@ -5,7 +5,7 @@ Observation Object
 Observation object ``obsobj`` is one basic element of bubbleimg. It represents an object (basically a galaxy), and contains functionalities to find matching counterparts in other data bases. 
 
 
-Define obsobj
+Create obsobj
 =============
 
 It is defined by three paramters ``ra``, ``dec``, and ``dir_obj``, where the coordinates are in decimal degree (J2000), and ``dir_obj`` is a string of the path to a directory where the data for this object will be stored. 
