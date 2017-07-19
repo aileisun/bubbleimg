@@ -128,3 +128,16 @@ def test_get_psfsize(obj_dirobj):
 	assert obj_dirobj.get_psfsize(band='i')	== 0.297575027
 	assert obj_dirobj.get_psfsize(band='y')	== 0.369160265
 
+def test_HSCObj_PhotoObj(obj_dirobj):
+
+	obj = obj_dirobj
+	assert obj.status
+	obj._get_photoobj(columns=[], hsctable='forced', rerun='s16a_wide', release_version='dr1')
+	assert os.path.isfile(obj.fp_photoobj)
+	assert len(obj.photoobj) == 1
+	assert len(obj.photoobj.colnames) > 1
+	bands = ['g', 'r', 'i', 'z', 'y'] 
+	columns = ['mag_kron', 'mag_kron_err', 'flux_kron_flags', 'flux_kron_radius', 'mag_aperture10', 'mag_aperture15']
+	for x in bands:
+		for y in columns:
+			assert x+y in obj.photoobj.colnames
