@@ -8,6 +8,7 @@ import numpy as np
 import sys 
 import os
 from astropy.coordinates import SkyCoord
+import smtplib
 import astropy.table as at
 from astropy.io import fits
 import astropy.io.ascii
@@ -66,34 +67,66 @@ class hscObj(plainObj):
 		self.status = self.load_xid()
 
 
-	def load_photoobj(self, columns=[], hsctable='forced'):
+	def load_photoobj(self, columns=[], bands = [], tabname='main', hsctable='forced', all_columns = False, save_SQL = False, fin_email = False):
 		"""
 		load hsc photometry table either locally or remotely and add it as attribute self.photoobj
 
 		Params
 		------
-		self 
-		columns=[]:
-			if not specified then load all the columns
-		hsctable='forced':
-			which hsctable to load from remote hsc database
+
+		[0] self 
+
+		[1] Columns: Either contains the columns when called upon or has a default choice of columns if found NULL
+		Enter the required columns:
+			Refer Schema Browser -> "https://hscdata.mtk.nao.ac.jp/schema_browser2/"
+			Note: STARs account required
+	
+		[2] Bands: Either contains the bands req. when called upon or has a default choice of bands if found NULL
+		Available bands: g, r, i, z and y
+	
+		[3] tabname: Contains the alias name of the table 's16_a.forced' -> concatenated with every field select statement
+		eg., main.gmag_kron, where 'main' is the alias name of the table
+
+		[4] hsctable='forced': which hsctable to load from remote hsc database
+
+		[5] all_columns=True: Generates SQL code such that all the fields from the table are included
+
+		[6] save_SQL=True: Saves a .txt file of the SQL code used to run the Query
+			saved as: HSC_SQL.txt
+
 
 		Return
 		------
+
 		status (bool): if true then the loading was successful, false if not
+		
 		"""
 		if self.status == True: 
 
-			photoobj = self._get_photoobj(columns=columns, hsctable=hsctable, rerun=self.rerun, release_version=self.release_version)
+			photoobj = self._get_photoobj(columns=columns, bands=bands, tabname=tabname, hsctable=hsctable, all_columns=all_columns, save_SQL=save_SQL, rerun=self.rerun, release_version=self.release_version)
 
 			self.photoobj = photoobj
 
 		else: 
 			print("[hscobj] skip loading photoobj as xid is not successfully created")
 
+		if fin_email:
+			from email.mime.text import MIMEText
+			fp = open('email.txt', 'rb')
+			msg = MIMEText(fp.read())
+			fp.close()
+			msg['Subject'] = 'The contents of %s' %fp
+			me = 'nnarenraju@gmail.com'
+			you = 'alsun@asiaa.sinica.edu.tw'
+			msg['From'] = me
+			msg['To'] = you
+			s = smtplib.SMTP('localhost')
+			s.sendmail(me, [you], msg.as_string())
+			s.quit()
 
 
-	def _get_photoobj(self, columns=[], bands = [], hsctable='forced', rerun='s16a_wide', release_version='dr1'):
+
+	def _get_photoobj(self, save_SQL, columns, bands, tabname, all_columns, hsctable='forced', rerun='s16a_wide', release_version='dr1'):
 		# define filename
 		fn = self.fp_photoobj
 		if not hasattr(self, 'xid'):
@@ -108,7 +141,7 @@ class hscObj(plainObj):
 			else:
 				print "[hscobj] querying photoobj from HSC"
 				# load photoobj table and store it in obj.hsc.photoobj
-				sql = _get_photoObj_sql(object_id=self.xid['object_id'][0], rerun=rerun)
+				sql = _get_photoObj_sql(columns=columns, bands=bands, tabname=tabname, save_SQL=save_SQL, all_columns=all_columns, object_id=self.xid['object_id'][0], rerun=rerun)
 				hscSspQuery(sql, filename_out=fn, release_version=release_version)
 				self.photoobj = at.Table.read(fn, format='ascii.csv', comment='#')
 
@@ -242,8 +275,7 @@ def _get_sql(ra, dec, radius=2, rerun='s16a_wide'):
 
 	return sql
 
-
-def _get_photoObj_sql(object_id, rerun='s16a_wide'):
+def _get_photoObj_sql(object_id, columns, bands, tabname, save_SQL, all_columns, rerun='s16a_wide', ):
 	"""
 	construct sql query 
 
@@ -265,26 +297,24 @@ def _get_photoObj_sql(object_id, rerun='s16a_wide'):
 
 	with open(fn, 'r') as f:
 		sql_template=f.read()
-	sql = sql_template.format(rerun=rerun, object_id=object_id, sqlcolumns=get_sql_columns())
+	sql = sql_template.format(rerun=rerun, object_id=object_id, sqlcolumns=get_sql_columns(columns=columns, bands=bands, tabname=tabname, all_columns=all_columns))
+
+	if save_SQL:
+		with open("HSC_SQL.txt", "w") as text_file:
+			text_file.write(sql)
 
 	return sql
 
 
-def get_sql_columns(columns=[], bands=[], tabname='main'):
+def get_sql_columns(columns, bands, tabname, all_columns):
 	
 	"""
 	Creates SQL commands for required columns in the form of a single string array
-	Offers flexibility in the choice of fields and bands required
 	
 	Params
 	------
 	
-	[1] Columns: Either contains the columns when called upon or has a default choice of columns if found NULL
-	
-	[2] Bands: Either contains the bands req. when called upon or has a default choice of bands if found NULL
-	
-	[3] tabname: Contains the alias name of the table 's16_a.forced' -> concatenated with every field select statement
-		eg., main.gmag_kron, where 'main' is the alias name of the table
+	As described in load_photoobj(Args, **Kwargs)
 
 	Return
 	------
@@ -292,38 +322,30 @@ def get_sql_columns(columns=[], bands=[], tabname='main'):
 	Returns a string containing the SQL commands for data acquisition
 	
 	"""
-	
-	""" Optional Interactive Environment """
 
-#	while(1):
-#		print ("---------------------------------------------------------------------------------\
-#				Standard:\t\tReduced:\t\tExtended:\n1)*mag_kron\t\tN/A\t\t\tAll available fields\n2)*mag_kron_err\n3)*flux_kron_flags\n4)*flux_kron_radius\n5)*mag_aperture10\n6)*mag_aperture15\n\
-#				---------------------------------------------------------------------------------")
-#
-#		choice = input("\nEnter an option 'S/s', 'R/r' or 'E/e' to choose a predefined list of fields: ")
-#		if choice == "S" or choice == 's':
-#			print("Proceeding to build SQL Code...\n\n")
-#			break
-#		else:
-#			print(chr(27) + "[2J")
-#			print("Option Under Construction. Please choose Standard for now.\n")
+	default = 'main.object_id,main.ra, main.dec,main.patch_id,main.tract,main.patch,main.patch_s,\
+				main.parent_id,main.deblend_nchild,main.detect_is_patch_inner,main.detect_is_tract_inner,\
+				main.detect_is_primary,'
 
+	if all_columns:
+		return '*'
 
-	sqlcolumns = ""
-	if len(columns) == 0:
-		columns = ['mag_kron', 'mag_kron_err', 'flux_kron_flags', 'flux_kron_radius', 'mag_aperture10', 'mag_aperture15']
+	else:
+		sqlcolumns = ""
+		if len(columns) == 0:
+			columns = ['mag_kron', 'mag_kron_err', 'flux_kron_flags', 'flux_kron_radius', 'mag_aperture10', 'mag_aperture15']
 
-	if len(bands) == 0:
-		bands = ['g', 'r', 'i', 'z', 'y'] 
-#		bands = surveysetup.surveybands['hsc']   ---> can also be used to retrieve req. bands instead of hotcoding 
+		if len(bands) == 0:
+			bands = ['g', 'r', 'i', 'z', 'y'] 
 
-	count = 0
-	for x in bands:
-		for y in columns:
-			count += 1
-			if count!=len(bands) * len(columns):
-				sqlcolumns+=tabname+"."+x+y+","
-			else:
-				sqlcolumns+=(tabname+"."+x+y)
+		count = 0
+		for x in bands:
+			for y in columns:
+				count+=1
+				if count!=len(bands)*len(columns):
+					sqlcolumns+=tabname+"."+x+y+","
+				else:
+					sqlcolumns+=tabname+"."+x+y
+		default+=sqlcolumns
 
-	return sqlcolumns
+		return sqlcolumns
