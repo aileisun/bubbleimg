@@ -69,6 +69,7 @@ class sumireimgLoader(imgLoader):
 		"""
 		return '{dr}/{semester}/data/{rerun}/'.format(dr=self.release_version, semester=self.semester, rerun=self.rerun)
 
+
 	def make_stamp(self, band, overwrite=False):
 		"""
 		make stamp image of the specified band of the object. takes care of overwrite with argument 'overwrite'. Default: do not overwrite. The stamps so creates are ExposureF files containing the mask, variance, psf header, etc.
@@ -257,3 +258,8 @@ class sumireimgLoader(imgLoader):
 	# 	with b:
 	# 		status = b.download_file(fn, **dataId)
 	# 	return status
+
+
+
+
+
