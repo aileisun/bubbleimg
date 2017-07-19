@@ -10,6 +10,7 @@ import os
 from astropy.coordinates import SkyCoord
 import astropy.table as at
 from astropy.io import fits
+import astropy.io.ascii
 import astropy.units as u
 
 from hscsspquery import hscSspQuery
@@ -41,8 +42,6 @@ class hscObj(plainObj):
 		
 		rerun = 's16a_wide' (string): which data base to search for
 		release_version = 'dr1' (string): which data base to search for
-		writefile=True (bool): whether to write xid 
-
 
 		Attributes
 		----------
@@ -58,29 +57,75 @@ class hscObj(plainObj):
 		
 		"""
 		super(self.__class__, self).__init__(**kwargs)
-		writefile = kwargs.pop('writefile', True)
 		self.rerun = kwargs.pop('rerun', 's16a_wide')
 		self.release_version = kwargs.pop('release_version', 'dr1')
 
 		self.fp_xid = self.dir_obj+'hsc_xid.csv'
-		self.status = self.load_xid(writefile=writefile)
+		self.fp_photoobj = self.dir_obj+'hsc_photoobj.csv'
+
+		self.status = self.load_xid()
 
 
-	def load_xid(self, writefile=True):
+	def load_photoobj(self, columns=[], hsctable='forced'):
+		"""
+		load hsc photometry table either locally or remotely and add it as attribute self.photoobj
+
+		Params
+		------
+		self 
+		columns=[]:
+			if not specified then load all the columns
+		hsctable='forced':
+			which hsctable to load from remote hsc database
+
+		Return
+		------
+		status (bool): if true then the loading was successful, false if not
+		"""
+		if self.status == True: 
+
+			photoobj = self._get_photoobj(columns=columns, hsctable=hsctable, rerun=self.rerun, release_version=self.release_version)
+
+			self.photoobj = photoobj
+
+		else: 
+			print("[hscobj] skip loading photoobj as xid is not successfully created")
+
+
+
+	def _get_photoobj(self, columns=[], bands = [], hsctable='forced', rerun='s16a_wide', release_version='dr1'):
+		# define filename
+		fn = self.fp_photoobj
+		if not hasattr(self, 'xid'):
+			xidstatus = self.load_xid()
+		else:
+			xidstatus = True
+
+		if xidstatus:
+			if os.path.isfile(fn):
+				print "[hscobj] reading hsc_photoobj locally"
+				self.photoobj = at.Table.read(fn, format='ascii.csv',comment='#')
+			else:
+				print "[hscobj] querying photoobj from HSC"
+				# load photoobj table and store it in obj.hsc.photoobj
+				sql = _get_photoObj_sql(object_id=self.xid['object_id'][0], rerun=rerun)
+				hscSspQuery(sql, filename_out=fn, release_version=release_version)
+				self.photoobj = at.Table.read(fn, format='ascii.csv', comment='#')
+
+
+	def load_xid(self):
 		"""
 		load xid either locally or remotely and add it as attribute self.xid
 
 		Params
 		------
 		self 
-		writefile=True: 
-			if true then write loaded xid to file self.dir_obj/'hsc_xid.csv', if it does not already exists
 
 		Return
 		------
 		status (bool): if true then the loading was successful, false if not
 		"""
-		xid = self._get_xid(rerun=self.rerun, release_version=self.release_version, writefile=writefile)
+		xid = self._get_xid(rerun=self.rerun, release_version=self.release_version)
 
 		if xid is not None:
 			self.xid = xid
@@ -92,7 +137,7 @@ class hscObj(plainObj):
 			return False
 
 
-	def _get_xid(self, rerun='s16a_wide', release_version='dr1', writefile=True):
+	def _get_xid(self, rerun='s16a_wide', release_version='dr1'):
 		"""
 		return xid.
 		Read xid locally if self.dir_obj+'hsc_xid.csv' exist. Otherwise query. 
@@ -102,7 +147,6 @@ class hscObj(plainObj):
 		self: obj
 			contains: 
 			self.dir_obj, self.ra, self.dec
-		writefile=True
 
 		Returns:
 		------
@@ -198,3 +242,88 @@ def _get_sql(ra, dec, radius=2, rerun='s16a_wide'):
 
 	return sql
 
+
+def _get_photoObj_sql(object_id, rerun='s16a_wide'):
+	"""
+	construct sql query 
+
+	Params
+	------
+	ra (float): ra in deg decimal
+	dec (float): dec in deg decimal
+	radius (float): search radius in arcsec
+	rerun (string): which rerun to use
+
+	"""
+
+	path=os.path.dirname(sys.modules[__name__].__file__)
+	if path == '': 
+		path ='.'
+	localpath = path+'/'
+
+	fn = localpath+'photoObj.sql'
+
+	with open(fn, 'r') as f:
+		sql_template=f.read()
+	sql = sql_template.format(rerun=rerun, object_id=object_id, sqlcolumns=get_sql_columns())
+
+	return sql
+
+
+def get_sql_columns(columns=[], bands=[], tabname='main'):
+	
+	"""
+	Creates SQL commands for required columns in the form of a single string array
+	Offers flexibility in the choice of fields and bands required
+	
+	Params
+	------
+	
+	[1] Columns: Either contains the columns when called upon or has a default choice of columns if found NULL
+	
+	[2] Bands: Either contains the bands req. when called upon or has a default choice of bands if found NULL
+	
+	[3] tabname: Contains the alias name of the table 's16_a.forced' -> concatenated with every field select statement
+		eg., main.gmag_kron, where 'main' is the alias name of the table
+
+	Return
+	------
+
+	Returns a string containing the SQL commands for data acquisition
+	
+	"""
+	
+	""" Optional Interactive Environment """
+
+#	while(1):
+#		print ("---------------------------------------------------------------------------------\
+#				Standard:\t\tReduced:\t\tExtended:\n1)*mag_kron\t\tN/A\t\t\tAll available fields\n2)*mag_kron_err\n3)*flux_kron_flags\n4)*flux_kron_radius\n5)*mag_aperture10\n6)*mag_aperture15\n\
+#				---------------------------------------------------------------------------------")
+#
+#		choice = input("\nEnter an option 'S/s', 'R/r' or 'E/e' to choose a predefined list of fields: ")
+#		if choice == "S" or choice == 's':
+#			print("Proceeding to build SQL Code...\n\n")
+#			break
+#		else:
+#			print(chr(27) + "[2J")
+#			print("Option Under Construction. Please choose Standard for now.\n")
+
+
+	sqlcolumns = ""
+	if len(columns) == 0:
+		columns = ['mag_kron', 'mag_kron_err', 'flux_kron_flags', 'flux_kron_radius', 'mag_aperture10', 'mag_aperture15']
+
+	if len(bands) == 0:
+		bands = ['g', 'r', 'i', 'z', 'y'] 
+#		bands = surveysetup.surveybands['hsc']   ---> can also be used to retrieve req. bands instead of hotcoding 
+
+	count = 0
+	for x in bands:
+		for y in columns:
+			count += 1
+			if count!=len(bands) * len(columns):
+				sqlcolumns+=tabname+"."+x+y+","
+			else:
+				sqlcolumns+=(tabname+"."+x+y)
+
+	return sqlcolumns
