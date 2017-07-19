@@ -135,8 +135,8 @@ If you want to do the downloading again and overwrite the previously downloaded 
 	>>> status = b.build(overwrite=True)
 
 
-Change how hscBatch is built
-----------------------------
+Customizing your build
+----------------------
 
 The default building setting is specified by the in ``self._func_build()`` of ``hscBatch``.
 
@@ -199,3 +199,41 @@ which only tries to find an hsc counterpart and stores its info as hsc_xid.csv.
 
 To run it, one can do 
 	>>> status = b.build(func_build)
+
+
+Iterlist
+--------
+
+Once a batch is built then you can perform operations on the built batch by ``iterlist()``. 
+
+	>>> status = b.iterlist(func_iterlist, **kwargs)
+
+By default the operation is applied to each of the ``good`` objects and the ``except`` objects will be ignored. 
+
+
+You will need to define a function, for example, ``func_iterlist`` to be applied to each of the objects in the batch. For example:
+
+
+	>>>def func_iterlist(obj, overwrite=False, **kwargs):
+	>>>
+	>>>	fn = obj.dir_parent+fn_testing
+	>>>	print fn
+	>>>	with open(fn, 'a') as f:
+	>>>		f.write(obj.name+'\n')
+	>>>
+	>>>	return True
+
+
+This function has to take ``obj`` (``obsobj`` instance) and ``overwrite`` (bool) as arguments, and optionally other arguments as ``**kwargs``. It should also return status (bool). 
+
+
+If in a rare occasion where you want to iterate the function through the ``except`` list, do
+
+	>>> status = b.iterlist(func_iterlist, listname='except', **kwargs)
+
+listargs
+--------
+
+
+compile_table
+-------------
