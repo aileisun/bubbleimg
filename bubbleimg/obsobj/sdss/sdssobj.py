@@ -23,12 +23,21 @@ class sdssObj(plainObj):
 		Params
 		------
 		ra (float)
+
 		dec (float)
+
 		/either
 			dir_obj (string)
 		/or 
 			dir_parent (string): attr dir_obj is set to dir_parent+'SDSSJXXXX+XXXX/'
-		toload_photoobj=True (bool): whether to download toload_photoobj
+
+		data_release = 13:
+			which sdss data release to use
+
+		search_radius = 2.* u.arcsec
+
+		toload_photoobj=True (bool): whether to download photoobj
+
 		writefile=True (bool): whether to write xid ( and photoobj if toload_photoobj=True)
 
 
@@ -37,6 +46,8 @@ class sdssObj(plainObj):
 		ra (float)
 		dec (float)
 		dir_obj (string)
+		data_release (int)
+		search_radius (angle quantity object)
 		sdssname (string)
 		status (whether the xid and photoboj query were successful)
 
@@ -46,6 +57,9 @@ class sdssObj(plainObj):
 		
 		"""
 		super(self.__class__, self).__init__(**kwargs)
+		self.data_release = kwargs.pop('data_release', 13)
+		self.search_radius = kwargs.pop('search_radius', 2.*u.arcsec)
+
 		writefile = kwargs.pop('writefile', True)
 		toload_photoobj = kwargs.pop('toload_photoobj', True)
 
@@ -126,7 +140,7 @@ class sdssObj(plainObj):
 		else: # download xid from sdss
 			print "[sdssobj] querying xid from SDSS"
 			c = SkyCoord(self.ra, self.dec, 'icrs', unit='deg')
-			result = astroquery.sdss.SDSS.query_region(c, spectro=True, photoobj_fields=photoobj_defs, specobj_fields=specobj_defs)
+			result = astroquery.sdss.SDSS.query_region(c, spectro=True, photoobj_fields=photoobj_defs, specobj_fields=specobj_defs, data_release=self.data_release, radius=self.search_radius)
 
 			# Retrieving  sdss ids of the spec sciencePrimary 
 			if result is not None:
@@ -184,7 +198,7 @@ class sdssObj(plainObj):
 				print "[sdssobj] querying photoobj from SDSS"
 				# load photoobj table and store it in obj.sdss.photoobj
 				sql_query = "SELECT p.* FROM PhotoObj AS p WHERE p.objid="+str(self.objid)
-				tabphotoobj = astroquery.sdss.SDSS.query_sql(sql_query)
+				tabphotoobj = astroquery.sdss.SDSS.query_sql(sql_query, data_release=self.data_release)
 				self.photoobj = tabphotoobj
 
 				if writefile:
@@ -264,7 +278,7 @@ class sdssObj(plainObj):
 		if self.status: 
 			if not os.path.isfile(fn) or overwrite: 
 				print "[sdssObj] download spec"
-				sp = astroquery.sdss.SDSS.get_spectra(matches=self.xid)
+				sp = astroquery.sdss.SDSS.get_spectra(matches=self.xid, data_release=self.data_release)
 				if len(sp) == 1: 
 					sp=sp[0]
 					self.make_dir_obj()

@@ -51,7 +51,7 @@ def test_HSCObj_init_dir_parent():
 def test_HSCObj_xid(obj_dirobj):
 
 	obj = obj_dirobj
-	status = obj.load_xid(writefile=False)
+	status = obj.load_xid()
 
 	assert status
 	assert np.absolute(obj.xid['ra'][0] - ra) < 0.0003
@@ -73,7 +73,7 @@ def test_HSCObj_xid_writefile(obj_dirobj):
 		os.remove(fn)
 	assert not os.path.isfile(fn)
 
-	status = obj.load_xid(writefile=True)
+	status = obj.load_xid()
 
 	assert status
 	assert np.absolute(obj.xid['ra'][0] - ra) < 0.0003
@@ -89,7 +89,7 @@ def test_HSCObj_xid_fails():
 	dec = -89.
 	obj = hscObj(ra=ra, dec=dec, dir_obj = './testing/badobject/')
 
-	status = obj.load_xid(writefile=True)
+	status = obj.load_xid()
 
 	assert status == False
 
@@ -123,29 +123,33 @@ def test_HSCObj_identical_w_verification(obj_dirobj):
 	assert filecmp.cmp(file_totest, file_verification)
 
 
-def test_get_psfsize(obj_dirobj):
-
-	assert obj_dirobj.get_psfsize(band='i')	== 0.297575027
-	assert obj_dirobj.get_psfsize(band='y')	== 0.369160265
-
-def test_HSCObj_PhotoObj(obj_dirobj):
+def test_HSCObj_get_photoobj(obj_dirobj):
 	obj = obj_dirobj
 	assert obj.status
-	obj._get_photoobj(columns=[], bands=[], tabname='main', all_columns=False, save_SQL=True, hsctable='forced', rerun='s16a_wide', release_version='dr1')
+
+	columns = ['mag_kron', 'mag_kron_err', 'flux_kron_flags', 'flux_kron_radius', 'mag_aperture10', 'mag_aperture15']
+	bands = ['g', 'r', 'i', 'z', 'y'] 
+
+	photoobj = obj._get_photoobj(columns=columns, bands=bands, tabname='main', all_columns=False, hsctable='forced', rerun='s16a_wide', release_version='dr1')
+
+	assert len(photoobj) == 1
+	assert len(photoobj.colnames) > 1
+
+	for x in bands:
+		for y in columns:
+			assert x+y in photoobj.colnames
+	
+
+def test_HSCObj_loadphotoobj(obj_dirobj):
+	obj = obj_dirobj
+	assert obj.status
+	status = obj.load_photoobj(columns=[], bands = [], tabname='main', hsctable='forced', all_columns = False)
+
+	assert status
 	assert os.path.isfile(obj.fp_photoobj)
 	assert len(obj.photoobj) == 1
 	assert len(obj.photoobj.colnames) > 1
-	bands = ['g', 'r', 'i', 'z', 'y'] 
-	columns = ['mag_kron', 'mag_kron_err', 'flux_kron_flags', 'flux_kron_radius', 'mag_aperture10', 'mag_aperture15']
-	for x in bands:
-		for y in columns:
-			assert x+y in obj.photoobj.colnames
-	
-def test_HSCObj_loadPhotoObj(obj_dirobj):
-	obj = obj_dirobj
-	assert obj.status
-	obj.load_photoobj(columns=[], bands = [], tabname='main', hsctable='forced', all_columns = False, save_SQL = True)
-	bands = ['g', 'r', 'i', 'z', 'y'] 
-	columns = ['mag_kron', 'mag_kron_err', 'flux_kron_flags', 'flux_kron_radius', 'mag_aperture10', 'mag_aperture15']
-	assert os.path.isfile('HSC_SQL.txt')
 
+
+def test_HSCObj_loadphotoobj_forced():
+	assert False

@@ -2,6 +2,7 @@ import pytest
 import os
 import astropy.table as at
 import shutil
+import astropy.units as u
 
 from ..sdssobj import sdssObj
 
@@ -153,3 +154,23 @@ def test_SDSSObj_get_spec(obj_dirobj):
 	spechdu = obj.get_spec()
 
 	assert len(spechdu[1].data['flux']) > 1
+
+
+def test_SDSSObj_xid_datarelease():
+	for dr in [7, 13]:
+		obj = sdssObj(ra=ra, dec=dec, dir_obj=dir_obj, data_release=dr)
+		assert obj.data_release == dr
+
+		status = obj.load_xid(writefile=True)
+
+		assert status
+		assert round(obj.xid['ra'], 4) == round(ra, 4)
+
+
+def test_SDSSObj_search_radius():
+
+	search_radius = 5.*u.arcsec
+	obj = sdssObj(ra=ra, dec=dec, dir_obj=dir_obj, search_radius=search_radius)
+
+	assert obj.search_radius == search_radius
+
