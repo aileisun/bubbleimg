@@ -61,10 +61,18 @@ One can check the list of objects of batch.
 	29.748938 -6.4643413 SDSSJ0158-0627
 	30.410525 -6.3772438 SDSSJ0201-0622
 
-By default the naming of the objects is SDSSJ plus the hhmmsddmm of the coordinates (sdss). The naming system can be changed using the argument ``obj_naming_sys``, but currently only sdss is supported. 
+By default the naming of the objects is SDSSJ plus the hhmmsddmm of the coordinates (sdss). The naming system can be changed using the argument ``obj_naming_sys``. 
 
 	>>> b = Batch(dir_batch=dir_batch, fn_cat=fn_cat, survey=survey, obj_naming_sys='sdss')
 
+Currently supporting:
+	``obj_naming_sys = ``
+		- 'sdss'			: 'SDSSJ1000+1242'
+		- 'sdss_precise'	: 'SDSSJ100013+124226'
+		- 'j'				: 'J1000+1242'
+		- 'j_precise'		: 'J100013+124226'
+
+If the sample is too large such that there might be duplicated object names, consider using more precise naming systems. 
 
 hscBatch
 ========
