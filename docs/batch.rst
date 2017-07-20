@@ -144,60 +144,60 @@ Customizing your build
 
 The default building setting is specified by the in ``self._func_build()`` of ``hscBatch``.
 
-	>>>	def _func_build(self, obj, overwrite=False, **kwargs):
-	>>>		"""
-	>>>		Params
-	>>>		------
-	>>>		obj
-	>>>		overwrite=False
-	>>>	
-	>>>		**kwargs:
-	>>>			environment='iaa'
-	>>>	
-	>>>		Return
-	>>>		------
-	>>>		status
-	>>>		"""
-	>>>	
-	>>>		# setting
-	>>>		environment = kwargs.pop('environment', 'iaa')
-	>>>		humvi_bands = 'riz'
-	>>>	
-	>>>		# running
-	>>>		L = imgdownload.hscimgLoader(obj=obj, environment=environment, **kwargs)
-	>>>	
-	>>>		if L.status:
-	>>>			statuss = 	[ 
-	>>>						L.make_stamps(overwrite=overwrite), 
-	>>>						L.make_psfs(overwrite=overwrite), 
-	>>>						L.plot_colorimg(bands=humvi_bands, img_type='stamp', overwrite=overwrite)
-	>>>						L.add_obj_sdss(), 
-	>>>						L.obj.sdss.make_spec(overwrite=overwrite),
-	>>>						]
-	>>>	
-	>>>			return all(statuss)
-	>>>		else:
-	>>>			return False
+	>>> def _func_build(self, obj, overwrite=False, **kwargs):
+	>>> 	"""
+	>>> 	Params
+	>>> 	------
+	>>> 	obj
+	>>> 	overwrite=False
+	>>> 
+	>>> 	**kwargs:
+	>>> 		environment='iaa'
+	>>> 
+	>>> 	Return
+	>>> 	------
+	>>> 	status
+	>>> 	"""
+	>>> 
+	>>> 	# setting
+	>>> 	environment = kwargs.pop('environment', 'iaa')
+	>>> 	humvi_bands = 'riz'
+	>>> 
+	>>> 	# running
+	>>> 	L = imgdownload.hscimgLoader(obj=obj, environment=environment, **kwargs)
+	>>> 
+	>>> 	if L.status:
+	>>> 		statuss = 	[ 
+	>>> 					L.make_stamps(overwrite=overwrite), 
+	>>> 					L.make_psfs(overwrite=overwrite), 
+	>>> 					L.plot_colorimg(bands=humvi_bands, img_type='stamp', overwrite=overwrite)
+	>>> 					L.add_obj_sdss(), 
+	>>> 					L.obj.sdss.make_spec(overwrite=overwrite),
+	>>> 					]
+	>>> 
+	>>> 		return all(statuss)
+	>>> 	else:
+	>>> 		return False
 
 
 One can change how it's built by writing one's own ``func_build()``. This function has to take ``obj`` (instance of obsObj), see documentation for obsobj, and ``overwrite`` (bool), which specify whether to overwrite the downloaded files, as input arguments, and optionally other arguments as ``**kwargs``. This function has to return ``status`` to indicate whether the building of an object was successful. 
 
 For example, one can define a very simple ``func_build()``,
 
-	>>>	def func_build(self, obj, overwrite=False):
-	>>>		"""
-	>>>		Params
-	>>>		------
-	>>>		obj
-	>>>		overwrite=False
-	>>>	
-	>>>		Return
-	>>>		------
-	>>>		status
-	>>>		"""
-	>>>		status = obj.add_hsc()
-	>>>
-	>>>		return status
+	>>> def func_build(self, obj, overwrite=False):
+	>>> 	"""
+	>>> 	Params
+	>>> 	------
+	>>> 	obj
+	>>> 	overwrite=False
+	>>> 
+	>>> 	Return
+	>>> 	------
+	>>> 	status
+	>>> 	"""
+	>>> 	status = obj.add_hsc()
+	>>> 	
+	>>> 	return status
 
 which only tries to find an hsc counterpart and stores its info as hsc_xid.csv. 
 
@@ -218,14 +218,14 @@ By default the operation is applied to each of the ``good`` objects and the ``ex
 You will need to define a function, for example, ``func_iterlist`` to be applied to each of the objects in the batch. For example:
 
 
-	>>>	def func_iterlist(obj, overwrite=False, **kwargs):
-	>>>
-	>>>		fn = obj.dir_parent+fn_testing
-	>>>		print fn
-	>>>		with open(fn, 'a') as f:
-	>>>			f.write(obj.name+'\n')
-	>>>	
-	>>>		return True
+	>>> def func_iterlist(obj, overwrite=False, **kwargs):
+	>>> 	
+	>>> 	fn = obj.dir_parent+fn_testing
+	>>> 	print fn
+	>>> 	with open(fn, 'a') as f:
+	>>> 		f.write(obj.name+'\n')
+	>>> 
+	>>> 	return True
 
 This function has to take ``obj`` (``obsobj`` instance) and ``overwrite`` (bool) as arguments, and optionally other arguments as ``**kwargs``. It should also return status (bool). 
 
@@ -237,31 +237,31 @@ If in a rare occasion where you want to iterate the function through the ``excep
 
 ``func_list`` can take in additional arguments from the batch list, for example, to have redshift ``z`` as an additional argument one can have
 
-	>>>	def iterfunc_make_spec_mag(obj, z, overwrite=False):
-	>>>		""" 
-	>>>		make file spec_mag.csv 
-	>>>	
-	>>>		Params
-	>>>		------
-	>>>		obj
-	>>>		overwrite=False
-	>>>	
-	>>>		Return
-	>>>		------
-	>>>		status
-	>>>		"""
-	>>>		s = bubbleimg.spector.Spector(obj=obj, z=z)
-	>>>	
-	>>>		statuss = [
-	>>>					s.plot_spec(wfilters=True, wconti=True, overwrite=overwrite),
-	>>>					s.make_spec_mag(overwrite=overwrite),
-	>>>					]
-	>>>	
-	>>>		return all(statuss)
+	>>> def iterfunc_make_spec_mag(obj, z, overwrite=False):
+	>>> 	""" 
+	>>> 	make file spec_mag.csv 
+	>>> 
+	>>> 	Params
+	>>> 	------
+	>>> 	obj
+	>>> 	overwrite=False
+	>>> 
+	>>> 	Return
+	>>> 	------
+	>>> 	status
+	>>> 	"""
+	>>> 	s = bubbleimg.spector.Spector(obj=obj, z=z)
+	>>> 
+	>>> 	statuss = [
+	>>> 				s.plot_spec(wfilters=True, wconti=True, overwrite=overwrite),
+	>>> 				s.make_spec_mag(overwrite=overwrite),
+	>>> 				]
+	>>> 
+	>>> 	return all(statuss)
 
 Can call it by
 
-	>>>		statuss = b.iterlist(iterfunc_make_spec_mag, listargs=['z'], overwrite=False)
+	>>> statuss = b.iterlist(iterfunc_make_spec_mag, listargs=['z'], overwrite=False)
 
 This will create a one row table ``spec_mag.csv`` for each of the objects containing the spectroscopic magnitudes, which can be compiled over the entire sample by ``compile_table()``. The return value of ``iterlist()`` is a list containing the ``iterfunc()`` return value of each of the objects. 
 
