@@ -130,7 +130,7 @@ def test_HSCObj_get_photoobj(obj_dirobj):
 	columns = ['mag_kron', 'mag_kron_err', 'flux_kron_flags', 'flux_kron_radius', 'mag_aperture10', 'mag_aperture15']
 	bands = ['g', 'r', 'i', 'z', 'y'] 
 
-	photoobj = obj._get_photoobj(columns=columns, bands=bands, tabname='main', all_columns=False, hsctable='forced', rerun='s16a_wide', release_version='dr1')
+	photoobj = obj._get_photoobj(columns=columns, bands=bands, all_columns=False, catalog='forced', rerun='s16a_wide', release_version='dr1', overwrite=True)
 
 	assert len(photoobj) == 1
 	assert len(photoobj.colnames) > 1
@@ -143,7 +143,7 @@ def test_HSCObj_get_photoobj(obj_dirobj):
 def test_HSCObj_loadphotoobj(obj_dirobj):
 	obj = obj_dirobj
 	assert obj.status
-	status = obj.load_photoobj(columns=[], bands = [], tabname='main', hsctable='forced', all_columns = False)
+	status = obj.load_photoobj(columns=[], bands=[], catalog='forced', all_columns=False, overwrite=True)
 
 	assert status
 	assert os.path.isfile(obj.fp_photoobj)
@@ -151,5 +151,13 @@ def test_HSCObj_loadphotoobj(obj_dirobj):
 	assert len(obj.photoobj.colnames) > 1
 
 
-def test_HSCObj_loadphotoobj_forced():
-	assert False
+def test_HSCObj_loadphotoobj_catalog(obj_dirobj):
+	obj = obj_dirobj
+	assert obj.status
+	status = obj.load_photoobj(columns=[], bands=[], catalog='forced', all_columns=False, overwrite=True)
+	assert status
+	assert obj.photoobj['catalog'] == 'forced'
+
+
+	status = obj.load_photoobj(columns=[], bands=[], catalog='testing', all_columns=False, overwrite=True)
+	assert status == False

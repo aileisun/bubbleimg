@@ -13,7 +13,7 @@ SELECT
   {sqlcolumns}
 
 FROM
-  {rerun}.forced AS main
+  {rerun}.{catalog} AS main
 
 WHERE
   (main.detect_is_tract_inner = 't' 
