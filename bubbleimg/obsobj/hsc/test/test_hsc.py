@@ -123,3 +123,33 @@ def test_HSCObj_identical_w_verification(obj_dirobj):
 	assert filecmp.cmp(file_totest, file_verification)
 
 
+def test_HSCObj_get_photoobj(obj_dirobj):
+	obj = obj_dirobj
+	assert obj.status
+
+	columns = ['mag_kron', 'mag_kron_err', 'flux_kron_flags', 'flux_kron_radius', 'mag_aperture10', 'mag_aperture15']
+	bands = ['g', 'r', 'i', 'z', 'y'] 
+
+	photoobj = obj._get_photoobj(columns=columns, bands=bands, tabname='main', all_columns=False, hsctable='forced', rerun='s16a_wide', release_version='dr1')
+
+	assert len(photoobj) == 1
+	assert len(photoobj.colnames) > 1
+
+	for x in bands:
+		for y in columns:
+			assert x+y in photoobj.colnames
+	
+
+def test_HSCObj_loadphotoobj(obj_dirobj):
+	obj = obj_dirobj
+	assert obj.status
+	status = obj.load_photoobj(columns=[], bands = [], tabname='main', hsctable='forced', all_columns = False)
+
+	assert status
+	assert os.path.isfile(obj.fp_photoobj)
+	assert len(obj.photoobj) == 1
+	assert len(obj.photoobj.colnames) > 1
+
+
+def test_HSCObj_loadphotoobj_forced():
+	assert False

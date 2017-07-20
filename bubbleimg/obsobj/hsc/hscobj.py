@@ -10,6 +10,7 @@ import os
 from astropy.coordinates import SkyCoord
 import astropy.table as at
 from astropy.io import fits
+import astropy.io.ascii
 import astropy.units as u
 
 from hscsspquery import hscSspQuery
@@ -41,8 +42,6 @@ class hscObj(plainObj):
 		
 		rerun = 's16a_wide' (string): which data base to search for
 		release_version = 'dr1' (string): which data base to search for
-		search_radius = 2.* u.arcsec
-
 
 		Attributes
 		----------
@@ -51,27 +50,119 @@ class hscObj(plainObj):
 		dir_obj (string)
 		rerun (string): e.g., 's16a_wide'
 		release_version (string): e.g., 'dr1'
-		search_radius (angle quantity object)
-
 		status (whether the xid and photoboj query were successful)
 
 		optional attr (if querry successful):
 			xid
-			photoobj
 		
 		"""
 		super(self.__class__, self).__init__(**kwargs)
 		self.rerun = kwargs.pop('rerun', 's16a_wide')
 		self.release_version = kwargs.pop('release_version', 'dr1')
-		self.search_radius = kwargs.pop('search_radius', 2.*u.arcsec)
 
 		self.fp_xid = self.dir_obj+'hsc_xid.csv'
+		self.fp_photoobj = self.dir_obj+'hsc_photoobj.csv'
+
 		self.status = self.load_xid()
+
+
+	def load_photoobj(self, columns=[], bands = [], tabname='main', hsctable='forced', all_columns=False):
+		"""
+		load hsc photometry table either locally or remotely and add it as attribute self.photoobj
+
+		Params
+		------
+
+		[0] self 
+
+		[1] Columns: Either contains the columns when called upon or has a default choice of columns if found NULL
+		Enter the required columns:
+			Refer Schema Browser -> "https://hscdata.mtk.nao.ac.jp/schema_browser2/"
+			Note: STARs account required
+	
+		[2] Bands: Either contains the bands req. when called upon or has a default choice of bands if found NULL
+		Available bands: g, r, i, z and y
+	
+		[3] hsctable='forced': which hsctable to load from remote hsc database
+
+		[4] all_columns=True: Generates SQL code such that all the fields from the table are included
+
+		Return
+		------
+		status (bool): if true then the loading was successful, false if not
+		
+		"""
+		if self.status == True: 
+
+			photoobj = self._get_photoobj(columns=columns, bands=bands, hsctable=hsctable, all_columns=all_columns, rerun=self.rerun, release_version=self.release_version)
+
+			if photoobj is not None:
+				self.photoobj = photoobj
+				return True
+			else:
+				return False
+
+		else: 
+			print("[hscobj] skip loading photoobj as xid is not successfully created")
+			return False
+
+
+
+	def _get_photoobj(self, columns=[], bands=[], all_columns=False, hsctable='forced', rerun='s16a_wide', release_version='dr1'):
+		"""
+		return photoobj.
+		Read photoobj locally if self.dir_obj+'hsc_xid.csv' exist. Otherwise query. 
+
+		Params
+		------
+		columns=[]
+		bands=[]
+		all_columns=False
+		hsctable='forced'
+		rerun='s16a_wide'
+		release_version='dr1'
+
+		Returns:
+		------
+		photobj: table, or None if failed
+
+		Write Output: (optional)
+		------
+		self.dir_obj+'xid.csv'
+		"""
+
+		fn = self.fp_photoobj
+
+		if not hasattr(self, 'xid'):
+			xidstatus = self.load_xid()
+		else:
+			xidstatus = True
+
+		if xidstatus:
+			if os.path.isfile(fn):
+				print "[hscobj] reading hsc_photoobj locally"
+				photoobj = at.Table.read(fn, format='ascii.csv',comment='#')
+				return photoobj
+
+			else:
+				print "[hscobj] querying photoobj from HSC"
+				object_id = self.xid['object_id'][0]
+				sql = _get_photoobj_sql(object_id=object_id, columns=columns, bands=bands, all_columns=all_columns, rerun=rerun)
+				hscSspQuery(sql, filename_out=fn, release_version=release_version)
+
+				if os.path.isfile(fn) and (os.stat(fn).st_size > 0):
+					photoobj = at.Table.read(fn, format='ascii.csv', comment='#')
+					return photoobj
+				else: 
+					print("[hscobj] querying photoobj from HSC failed")
+					return None
+		else:
+			return None
 
 
 	def load_xid(self):
 		"""
-		load xid either locally or remotely and add it as attribute self.xid. If query remotely then save the file to self.fp_xid. 
+		load xid either locally or remotely and add it as attribute self.xid
 
 		Params
 		------
@@ -81,7 +172,7 @@ class hscObj(plainObj):
 		------
 		status (bool): if true then the loading was successful, false if not
 		"""
-		xid = self._get_xid()
+		xid = self._get_xid(rerun=self.rerun, release_version=self.release_version)
 
 		if xid is not None:
 			self.xid = xid
@@ -93,7 +184,7 @@ class hscObj(plainObj):
 			return False
 
 
-	def _get_xid(self):
+	def _get_xid(self, rerun='s16a_wide', release_version='dr1'):
 		"""
 		return xid.
 		Read xid locally if self.dir_obj+'hsc_xid.csv' exist. Otherwise query. 
@@ -106,7 +197,7 @@ class hscObj(plainObj):
 
 		Returns:
 		------
-		xid: table, or False if failed
+		xid: table, or None if failed
 
 		Write Output: (optional)
 		------
@@ -120,8 +211,8 @@ class hscObj(plainObj):
 		else: # download xid from sdss
 			print "[hscObj] querying xid from server"
 			self.make_dir_obj()	
-			sql = _get_sql(ra=self.ra, dec=self.dec, rerun=self.rerun, radius=float(self.search_radius/u.arcsec))
-			hscSspQuery(sql, filename_out=fn, release_version=self.release_version)
+			sql = _get_xid_sql(ra=self.ra, dec=self.dec, rerun=rerun)
+			hscSspQuery(sql, filename_out=fn, release_version=release_version)
 
 		if os.path.isfile(fn): # retrieve xid locally
 			if os.stat(fn).st_size > 0:
@@ -164,14 +255,10 @@ class hscObj(plainObj):
 		
 		a = np.array([c.separation(crow).value for crow in crows])
 		xid = at.Table(xid[np.argmin(a)])
-		if len(xid) > 1:
-			raise Exception("[hscobj] more than one closest object is selected")
-
 		return xid
 
 
-
-def _get_sql(ra, dec, radius=2, rerun='s16a_wide'):
+def _get_xid_sql(ra, dec, radius=2, rerun='s16a_wide'):
 	"""
 	construct sql query 
 
@@ -196,4 +283,91 @@ def _get_sql(ra, dec, radius=2, rerun='s16a_wide'):
 	sql = sql_template.format(rerun=rerun, ra=str(ra), dec=str(dec), radius=str(radius))
 
 	return sql
+
+
+def _get_photoobj_sql(object_id, columns=[], bands=[], tabname='main', all_columns=False, rerun='s16a_wide', save_sql=False, fn_sql='hsc_sql.txt'):
+	"""
+	construct sql query 
+
+	Params
+	------
+	object_id
+	columns=[]
+	bands=[]
+	tabname='main'
+	all_columns=False
+	rerun='s16a_wide'
+	save_sql=False
+		if True, save the output sql script to fn_sql
+	fn_sql='hsc_sql.txt'
+
+	Return
+	------
+	sql (str)
+	"""
+
+	path = os.path.dirname(sys.modules[__name__].__file__)
+	if path == '': 
+		path ='.'
+	localpath = path+'/'
+
+	fn = localpath+'photoobj_template.sql'
+	sqlcolumns = _get_photoobj_sql_columns(columns=columns, bands=bands, tabname=tabname, all_columns=all_columns)
+
+	with open(fn, 'r') as f:
+		sql_template=f.read()
+	sql = sql_template.format(rerun=rerun, object_id=object_id, sqlcolumns=sqlcolumns)
+
+	if save_sql:
+		with open(fn_sql, "w") as text_file:
+			text_file.write(sql)
+
+	return sql
+
+
+def _get_photoobj_sql_columns(columns=[], bands=[], tabname='main', all_columns=False):
+	
+	"""
+	Creates SQL commands for required columns in the form of a single string array
+	
+	Params
+	------
+	columns=[]
+	bands=[]
+	tabname='main'
+	all_columns=False
+
+
+	Return
+	------
+	Returns a string containing the SQL commands for data acquisition
+	
+	"""
+
+	default = 'main.object_id,main.ra, main.dec,main.patch_id,main.tract,main.patch,main.patch_s,\
+				main.parent_id,main.deblend_nchild,main.detect_is_patch_inner,main.detect_is_tract_inner,\
+				main.detect_is_primary,'
+
+	if all_columns:
+		return '*'
+
+	else:
+		sqlcolumns = ""
+		if len(columns) == 0:
+			columns = ['mag_kron', 'mag_kron_err', 'flux_kron_flags', 'flux_kron_radius', 'mag_aperture10', 'mag_aperture15']
+
+		if len(bands) == 0:
+			bands = ['g', 'r', 'i', 'z', 'y'] 
+
+		count = 0
+		for x in bands:
+			for y in columns:
+				count+=1
+				if count!=len(bands)*len(columns):
+					sqlcolumns+=tabname+"."+x+y+","
+				else:
+					sqlcolumns+=tabname+"."+x+y
+		default+=sqlcolumns
+
+		return sqlcolumns
 
