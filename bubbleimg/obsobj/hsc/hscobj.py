@@ -13,7 +13,7 @@ from astropy.io import fits
 import astropy.io.ascii
 import astropy.units as u
 
-from hscsspquery import hscSspQuery
+import hscsspquery
 from ..plainobj import plainObj
 
 fn_photoobj_template_sql = 'photoobj_template.sql'
@@ -147,7 +147,9 @@ class hscObj(plainObj):
 			print "[hscobj] querying photoobj from HSC"
 			object_id = self.xid['object_id'][0]
 			sql = _get_photoobj_sql(object_id=object_id, columns=columns, bands=bands, all_columns=all_columns, rerun=rerun, catalog=catalog)
-			hscSspQuery(sql, filename_out=fn, release_version=data_release)
+
+			hscsspquery.hscSspQuery_retry(n_trials=5, sql=sql, filename_out=fn, release_version=data_release)
+			# hscSspQuery(sql=sql, filename_out=fn, release_version=data_release)
 
 			if os.path.isfile(fn) and (os.stat(fn).st_size > 0):
 				photoobj = at.Table.read(fn, format='ascii.csv', comment='#')
@@ -216,7 +218,8 @@ class hscObj(plainObj):
 			print "[hscObj] querying xid from server"
 			self.make_dir_obj()	
 			sql = _get_xid_sql(ra=self.ra, dec=self.dec, rerun=rerun, search_radius=self.search_radius)
-			hscSspQuery(sql, filename_out=fn, release_version=data_release)
+			hscsspquery.hscSspQuery_retry(n_trials=5, sql=sql, filename_out=fn, release_version=data_release)
+			# hscSspQuery(sql=sql, filename_out=fn, release_version=data_release)
 
 		if os.path.isfile(fn): # retrieve xid locally
 			if os.stat(fn).st_size > 0:

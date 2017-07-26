@@ -52,6 +52,25 @@ class Struct:
     def __init__(self, **entries):
         self.__dict__.update(entries)
 
+def hscSspQuery_retry(n_trials=5, **kwargs):
+    """ 
+    executing hscSspQuery and retries (n_trials times) when urllib2.URLError or urllib2.URLError happens. 
+
+    Params
+    ------
+    n_trials
+    **kwargs:
+        arguments of hscSspQuery
+    """
+
+    for _ in range(n_trials):
+        try:
+            hscSspQuery(**kwargs)
+            break
+        except (urllib2.HTTPError, urllib2.URLError) as err:
+            print("[hscsspquery] retrying as error detected")
+            print(str(err))
+            pass
 
 def hscSspQuery(sql, filename_out='results.csv', **kwargs):
 
