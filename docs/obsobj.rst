@@ -126,7 +126,7 @@ Specify Searching Parameters
 The default setting of the search is set to the following. 
 
 	>>> import astropy.units as u
-	>>> status = obj.add_hsc(rerun='s16a_wide', release_version='dr1', search_radius=2.*u.arcsec)
+	>>> status = obj.add_hsc(rerun='s16a_wide', data_release='dr1', search_radius=2.*u.arcsec)
 
 Please change the parameters accordingly. 
 
