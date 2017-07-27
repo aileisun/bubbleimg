@@ -22,6 +22,9 @@ catalog = at.Table.read(fn_cat, format='fits')
 survey ='hsc'
 obj_naming_sys = 'sdss'
 
+fn_batch_photo_veri = 'test_verification_data/batch_hscphoto/' # the last row of bad cat has bad ra, dec
+fn_batch_photo_test = 'testing/batch_hscphoto/' # the last row of bad cat has bad ra, dec
+
 
 @pytest.fixture(scope="module", autouse=True)
 def setUp_tearDown():
@@ -30,6 +33,8 @@ def setUp_tearDown():
 	# setup
 	if os.path.isdir(dir_parent):
 		shutil.rmtree(dir_parent)
+
+	shutil.copytree(fn_batch_photo_veri, fn_batch_photo_test)
 
 	yield
 	# tear down
@@ -42,6 +47,12 @@ def batch1():
 	return Batch(dir_batch=dir_batch, fn_cat=fn_cat, survey=survey)
 
 
+@pytest.fixture
+def batch_hscphotoobj():
+	return Batch(dir_batch=fn_batch_photo_test, fn_cat=fn_batch_photo_test+'list.csv', survey=survey)
+
+
+@pytest.fixture
 def batch_bad():
 	return Batch(dir_batch=dir_batch, fn_cat_bad=fn_cat_bad, survey=survey)
 
@@ -93,4 +104,20 @@ def test_batch_write_list(batch1):
 	lst = at.Table.read(b.dir_batch+'list.csv')
 	assert len(lst) > 0
 
+
+def test_batch_compile_table(batch_hscphotoobj):
+
+	b = batch_hscphotoobj
+	fn = b.dir_batch+'hsc_photoobj.csv'
+
+	assert len(b.list) > 0
+	assert len(b.list_good) > 0
+
+	b.compile_table('hsc_photoobj.csv')
+
+	assert os.path.isfile(fn)
+
+	tab = at.Table.read(fn)
+
+	assert len(tab) == 2
 

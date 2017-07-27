@@ -26,6 +26,9 @@ fn_cat_bad = 'test_verification_data/bad_catalog.fits' # the last row of bad cat
 fn_cat_exc = 'test_verification_data/only_exception_catalog.fits'
 fn_cat_confus = 'test_verification_data/sandy_hsc_ra_confusion.fits'
 
+fn_batch_photo_veri = 'test_verification_data/batch_hscphoto/' # the last row of bad cat has bad ra, dec
+fn_batch_photo_test = 'testing/batch_hscphoto/' # the last row of bad cat has bad ra, dec
+
 
 survey ='hsc'
 
@@ -39,6 +42,8 @@ def setUp_tearDown():
 	# setup
 	if os.path.isdir(dir_parent):
 		shutil.rmtree(dir_parent)
+
+	shutil.copytree(fn_batch_photo_veri, fn_batch_photo_test)
 
 	# yield
 	# # tear down
@@ -63,6 +68,11 @@ def batch_exc():
 @pytest.fixture
 def batch_ra_confusion():
 	return hscBatch(dir_batch=dir_batch_confus, fn_cat=fn_cat_confus)
+
+@pytest.fixture
+def batch_hscphotoobj_incomplete():
+	return hscBatch(dir_batch=fn_batch_photo_test, fn_cat=fn_batch_photo_test+'list.csv', survey=survey)
+
 
 
 def test_batch_compile_table(batch1):
@@ -172,6 +182,29 @@ def test_batch_compile_table_ra_confusion(batch_ra_confusion):
 			tab['obj_name'][i] == None
 
 
+def test_batch_compile_incomplete_table(batch_hscphotoobj_incomplete):
+
+	b = batch_hscphotoobj_incomplete
+	fn = b.dir_batch+'hsc_photoobj.csv'
+	fn1 = b.dir_batch+'good/'+b.list[0]['obj_name']+'/hsc_photoobj.csv'
+
+	tab1 = at.Table.read(fn1)
+
+	assert len(b.list) > 0
+	assert len(b.list_good) > 0
+
+	b.compile_table('hsc_photoobj.csv')
+
+	assert os.path.isfile(fn)
+
+	tab = at.Table.read(fn)
+
+	assert len(tab) == 2
+
+	assert len(tab.colnames) == len(tab1.colnames) + 3
+
+
+
 def func_build(obj, overwrite=False, **kwargs):
 	"""
 	Params
@@ -200,3 +233,5 @@ def func_build(obj, overwrite=False, **kwargs):
 				]
 
 	return all(statuss)
+
+

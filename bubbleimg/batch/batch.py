@@ -3,6 +3,7 @@
 
 import numpy as np
 import astropy.table as at
+from astropy.io import ascii
 import os
 import sys
 import shutil
@@ -240,14 +241,10 @@ class Batch(object):
 	    results (list):
 	    	a list of all the results returned by fun, usually "status" (bool array)
 		"""
-		if listname == 'good':
-			lst = self.list_good
-			dir_parent = self.dir_good
-		elif listname == 'except':
-			lst = self.list_except
-			dir_parent = self.dir_except
 
-		# statuss = np.ndarray(len(lst), dtype=bool)
+		dir_list = self._get_dir_list_from_listname(listname=listname)
+		lst = self._get_list_from_listname(listname=listname)
+
 		results = []
 		for i, row in enumerate(lst):
 
@@ -260,15 +257,43 @@ class Batch(object):
 			for arg in listargs:
 				kwargs.update({arg: row[arg]})
 
-			obj = obsobj.obsObj(ra=ra, dec=dec, dir_parent=dir_parent, obj_naming_sys=self.obj_naming_sys, overwrite=overwrite)
+			obj = obsobj.obsObj(ra=ra, dec=dec, dir_parent=dir_list, obj_naming_sys=self.obj_naming_sys, overwrite=overwrite)
 			obj.survey = self.survey		
 
 			result = func(obj, overwrite=overwrite, **kwargs)
 			results += [result]
-			# statuss[i] = func(obj, overwrite=overwrite, **kwargs)
 
 		return results
-		# return statuss
+
+	def _get_dir_list_from_listname(self, listname='good'):
+		if listname == 'good':
+			return self.dir_good
+
+		elif listname == 'except':
+			return self.dir_except
+
+
+	def _get_list_from_listname(self, listname='good'):
+		if listname == 'good':
+			return self.list_good
+		elif listname == 'except':
+			return self.list_except
+
+
+	def get_ith_obj_from_list(self, iobj, listname='good'):
+		""" 
+		return the obj for the ith object from the specified list (good or except)
+		"""
+		dir_list = self._get_dir_list_from_listname(listname=listname)
+		lst = self._get_list_from_listname(listname=listname)
+
+		ra = lst['ra'][iobj]
+		dec = lst['dec'][iobj]
+		obj_name = lst['obj_name'][iobj]
+
+		obj = obsobj.obsObj(ra=ra, dec=dec, dir_parent=dir_list, obj_naming_sys=self.obj_naming_sys)
+
+		return obj
 
 
 	def compile_table(self, fn_tab, overwrite=False):
@@ -296,16 +321,19 @@ class Batch(object):
 		if not os.path.isfile(fp) or overwrite:
 			print("[batch] compiling table {}".format(fn_tab))
 
-			if len(self.list_good)>0:
-				kwargs = dict(fn_tab=fn_tab)
-				list_data = self.iterlist(func=self._iterfunc_read_table, listargs=[], listname='good', overwrite=False, **kwargs)
-				tab_data = at.vstack(list_data)
+			if len(self.list_good) > 0:
+				obj1 = self.get_ith_obj_from_list(iobj=0, listname='good')
+				header = _extract_line_from_file(obj1.dir_obj+fn_tab, iline=0)
+
+				lines_data = self.iterlist(func=self._iterfunc_extract_line_from_file, listargs=[], listname='good', overwrite=False, **{'fn': fn_tab})
+				tab_data = ascii.read([header]+lines_data)
+				
 				self._rename_list_args(tab_data)
 				tab_good = at.hstack([self.list_good, tab_data])
 			else:
 				tab_good = at.Table()
 
-			if len(self.list_good)>0 and len(self.list_except)>0:
+			if len(self.list_good) > 0 and len(self.list_except) > 0:
 				row_masked = at.Table(tab_data[0], masked=True)
 				row_masked.mask = True
 				tab_masked = at.vstack([row_masked for i in range(len(self.list_except))])
@@ -321,7 +349,7 @@ class Batch(object):
 				tab.write(fp, overwrite=overwrite)
 			else:
 				# in case if there is no good object
-				print("[batch] skipped compiling table {} as no data to compile")
+				print("[batch] skipped compiling table {} as no data to compile".format(fn_tab))
 
 		else:
 			print("[batch] skipped compiling table {} as file exists".format(fn_tab))
@@ -330,20 +358,37 @@ class Batch(object):
 		return status 
 
 
-	def _iterfunc_read_table(self, obj, fn_tab, overwrite=False):
+	# def _iterfunc_read_table(self, obj, fn_tab, overwrite=False):
+	# 	""" 
+	# 	function to be iterated for each object to access the table being compiled
+
+	# 	Params
+	# 	------
+	# 	self
+	# 	obj
+	# 	fn_tab (str):
+	# 		file name of the table to be compiled, e.g., 'sdss_photoobj.csv'.
+	# 	overwrite (bool):
+	# 		can be ignored
+	# 	"""
+	# 	return at.Table.read(obj.dir_obj+fn_tab)
+
+	def _iterfunc_extract_line_from_file(self, obj, fn, iline=1, overwrite=False):
 		""" 
-		function to be iterated for each object to access the table being compiled
+		function to be iterated for each object to return a particular line in the file as a string
 
 		Params
 		------
 		self
 		obj
-		fn_tab (str):
-			file name of the table to be compiled, e.g., 'sdss_photoobj.csv'.
+		fn (str):
+			file name 
+		iline (int):
+			the number of the row
 		overwrite (bool):
 			can be ignored
 		"""
-		return at.Table.read(obj.dir_obj+fn_tab)
+		return _extract_line_from_file(obj.dir_obj+fn, iline=iline)
 
 
 	def _rename_list_args(self, tab):
@@ -458,3 +503,8 @@ class Batch(object):
 		return status
 
 
+def _extract_line_from_file(fn, iline=1):
+	with open(fn, 'r') as f:
+		data = f.read()
+
+	return data.split('\n')[iline]
