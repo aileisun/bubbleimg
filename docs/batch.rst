@@ -192,7 +192,7 @@ One can change how it's built by writing one's own ``func_build()``. This functi
 
 For example, one can define a very simple ``func_build()``,
 
-	>>> def func_build(self, obj, overwrite=False):
+	>>> def func_build(obj, overwrite=False):
 	>>> 	"""
 	>>> 	Params
 	>>> 	------
@@ -234,18 +234,30 @@ You will need to define a function, for example, ``func_iterlist`` to be applied
 	>>> 		f.write(obj.name+'\n')
 	>>> 
 	>>> 	return True
+	>>>
+	>>> status = b.iterlist(func_iterlist, **kwargs)
+	>>> 
 
 This function has to take ``obj`` (``obsobj`` instance) and ``overwrite`` (bool) as arguments, and optionally other arguments as ``**kwargs``. It should also return status (bool). 
 
-
-If in a rare occasion where you want to iterate the function through the ``except`` list, do
-
-	>>> status = b.iterlist(func_iterlist, listname='except', **kwargs)
+Another example that queries the hsc forced catalog:
 
 
-``func_list`` can take in additional arguments from the batch list, for example, to have redshift ``z`` as an additional argument one can have
+	>>> def func_iterlist_get_hsc_photoboj(obj, overwrite=False):
+	>>> 	statuss = [
+	>>> 				obj.add_hsc()
+	>>> 				obj.hsc.load_photoobj(overwrite=overwrite)
+	>>> 				]
+	>>> 
+	>>> 	return all(statuss)
+	>>>
+	>>> status = b.iterlist(func_iterlist, **kwargs)
+	>>> 
 
-	>>> def iterfunc_make_spec_mag(obj, z, overwrite=False):
+
+This ``func_iterlist`` can take in additional arguments from the batch list, for example, to have redshift ``z`` as an additional argument one can have
+
+	>>> def func_iterlist_make_spec_mag(obj, z, overwrite=False):
 	>>> 	""" 
 	>>> 	make file spec_mag.csv 
 	>>> 
@@ -269,9 +281,16 @@ If in a rare occasion where you want to iterate the function through the ``excep
 
 Can call it by
 
-	>>> statuss = b.iterlist(iterfunc_make_spec_mag, listargs=['z'], overwrite=False)
+	>>> statuss = b.iterlist(func_iterlist_make_spec_mag, listargs=['z'], overwrite=False)
 
 This will create a one row table ``spec_mag.csv`` for each of the objects containing the spectroscopic magnitudes, which can be compiled over the entire sample by ``compile_table()``. The return value of ``iterlist()`` is a list containing the ``iterfunc()`` return value of each of the objects. 
+
+
+If in a rare occasion where you want to iterate the function through the ``except`` list, do
+
+	>>> status = b.iterlist(func_iterlist, listname='except', **kwargs)
+
+
 
 
 compile_table
