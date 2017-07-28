@@ -227,7 +227,7 @@ You will need to define a function, for example, ``func_iterlist`` to be applied
 
 
 	>>> def func_iterlist(obj, overwrite=False, **kwargs):
-	>>> 	
+	>>> 	fn_testing = 'testing.txt'
 	>>> 	fn = obj.dir_parent+fn_testing
 	>>> 	print fn
 	>>> 	with open(fn, 'a') as f:

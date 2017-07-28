@@ -154,7 +154,7 @@ class hscObj(plainObj):
 			if os.path.isfile(fn) and (os.stat(fn).st_size > 0):
 				photoobj = at.Table.read(fn, format='ascii.csv', comment='#')
 				photoobj = at.hstack([at.Table([[catalog]], names=['catalog']), photoobj])
-				photoobj.write(fn, format='ascii.csv', overwrite=overwrite)
+				photoobj.write(fn, format='ascii.csv', overwrite=True)
 				return photoobj
 			else: 
 				print("[hscobj] querying photoobj from HSC failed")
