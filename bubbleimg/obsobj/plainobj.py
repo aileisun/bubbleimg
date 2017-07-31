@@ -55,16 +55,19 @@ class plainObj(object):
 		else: 
 			raise TypeError('dec should be float')
 
+		self.obj_naming_sys = obj_naming_sys
+
+
 		if 'dir_obj' in kwargs:
 			self.dir_obj = kwargs.pop('dir_obj', None)
 			self.name = self.dir_obj.split('/')[-2]
 
 			# sanity check: dir_obj naming consistent with ra, dec
-			if (self.name[:4]=='SDSS' and self.name != get_obj_name(self.ra, self.dec, obj_naming_sys=obj_naming_sys)):
+			if (self.name[:4]=='SDSS' and self.name != get_obj_name(self.ra, self.dec, obj_naming_sys=self.obj_naming_sys)):
 				raise Exception('dir_obj SDSS name inconsistent with ra dec')
 		elif 'dir_parent' in kwargs:
 			dir_parent = kwargs.pop('dir_parent', None)
-			self.name = get_obj_name(self.ra, self.dec, obj_naming_sys=obj_naming_sys)
+			self.name = get_obj_name(self.ra, self.dec, obj_naming_sys=self.obj_naming_sys)
 			self.dir_obj = dir_parent+self.name+'/'
 			self.dir_parent = dir_parent
 		else:

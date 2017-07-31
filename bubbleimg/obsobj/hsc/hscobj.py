@@ -88,7 +88,7 @@ class hscObj(plainObj):
 		------
 		status (bool): if true then the loading was successful, false if not
 		"""
-		xid = self._get_xid(overwrite=overwrite)
+		xid = self._get_xid()
 
 		if xid is not None:
 			self.xid = xid
