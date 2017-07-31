@@ -36,6 +36,7 @@ class plainObj(object):
 		dir_obj (string)
 
 		dir_parent (optional) (string)
+		obj_naming_sys
 
 
 		Note

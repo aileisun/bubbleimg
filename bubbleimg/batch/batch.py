@@ -265,6 +265,7 @@ class Batch(object):
 
 		return results
 
+
 	def _get_dir_list_from_listname(self, listname='good'):
 		if listname == 'good':
 			return self.dir_good
@@ -327,7 +328,7 @@ class Batch(object):
 
 				lines_data = self.iterlist(func=self._iterfunc_extract_line_from_file, listargs=[], listname='good', overwrite=False, **{'fn': fn_tab})
 				tab_data = ascii.read([header]+lines_data)
-				
+
 				self._rename_list_args(tab_data)
 				tab_good = at.hstack([self.list_good, tab_data])
 			else:

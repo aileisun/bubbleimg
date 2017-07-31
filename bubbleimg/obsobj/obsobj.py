@@ -33,12 +33,12 @@ class obsObj(plainObj):
 
 	def add_sdss(self, **kwargs):
 
-		self.sdss = sdssObj(ra=self.ra, dec=self.dec, dir_obj=self.dir_obj, **kwargs)
+		self.sdss = sdssObj(ra=self.ra, dec=self.dec, dir_obj=self.dir_obj, obj_naming_sys=self.obj_naming_sys, **kwargs)
 
 		return self.sdss.status
 
 
 	def add_hsc(self, **kwargs):
-		self.hsc = hscObj(ra=self.ra, dec=self.dec, dir_obj=self.dir_obj, **kwargs)
+		self.hsc = hscObj(ra=self.ra, dec=self.dec, dir_obj=self.dir_obj, obj_naming_sys=self.obj_naming_sys, **kwargs)
 
 		return self.hsc.status
