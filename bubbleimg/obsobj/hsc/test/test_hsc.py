@@ -22,10 +22,10 @@ def setUp_tearDown():
 	if os.path.isdir(dir_parent):
 		shutil.rmtree(dir_parent)
 
-	# yield
-	# # tear down
-	# if os.path.isdir(dir_parent):
-	# 	shutil.rmtree(dir_parent)
+	yield
+	# tear down
+	if os.path.isdir(dir_parent):
+		shutil.rmtree(dir_parent)
 
 
 @pytest.fixture
@@ -161,14 +161,36 @@ def test_HSCObj_get_photoobj(obj_dirobj):
 	
 
 def test_HSCObj_loadphotoobj(obj_dirobj):
+
+	columns = ['mag_kron', 'mag_kron_err', 'flux_kron_flags', 'flux_kron_radius', 'mag_aperture10', 'mag_aperture15']
+	bands = ['g', 'r', 'i', 'z', 'y'] 
+
+
 	obj = obj_dirobj
 	assert obj.status
+
 	status = obj.load_photoobj(columns=[], bands=[], catalog='forced', all_columns=False, overwrite=True)
 
 	assert status
 	assert os.path.isfile(obj.fp_photoobj)
 	assert len(obj.photoobj) == 1
 	assert len(obj.photoobj.colnames) > 1
+
+	for col in columns:
+		for b in bands:
+			assert b+col in obj.photoobj.colnames
+
+	columns = ['mag_kron', 'mag_kron_err']
+	status = obj.load_photoobj(columns=columns, bands=[], catalog='forced', all_columns=False, overwrite=True)
+
+	assert status
+	assert os.path.isfile(obj.fp_photoobj)
+	assert len(obj.photoobj) == 1
+	assert len(obj.photoobj.colnames) > 1
+
+	for col in columns:
+		for b in bands:
+			assert b+col in obj.photoobj.colnames
 
 
 def test_HSCObj_loadphotoobj_catalog(obj_dirobj):

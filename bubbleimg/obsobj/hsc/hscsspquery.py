@@ -67,10 +67,9 @@ def hscSspQuery_retry(n_trials=5, **kwargs):
         try:
             hscSspQuery(**kwargs)
             break
-        except (urllib2.HTTPError, urllib2.URLError) as err:
-            print("[hscsspquery] retrying as error detected")
-            print(str(err))
-            pass
+        except (urllib2.HTTPError, urllib2.URLError) as e:
+            print("[hscsspquery] retrying as error detected: "+str(e))
+
 
 def hscSspQuery(sql, filename_out='results.csv', **kwargs):
 

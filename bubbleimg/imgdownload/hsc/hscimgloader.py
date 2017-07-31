@@ -142,7 +142,7 @@ class hscimgLoader(imgLoader):
 		return self._imgLoader__make_files_core(func_download_file=self._download_stamp, func_naming_file=self.get_fn_stamp, overwrite=overwrite, **kwargs)
 
 
-	def _download_stamp(self, band, imgtype='coadd', tract='', rerun='', tokeepraw=False):
+	def _download_stamp(self, band, imgtype='coadd', tract='', rerun='', tokeepraw=False, n_trials=5):
 		"""
 		download hsc cutout img using HSC DAS Querry. Provides only ra, dec to DAS Querry and download the default coadd. always overwrite. 
 
@@ -159,7 +159,11 @@ class hscimgLoader(imgLoader):
 		imgtype='coadd'
 		tract=''
 		rerun = self.rerun
-		tokeepraw=False (bool): whether to keep the downloaded raw HSC image, which has four extensions. 
+		tokeepraw = False (bool): 
+			whether to keep the downloaded raw HSC image, which has four extensions. 
+		n_trials=5
+			how many times to retry requesting if there is requests errors such as connection error. 
+
 
 		Return
 		----------
@@ -181,7 +185,8 @@ class hscimgLoader(imgLoader):
 
 		# query, download, and convert to new unit
 		# writing two files (if successful): raw img file and stamp img file. 
-		rqst = requests.get(url, auth=(self.__username, self.__password))
+		rqst = self._retry_request(url, n_trials=n_trials)
+
 		if rqst.status_code == 200:
 			fp_raw = self._write_request_to_file(rqst)
 			self._write_fits_unit_specified_in_nanomaggy(filein=fp_raw, fileout=fp_out)
@@ -220,7 +225,7 @@ class hscimgLoader(imgLoader):
 		return self._imgLoader__make_files_core(func_download_file=self._download_psf, func_naming_file=self.get_fn_psf, overwrite=overwrite, **kwargs)
 
 
-	def _download_psf(self, band, imgtype='coadd', rerun='', tract='', patch_s=''):
+	def _download_psf(self, band, imgtype='coadd', rerun='', tract='', patch_s='', n_trials=5):
 		"""
 		download hsc cutout img using HSC DAS Querry. Provides only ra, dec to DAS Querry and download the default coadd. always overwrite. If rerun not specified then use self.rerun. 
 
@@ -234,6 +239,8 @@ class hscimgLoader(imgLoader):
 		rerun=self.rerun
 		tract=''
 		patch_s=''
+		n_trials=5
+			how many times to retry requesting if there is requests errors such as connection error. 
 
 		Return
 		----------
@@ -249,7 +256,8 @@ class hscimgLoader(imgLoader):
 		url = hscurl.get_hsc_psf_url(ra=self.ra, dec=self.dec, band=band, rerun=rerun, tract=tract, patch=patch_s, imgtype=imgtype)
 
 		# download
-		rqst = requests.get(url, auth=(self.__username, self.__password))
+		rqst = self._retry_request(url, n_trials=n_trials)
+
 		if rqst.status_code == 200:
 			self._write_request_to_file(rqst, fn=os.path.basename(fp_out))
 
@@ -257,6 +265,19 @@ class hscimgLoader(imgLoader):
 		else:  
 			print("[hscimgloader] psf cannot be retrieved")
 			return False
+
+
+	def _retry_request(self, url, n_trials=5):
+		"""
+		request url and retries for up to n_trials times if requests exceptions are raised, such as ConnectionErrors. Uses self.__username self.__password as authentication. 
+		"""
+		for _ in range(n_trials):
+			try:
+				rqst = requests.get(url, auth=(self.__username, self.__password))
+				return rqst
+				break
+			except requests.exceptions.RequestException as e:
+				print("[hscimgloader] retrying as error detected: "+str(e))
 
 
 	def _write_request_to_file(self, rqst, fn=''):

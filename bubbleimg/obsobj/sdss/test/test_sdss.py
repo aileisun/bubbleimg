@@ -20,10 +20,10 @@ def setUp_tearDown():
 	if os.path.isdir(dir_parent):
 		shutil.rmtree(dir_parent)
 
-	yield
-	# tear down
-	if os.path.isdir(dir_parent):
-		shutil.rmtree(dir_parent)
+	# yield
+	# # tear down
+	# if os.path.isdir(dir_parent):
+	# 	shutil.rmtree(dir_parent)
 
 
 @pytest.fixture
@@ -126,8 +126,6 @@ def test_SDSSObj_photoobj_fails():
 	assert not os.path.isfile(fn)
 
 
-
-
 def test_SDSSObj_make_spec_writefile(obj_dirobj):
 	obj = obj_dirobj
 	fn = obj.dir_obj+'spec.fits'
@@ -174,3 +172,10 @@ def test_SDSSObj_search_radius():
 
 	assert obj.search_radius == search_radius
 
+
+def test_SDSSObj_make_spec(obj_dirobj):
+	obj = obj_dirobj
+	status = obj.make_spec(overwrite=True)
+
+	assert status
+	assert os.path.isfile(obj.dir_obj + 'spec.fits')

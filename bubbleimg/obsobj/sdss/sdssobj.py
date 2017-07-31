@@ -31,7 +31,7 @@ class sdssObj(plainObj):
 		/or 
 			dir_parent (string): attr dir_obj is set to dir_parent+'SDSSJXXXX+XXXX/'
 
-		data_release = 13:
+		data_release = 12:
 			which sdss data release to use
 
 		search_radius = 2.* u.arcsec
@@ -57,7 +57,7 @@ class sdssObj(plainObj):
 		
 		"""
 		super(self.__class__, self).__init__(**kwargs)
-		self.data_release = kwargs.pop('data_release', 13)
+		self.data_release = kwargs.pop('data_release', 12)
 		self.search_radius = kwargs.pop('search_radius', 2.*u.arcsec)
 
 		writefile = kwargs.pop('writefile', True)
@@ -144,14 +144,14 @@ class sdssObj(plainObj):
 
 			# Retrieving  sdss ids of the spec sciencePrimary 
 			if result is not None:
-				xid=result[result['sciencePrimary']==1]
-				if len(xid)==1:
+				xid = result[result['sciencePrimary'] == 1]
+				if len(xid) == 1:
 					print "[sdssobj] science primary object found"
-				elif len(xid)>1:
+				elif len(xid) > 1:
 					print "[sdssobj] multiple science primary object found, choose the closest one"
 					cspecs = [SkyCoord(row['ra'], row['dec'], 'icrs', unit='deg') for row in xid]
 					print "[sdssobj] science primary object found"
-					a=np.array([c.separation(cspec).value for cspec in cspecs])
+					a = np.array([c.separation(cspec).value for cspec in cspecs])
 					xid = at.Table(xid[np.argmin(a)])
 				else:
 					print "[sdssobj] no science primary found or duplicate"
