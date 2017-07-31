@@ -213,7 +213,7 @@ class imgLoader(obsobj.Operator):
 			raise ValueError('self.img_height has no angular units')
 
 
-	def add_obj_sdss(self, update=False):
+	def add_obj_sdss(self, overwrite=False):
 		""" 
 		if self.obj does not exist create self.obj as an instance of obsObj
 		if self.obj does not have sdss then call add_sdss(), which makes self.obj.sdss.xid, etc. 
@@ -223,11 +223,11 @@ class imgLoader(obsobj.Operator):
 		------
 		status: True if success, False if not
 		"""
-		if (not hasattr(self, 'obj')) or update:
+		if (not hasattr(self, 'obj')):
 			self.obj = obsobj.obsObj(ra=self.ra, dec=self.dec, dir_obj=self.dir_obj)
 
-		if (not hasattr(self.obj, 'sdss')) or update:
-			status = self.obj.add_sdss()
+		if (not hasattr(self.obj, 'sdss')) or overwrite:
+			status = self.obj.add_sdss(overwrite=overwrite)
 		else: 
 			status = True
 
@@ -238,7 +238,7 @@ class imgLoader(obsobj.Operator):
 		return status
 
 
-	def add_obj_hsc(self, update=False, **kwargs):
+	def add_obj_hsc(self, overwrite=False, **kwargs):
 		""" 
 		if self.obj does not exist create self.obj as an instance of obsObj
 		if self.obj does not have hsc then call add_hsc(), which makes self.obj.hsc.xid, etc. 
@@ -248,11 +248,11 @@ class imgLoader(obsobj.Operator):
 		------
 		status: True if success, False if not
 		"""
-		if (not hasattr(self, 'obj')) or update:
+		if (not hasattr(self, 'obj')):
 			self.obj = obsobj.obsObj(ra=self.ra, dec=self.dec, dir_obj=self.dir_obj)
 
-		if (not hasattr(self.obj, 'hsc')) or update:
-			status = self.obj.add_hsc(**kwargs)
+		if (not hasattr(self.obj, 'hsc')) or overwrite:
+			status = self.obj.add_hsc(overwrite=overwrite, **kwargs)
 		else:
 			status = True
 

@@ -118,6 +118,7 @@ def test_make_stamps_overwriteTrue(L_radec):
 	if os.path.isfile(file):
 		os.remove(file)
 	open(file, 'w').close()
+	assert os.stat(file).st_size == 0
 
 	L.make_stamps(overwrite=overwrite)
 	assert os.path.isfile(file)

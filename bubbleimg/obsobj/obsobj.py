@@ -31,14 +31,14 @@ class obsObj(plainObj):
 		super(self.__class__, self).__init__(**kwargs)
 
 
-	def add_sdss(self, **kwargs):
+	def add_sdss(self, overwrite=False, **kwargs):
 
-		self.sdss = sdssObj(ra=self.ra, dec=self.dec, dir_obj=self.dir_obj, obj_naming_sys=self.obj_naming_sys, **kwargs)
+		self.sdss = sdssObj(ra=self.ra, dec=self.dec, dir_obj=self.dir_obj, obj_naming_sys=self.obj_naming_sys, overwrite=overwrite, **kwargs)
 
 		return self.sdss.status
 
 
-	def add_hsc(self, **kwargs):
-		self.hsc = hscObj(ra=self.ra, dec=self.dec, dir_obj=self.dir_obj, obj_naming_sys=self.obj_naming_sys, **kwargs)
+	def add_hsc(self, overwrite=False, **kwargs):
+		self.hsc = hscObj(ra=self.ra, dec=self.dec, dir_obj=self.dir_obj, obj_naming_sys=self.obj_naming_sys, overwrite=overwrite, **kwargs)
 
 		return self.hsc.status

@@ -192,6 +192,19 @@ def test_SDSSObj_make_spec_overwrite(obj_dirobj):
 	spec = obj.make_spec(overwrite=True)
 	assert os.path.isfile(fn)
 
+	# when file does exist it overwrites stamp
+	if os.path.isfile(fn):
+		os.remove(fn)
+	open(fn, 'w').close()
+	assert os.stat(fn).st_size == 0
+
+	spec = obj.make_spec(overwrite=False)
+	assert os.stat(fn).st_size == 0
+
+	spec = obj.make_spec(overwrite=True)
+	assert os.path.isfile(fn)
+	assert os.stat(fn).st_size > 0
+
 
 def test_SDSSObj_get_speclcoord(obj_dirobj):
 	obj = obj_dirobj

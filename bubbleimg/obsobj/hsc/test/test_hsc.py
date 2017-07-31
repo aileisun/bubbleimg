@@ -71,8 +71,13 @@ def test_HSCObj_xid(obj_dirobj):
 	assert obj.tract == 9564
 	assert obj.patch == 703
 
+	fn = obj.dir_obj+'hsc_xid.csv'
+	fxid = at.Table.read(fn, format='csv')
+	assert np.absolute(fxid['ra'][0] - ra) < 0.0003
+	assert fxid['tract'][0] == 9564
 
-def test_HSCObj_xid_writefile(obj_dirobj):
+
+def test_HSCObj_xid_overwrite(obj_dirobj):
 
 	obj = obj_dirobj
 	fn = obj.dir_obj+'hsc_xid.csv'
@@ -81,15 +86,22 @@ def test_HSCObj_xid_writefile(obj_dirobj):
 		os.remove(fn)
 	assert not os.path.isfile(fn)
 
-	status = obj.load_xid()
-
-	assert status
-	assert np.absolute(obj.xid['ra'][0] - ra) < 0.0003
+	status = obj.load_xid(overwrite=True)
 
 	assert os.path.isfile(fn)
+	
+	# when file does exist it overwrites stamp
+	if os.path.isfile(fn):
+		os.remove(fn)
+	open(fn, 'w').close()
+	assert os.stat(fn).st_size == 0
 
-	fxid = at.Table.read(fn, format='csv')
-	assert np.absolute(fxid['ra'][0] - ra) < 0.0003
+	status = obj.load_xid(overwrite=False)
+	assert os.stat(fn).st_size == 0
+
+	status = obj.load_xid(overwrite=True)
+	assert os.path.isfile(fn)
+	assert os.stat(fn).st_size > 0
 
 
 def test_HSCObj_xid_fails():
@@ -234,3 +246,32 @@ def test_HSCObj_xid_sanity_check(obj_dirobj_twohscsource):
 	xid['ra'][0] = xid['ra'][0] + 0.05
 	with pytest.raises(Exception):
 		obj._xid_sanity_check(xid)
+
+
+def test_HSCObj_photoobj_overwrite(obj_dirobj):
+
+	obj = obj_dirobj
+	fn = obj.dir_obj+'hsc_photoobj.csv'
+
+	if os.path.isfile(fn):
+		os.remove(fn)
+	assert not os.path.isfile(fn)
+
+	status = obj.load_photoobj(overwrite=True)
+
+	assert os.path.isfile(fn)
+	assert obj.photoobj['object_id'][0] == 42063891789801134
+
+	tab = at.Table.read(fn)
+	tab['object_id'][0] = 0
+	tab.write(fn, format='ascii.csv', overwrite=True)
+	
+	status = obj.load_photoobj(overwrite=False)
+	assert obj.photoobj['object_id'][0] == 0
+	tab = at.Table.read(fn)
+	assert tab['object_id'][0] == 0
+
+	status = obj.load_photoobj(overwrite=True)
+	assert obj.photoobj['object_id'][0] == 42063891789801134
+	tab = at.Table.read(fn)
+	assert tab['object_id'][0] == 42063891789801134

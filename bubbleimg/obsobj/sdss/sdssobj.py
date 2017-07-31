@@ -40,7 +40,7 @@ class sdssObj(plainObj):
 		search_radius = 2.* u.arcsec
 
 		overwrite=False (bool): 
-			If true, load xid remotely and rewrite local sdss_xid.csv. If false, ready local sdss_xid.csv whenever it eixsts, if not, then load remotely and save to local sdss_xid.csv. 
+			If true, load xid remotely and rewrite local xid.csv. If false, ready local sdss_xid.csv whenever it eixsts, if not, then load remotely and save to local xid.csv. 
 
 		Attributes
 		----------
@@ -64,19 +64,18 @@ class sdssObj(plainObj):
 		self.fp_photoobj = self.dir_obj+'sdss_photoobj.csv'
 		self.fn_spec = self.dir_obj+'spec.fits'
 
-		overwrite = kwargs.pop('overwrite', True)
+		overwrite = kwargs.pop('overwrite', False)
+		self.load_xid(overwrite=overwrite)
 
-		self.status = self.load_xid(overwrite=overwrite)
 
-
-	def load_xid(self, overwrite=True):
+	def load_xid(self, overwrite=False):
 		"""
 		load xid either locally or remotely and add it as attribute self.xid
 
 		Params
 		------
 		self 
-		overwrite=True: 
+		overwrite=False: 
 			If true then always load xid remotely and rewrites local file "sdss_xid.csv". Otherwise, read locally whenever possible. 
 
 		Return
@@ -98,7 +97,7 @@ class sdssObj(plainObj):
 		return status
 
 
-	def _get_xid(self, overwrite=True):
+	def _get_xid(self, overwrite=False):
 		"""
 		return xid. 
 		If overwrite == true then always load xid remotely and rewrites local file "sdss_xid.csv". Otherwise, read locally whenever file exists or load remotely and write file if not. 
@@ -109,7 +108,7 @@ class sdssObj(plainObj):
 		self: obj
 			contains: 
 			self.dir_obj, self.ra, self.dec
-		overwrite=True
+		overwrite=False
 
 		Returns:
 		------
@@ -391,30 +390,9 @@ def _retry_sdss_query(func_query, n_trials=5, **kwargs_query):
 			break
 		except Exception as e:
 			print("[sdssobj] retrying as error detected: "+str(e))
+
+
 		# except requests.exceptions.RequestException as e:
 		# 	print("[sdssobj] retrying as error detected: "+str(e))
 
 
-
-	# 		sp = astroquery.sdss.SDSS.get_spectra(matches=self.xid, data_release=self.data_release)
-
-	# for _ in range(n_trials):
-	# 	try:
-	# 		rqst = requests.get(url, auth=(self.__username, self.__password))
-	# 		return rqst
-	# 		break
-	# 	except requests.exceptions.RequestException as e:
-	# 		print("[hscimgloader] retrying as error detected: "+str(e))
-
-
-	# def _retry_request(self, url, n_trials=5):
-	# 	"""
-	# 	request url and retries for up to n_trials times if requests exceptions are raised, such as ConnectionErrors. Uses self.__username self.__password as authentication. 
-	# 	"""
-	# 	for _ in range(n_trials):
-	# 		try:
-	# 			rqst = requests.get(url, auth=(self.__username, self.__password))
-	# 			return rqst
-	# 			break
-	# 		except requests.exceptions.RequestException as e:
-	# 			print("[hscimgloader] retrying as error detected: "+str(e))

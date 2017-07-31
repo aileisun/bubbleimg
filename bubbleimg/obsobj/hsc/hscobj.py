@@ -44,8 +44,14 @@ class hscObj(plainObj):
 			dir_parent (string): attr dir_obj is set to dir_parent+'SDSSJXXXX+XXXX/'
 		
 		rerun = 's16a_wide' (string): which data base to search for
+
 		data_release = 'dr1' (string): which data base to search for
+
 		search_radius = 2.* u.arcsec
+
+		overwrite=False (bool): 
+			If true, load xid remotely and rewrite local xid.csv. If false, ready local sdss_xid.csv whenever it eixsts, if not, then load remotely and save to local xid.csv. 
+
 
 		Attributes
 		----------
@@ -56,7 +62,8 @@ class hscObj(plainObj):
 		data_release (string): e.g., 'dr1'
 		search_radius (angle quantity object)
 
-		status (whether the xid and photoboj query were successful)
+		status: 
+			whether the xid query was successful
 
 		optional attr (if querry successful):
 			xid
@@ -70,17 +77,18 @@ class hscObj(plainObj):
 		self.fp_xid = self.dir_obj+'hsc_xid.csv'
 		self.fp_photoobj = self.dir_obj+'hsc_photoobj.csv'
 
-		self.status = self.load_xid()
+		overwrite = kwargs.pop('overwrite', False)
+		self.load_xid(overwrite=overwrite)
 
 
-	def load_xid(self, overwrite=True):
+	def load_xid(self, overwrite=False):
 		"""
 		load xid either locally or remotely and add it as attribute self.xid
 
 		Params
 		------
 		self 
-		overwrite=True: 
+		overwrite=False: 
 			If true then always load xid remotely and rewrites local file "sdss_xid.csv". Otherwise, read locally whenever possible. 
 
 
@@ -88,7 +96,7 @@ class hscObj(plainObj):
 		------
 		status (bool): if true then the loading was successful, false if not
 		"""
-		xid = self._get_xid()
+		xid = self._get_xid(overwrite=overwrite)
 
 		if xid is not None:
 			self.xid = xid
@@ -104,10 +112,10 @@ class hscObj(plainObj):
 		return status
 
 
-	def _get_xid(self):
+	def _get_xid(self, overwrite=False):
 		"""
 		return xid.
-		Read xid locally if self.dir_obj+'hsc_xid.csv' exist. Otherwise query. 
+		If overwrite == true then always load xid remotely and rewrites local file "sdss_xid.csv". Otherwise, read locally whenever file exists or load remotely and write file if not. 
 
 		Params
 		------
@@ -124,16 +132,15 @@ class hscObj(plainObj):
 
 		fn = self.fp_xid
 
-		if os.path.isfile(fn): # retrieve xid locally
-			print "[hscObj] reading xid locally"
-		else: # download xid from sdss
+		if not os.path.isfile(fn) or overwrite: # download xid from sdss
 			print "[hscObj] querying xid from server"
 			self.make_dir_obj()	
 			sql = _get_xid_sql(ra=self.ra, dec=self.dec, rerun=self.rerun, search_radius=self.search_radius)
 			hscsspquery.hscSspQuery_retry(n_trials=5, sql=sql, filename_out=fn, release_version=self.data_release)
-			# hscSspQuery(sql=sql, filename_out=fn, release_version=data_release)
+		else: # retrieve xid locally
+			print "[hscObj] reading xid locally"
 
-		if os.path.isfile(fn): # retrieve xid locally
+		if os.path.isfile(fn): 
 			if os.stat(fn).st_size > 0:
 				xid = at.Table.read(fn, format='ascii.csv', comment='#')
 
@@ -149,12 +156,14 @@ class hscObj(plainObj):
 
 				elif len(xid) < 1:
 					print "[hscObj] no object found"
-					os.remove(fn)
+					if overwrite:
+						os.remove(fn)
 					return None
 
 			else: 
 				print "[hscObj] no object found"
-				os.remove(fn)
+				if overwrite:
+					os.remove(fn)
 				return None
 		else: 
 			print "[hscObj] query failed"
@@ -286,7 +295,7 @@ class hscObj(plainObj):
 				return None
 		else:
 			print "[hscobj] reading hsc_photoobj locally"
-			photoobj = at.Table.read(fn, format='ascii.csv',comment='#')
+			photoobj = at.Table.read(fn, format='ascii.csv', comment='#')
 			return photoobj
 
 
