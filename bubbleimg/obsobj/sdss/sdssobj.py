@@ -12,7 +12,7 @@ import astropy.table as at
 from astropy.io import fits
 import astropy.units as u
 import astropy.io.ascii
-
+import requests
 
 from ..plainobj import plainObj
 
@@ -62,6 +62,7 @@ class sdssObj(plainObj):
 		self.search_radius = kwargs.pop('search_radius', 2.*u.arcsec)
 
 		self.fp_photoobj = self.dir_obj+'sdss_photoobj.csv'
+		self.fn_spec = self.dir_obj+'spec.fits'
 
 		overwrite = kwargs.pop('overwrite', True)
 
@@ -129,7 +130,13 @@ class sdssObj(plainObj):
 			# download xid from sdss
 			print "[sdssobj] querying xid from SDSS"
 			c = ac.SkyCoord(self.ra, self.dec, 'icrs', unit='deg')
-			result = astroquery.sdss.SDSS.query_region(c, spectro=True, photoobj_fields=photoobj_defs, specobj_fields=specobj_defs, data_release=self.data_release, radius=self.search_radius)
+			# result = astroquery.sdss.SDSS.query_region(c, spectro=True, photoobj_fields=photoobj_defs, specobj_fields=specobj_defs, data_release=self.data_release, radius=self.search_radius)
+
+			func_query = astroquery.sdss.SDSS.query_region
+			kwargs_query = dict(coordinates=c, spectro=True, photoobj_fields=photoobj_defs, specobj_fields=specobj_defs, data_release=self.data_release, radius=self.search_radius)
+			result = _retry_sdss_query(func_query, n_trials=5, **kwargs_query)
+
+
 
 			# Retrieving  sdss ids of the spec sciencePrimary 
 			if result is not None:
@@ -241,7 +248,11 @@ class sdssObj(plainObj):
 		if not os.path.isfile(fn) or overwrite:
 			print "[sdssobj] querying photoobj from SDSS"
 			sql_query = "SELECT p.* FROM PhotoObj AS p WHERE p.objid="+str(self.objid)
-			photoobj = astroquery.sdss.SDSS.query_sql(sql_query, data_release=self.data_release)
+			# photoobj = astroquery.sdss.SDSS.query_sql(sql_query, data_release=self.data_release)
+
+			func_query = astroquery.sdss.SDSS.query_sql
+			kwargs_query = dict(sql_query=sql_query, data_release=self.data_release)
+			photoobj = _retry_sdss_query(func_query, n_trials=5, **kwargs_query)
 
 			if len(photoobj) > 0 :
 				self.make_dir_obj()
@@ -275,7 +286,7 @@ class sdssObj(plainObj):
 		sp (hdulist) or None if it fails
 
 		"""
-		fn = self.dir_obj+self.get_spec_filename()
+		fn = self.fn_spec
 
 		if not os.path.isfile(fn):
 			self.make_spec(overwrite=False)
@@ -315,12 +326,16 @@ class sdssObj(plainObj):
 
 		"""
 		self.make_dir_obj()		
-		fn = self.dir_obj+self.get_spec_filename()
+		fn = self.fn_spec
 
 		if self.status: 
 			if not os.path.isfile(fn) or overwrite: 
 				print "[sdssObj] download spec"
-				sp = astroquery.sdss.SDSS.get_spectra(matches=self.xid, data_release=self.data_release)
+				# sp = astroquery.sdss.SDSS.get_spectra(matches=self.xid, data_release=self.data_release)
+				func_query = astroquery.sdss.SDSS.get_spectra
+				kwargs_query = dict(matches=self.xid, data_release=self.data_release)
+				sp = _retry_sdss_query(func_query, n_trials=5, **kwargs_query)
+
 				if len(sp) == 1: 
 					sp=sp[0]
 					self.make_dir_obj()
@@ -365,6 +380,40 @@ class sdssObj(plainObj):
 			return spec*u_spec, lcoord*u_lcoord
 
 
-	def get_spec_filename(self):
-		return 'spec.fits'
+def _retry_sdss_query(func_query, n_trials=5, **kwargs_query):
+	"""
+	run sdss query and retries for up to n_trials times if requests exceptions are raised, such as ConnectionErrors. Input the desired request using func_query and **kwargs_query. 
+	"""
 
+	for _ in range(n_trials):
+		try:
+			results = func_query(**kwargs_query)
+			return results
+			break
+		except requests.exceptions.RequestException as e:
+			print("[sdssobj] retrying as error detected: "+str(e))
+
+
+
+	# 		sp = astroquery.sdss.SDSS.get_spectra(matches=self.xid, data_release=self.data_release)
+
+	# for _ in range(n_trials):
+	# 	try:
+	# 		rqst = requests.get(url, auth=(self.__username, self.__password))
+	# 		return rqst
+	# 		break
+	# 	except requests.exceptions.RequestException as e:
+	# 		print("[hscimgloader] retrying as error detected: "+str(e))
+
+
+	# def _retry_request(self, url, n_trials=5):
+	# 	"""
+	# 	request url and retries for up to n_trials times if requests exceptions are raised, such as ConnectionErrors. Uses self.__username self.__password as authentication. 
+	# 	"""
+	# 	for _ in range(n_trials):
+	# 		try:
+	# 			rqst = requests.get(url, auth=(self.__username, self.__password))
+	# 			return rqst
+	# 			break
+	# 		except requests.exceptions.RequestException as e:
+	# 			print("[hscimgloader] retrying as error detected: "+str(e))
