@@ -73,9 +73,134 @@ class hscObj(plainObj):
 		self.status = self.load_xid()
 
 
+	def load_xid(self, overwrite=True):
+		"""
+		load xid either locally or remotely and add it as attribute self.xid
+
+		Params
+		------
+		self 
+		overwrite=True: 
+			If true then always load xid remotely and rewrites local file "sdss_xid.csv". Otherwise, read locally whenever possible. 
+
+
+		Return
+		------
+		status (bool): if true then the loading was successful, false if not
+		"""
+		xid = self._get_xid(overwrite=overwrite)
+
+		if xid is not None:
+			self.xid = xid
+			for col in xid.colnames: 
+				# setting xid attributes 
+				setattr(self, col, xid[col][0])
+
+			status = True
+		else: 
+			status = False
+
+		self.status = status
+		return status
+
+
+	def _get_xid(self):
+		"""
+		return xid.
+		Read xid locally if self.dir_obj+'hsc_xid.csv' exist. Otherwise query. 
+
+		Params
+		------
+		self
+
+		Returns:
+		------
+		xid: table, or None if failed
+
+		Write Output: (optional)
+		------
+		self.dir_obj+'xid.csv'
+		"""
+
+		fn = self.fp_xid
+
+		if os.path.isfile(fn): # retrieve xid locally
+			print "[hscObj] reading xid locally"
+		else: # download xid from sdss
+			print "[hscObj] querying xid from server"
+			self.make_dir_obj()	
+			sql = _get_xid_sql(ra=self.ra, dec=self.dec, rerun=self.rerun, search_radius=self.search_radius)
+			hscsspquery.hscSspQuery_retry(n_trials=5, sql=sql, filename_out=fn, release_version=self.data_release)
+			# hscSspQuery(sql=sql, filename_out=fn, release_version=data_release)
+
+		if os.path.isfile(fn): # retrieve xid locally
+			if os.stat(fn).st_size > 0:
+				xid = at.Table.read(fn, format='ascii.csv', comment='#')
+
+				if len(xid) == 1:
+					self._xid_sanity_check(xid)
+					return xid
+
+				elif len(xid) > 1: 
+					xid = self._resolve_multiple_sources(xid)
+					self._xid_sanity_check(xid)
+					xid.write(fn, format='ascii.csv', overwrite=True)
+					return xid
+
+				elif len(xid) < 1:
+					print "[hscObj] no object found"
+					os.remove(fn)
+					return None
+
+			else: 
+				print "[hscObj] no object found"
+				os.remove(fn)
+				return None
+		else: 
+			print "[hscObj] query failed"
+			return None
+
+
+	def _xid_sanity_check(self, xid):
+		"""
+		check whether:
+			1. xid has one unique row
+			2. ra, dec consistent with self.ra, self.dec (within self.search_radius). 
+			3. detect_primary, detect_is_patch_inner, detect_is_tract_inner are all true
+
+		Raised Exception when any of the checks did not pass. Return None. 
+		"""
+		# 1) 
+		if (len(xid) != 1):
+			raise Exception("[hscObj] xid not unique")
+
+		# 2)
+		cself = ac.SkyCoord(self.ra, self.dec, 'icrs', unit='deg')
+		cxid = ac.SkyCoord(xid['ra'], xid['dec'], 'icrs', unit='deg')
+		sep = cself.separation(cxid)
+		if sep > self.search_radius:
+			raise Exception("[hscObj] xid coordinate inconsistent with object")
+
+		# 3) 
+		detect_check = [xid[col][0] == 't' for col in ['detect_is_patch_inner', 'detect_is_tract_inner', 'detect_is_primary']]
+		if not all(detect_check):
+			raise Exception("[hscObj] detect is not primary or inner patch/tract") 
+
+
+	def _resolve_multiple_sources(self, xid):
+		""" return the xid with only the row that is closest to self.ra, dec"""
+		print "[hscObj] multiple primary objects found, choose the closest one"
+		c = ac.SkyCoord(self.ra, self.dec, 'icrs', unit='deg')
+		crows = [ac.SkyCoord(row['ra'], row['dec'], 'icrs', unit='deg') for row in xid]
+		
+		a = np.array([c.separation(crow).value for crow in crows])
+		xid = at.Table(xid[np.argmin(a)])
+		return xid
+
+
 	def load_photoobj(self, columns=[], bands=[], catalog='forced', all_columns=False, overwrite=False):
 		"""
-		load hsc photometry table either locally or remotely and add it as attribute self.photoobj
+		load hsc photometry table either locally or remotely, depending on whether local file exists and if overwrite=True, and add it as attribute self.photoobj. 
 
 		Params
 		------
@@ -104,7 +229,7 @@ class hscObj(plainObj):
 		if not hasattr(self, 'xid'):
 			self.load_xid()
 
-		if self.status == True: 
+		if self.status: 
 			photoobj = self._get_photoobj(columns=columns, bands=bands, catalog=catalog, all_columns=all_columns, rerun=self.rerun, data_release=self.data_release, overwrite=overwrite)
 
 			if photoobj is not None:
@@ -120,7 +245,7 @@ class hscObj(plainObj):
 
 	def _get_photoobj(self, columns=[], bands=[], all_columns=False, catalog='forced', rerun='s16a_wide', data_release='dr1', overwrite=False):
 		"""
-		return photoobj, assuming that xid is successfully loaded.
+		return photoobj.
 		Read photoobj locally if self.dir_obj+'hsc_xid.csv' exist. Otherwise query. 
 
 		Params
@@ -165,125 +290,6 @@ class hscObj(plainObj):
 			return photoobj
 
 
-
-	def load_xid(self):
-		"""
-		load xid either locally or remotely and add it as attribute self.xid
-
-		Params
-		------
-		self 
-
-		Return
-		------
-		status (bool): if true then the loading was successful, false if not
-		"""
-		xid = self._get_xid(rerun=self.rerun, data_release=self.data_release)
-
-		if xid is not None:
-			self.xid = xid
-			for col in xid.colnames: 
-				# setting xid attributes 
-				setattr(self, col, xid[col][0])
-			return True
-		else: 
-			return False
-
-
-	def _get_xid(self, rerun='s16a_wide', data_release='dr1'):
-		"""
-		return xid.
-		Read xid locally if self.dir_obj+'hsc_xid.csv' exist. Otherwise query. 
-
-		Parameters
-		------
-		self: obj
-			contains: 
-			self.dir_obj, self.ra, self.dec
-
-		Returns:
-		------
-		xid: table, or None if failed
-
-		Write Output: (optional)
-		------
-		self.dir_obj+'xid.csv'
-		"""
-
-		fn = self.fp_xid
-
-		if os.path.isfile(fn): # retrieve xid locally
-			print "[hscObj] reading xid locally"
-		else: # download xid from sdss
-			print "[hscObj] querying xid from server"
-			self.make_dir_obj()	
-			sql = _get_xid_sql(ra=self.ra, dec=self.dec, rerun=rerun, search_radius=self.search_radius)
-			hscsspquery.hscSspQuery_retry(n_trials=5, sql=sql, filename_out=fn, release_version=data_release)
-			# hscSspQuery(sql=sql, filename_out=fn, release_version=data_release)
-
-		if os.path.isfile(fn): # retrieve xid locally
-			if os.stat(fn).st_size > 0:
-				xid = at.Table.read(fn, format='ascii.csv', comment='#')
-
-				if len(xid) == 1:
-					self._xid_sanity_check(xid)
-					return xid
-
-				elif len(xid) > 1: 
-					xid = self._resolve_multiple_sources(xid)
-					self._xid_sanity_check(xid)
-					xid.write(fn, format='ascii.csv', overwrite=True)
-					return xid
-
-				elif len(xid) < 1:
-					print "[hscObj] no object found"
-					os.remove(fn)
-					return None
-
-			else: 
-				print "[hscObj] no object found"
-				os.remove(fn)
-				return None
-		else: 
-			print "[hscObj] query failed"
-			return None
-
-
-	def _xid_sanity_check(self, xid):
-		"""
-		check whether:
-			1. xid has one unique row
-			2. detect_primary, detect_is_patch_inner, detect_is_tract_inner are all true
-			3. ra, dec consistent with self.ra, self.dec (within self.search_radius). 
-
-		Raised Exception when any of the checks did not pass. Return None. 
-		"""
-		# 1) 
-		if (len(xid) != 1):
-			raise Exception("[hscObj] xid not unique")
-
-		# 2) 
-		detect_check = [xid[col][0] == 't' for col in ['detect_is_patch_inner', 'detect_is_tract_inner', 'detect_is_primary']]
-		if not all(detect_check):
-			raise Exception("[hscObj] detect is not primary or inner patch/tract") 
-
-		# 3)
-		cself = ac.SkyCoord(self.ra, self.dec, 'icrs', unit='deg')
-		cxid = ac.SkyCoord(xid['ra'], xid['dec'], 'icrs', unit='deg')
-		sep = cself.separation(cxid)
-		if sep > self.search_radius:
-			raise Exception("[hscObj] xid coordinate inconsistent with object")
-
-
-	def _resolve_multiple_sources(self, xid):
-		""" return the xid with only the row that is closest to self.ra, dec"""
-		print "[hscObj] multiple primary objects found, choose the closest one"
-		c = ac.SkyCoord(self.ra, self.dec, 'icrs', unit='deg')
-		crows = [ac.SkyCoord(row['ra'], row['dec'], 'icrs', unit='deg') for row in xid]
-		
-		a = np.array([c.separation(crow).value for crow in crows])
-		xid = at.Table(xid[np.argmin(a)])
-		return xid
 
 
 def _get_xid_sql(ra, dec, search_radius=2 * u.arcsec, rerun='s16a_wide'):

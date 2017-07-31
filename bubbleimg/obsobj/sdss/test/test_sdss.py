@@ -12,6 +12,7 @@ dec = 12.7073027
 dir_obj = './testing/SDSSJ1000+1242/'
 dir_parent = './testing/'
 
+
 @pytest.fixture(scope="module", autouse=True)
 def setUp_tearDown():
 	""" rm ./testing/ and ./test2/ before and after testing"""
@@ -47,16 +48,16 @@ def test_SDSSObj_init_dir_parent():
 	assert obj.dir_obj == dir_obj
 
 
+# def test_SDSSObj_xid(obj_dirobj):
+
+# 	obj = obj_dirobj
+# 	status = obj.load_xid(overwrite=True)
+
+# 	assert status
+# 	assert round(obj.xid['ra'], 4) == round(ra, 4)
+
+
 def test_SDSSObj_xid(obj_dirobj):
-
-	obj = obj_dirobj
-	status = obj.load_xid(writefile=False)
-
-	assert status
-	assert round(obj.xid['ra'], 4) == round(ra, 4)
-
-
-def test_SDSSObj_xid_writefile(obj_dirobj):
 
 	obj = obj_dirobj
 	fn = obj.dir_obj+'sdss_xid.csv'
@@ -65,7 +66,7 @@ def test_SDSSObj_xid_writefile(obj_dirobj):
 		os.remove(fn)
 	assert not os.path.isfile(fn)
 
-	status = obj.load_xid(writefile=True)
+	status = obj.load_xid(overwrite=True)
 
 	assert status
 	assert round(obj.xid['ra'], 4) == round(ra, 4)
@@ -76,17 +77,59 @@ def test_SDSSObj_xid_writefile(obj_dirobj):
 	assert round(fxid['ra'][0], 4) == round(ra, 4)
 
 
+def test_SDSSObj_xid_overwrite():
+	ra = 34.7489566190744
+	dec = -4.04365821949229
+	dir_obj = './testing/SDSSJ0218-0402/'
+
+	run2d_dr12 = 'v5_7_0'
+	run2d_dr13 = 'v5_9_0'
+
+	if os.path.isfile(dir_obj):
+		os.remove(dir_obj)
+	assert not os.path.isfile(dir_obj)
+
+
+	obj = sdssObj(ra=ra, dec=dec, dir_obj=dir_obj, data_release=12, overwrite=True)
+
+	fn = obj.dir_obj+'sdss_xid.csv'
+
+	assert obj.status
+	assert round(obj.xid['ra'], 4) == round(ra, 4)
+	assert obj.run2d == run2d_dr12
+
+	assert os.path.isfile(fn)
+
+	fxid = at.Table.read(fn, format='csv')
+	assert fxid['run2d'][0] == run2d_dr12
+
+
+	obj = sdssObj(ra=ra, dec=dec, dir_obj=dir_obj, data_release=13, overwrite=False)
+	assert obj.run2d == run2d_dr12
+	fxid = at.Table.read(fn, format='csv')
+	assert fxid['run2d'][0] == run2d_dr12
+
+
+	obj = sdssObj(ra=ra, dec=dec, dir_obj=dir_obj, data_release=13, overwrite=True)
+
+	assert obj.run2d == run2d_dr13
+	fxid = at.Table.read(fn, format='csv')
+	assert fxid['run2d'][0] == run2d_dr13
+
+
 def test_SDSSObj_xid_fails():
 	ra = 0.
 	dec = -89.
 	obj = sdssObj(ra=ra, dec=dec, dir_obj = './badobject/')
 
-	status = obj.load_xid(writefile=True)
+	status = obj.load_xid(overwrite=True)
 
 	assert status == False
 
 	fn = obj.dir_obj+'sdss_xid.csv'
 	assert not os.path.isfile(fn)
+
+
 
 
 def test_SDSSObj_xid_conflicting_dir_obj():
@@ -100,7 +143,7 @@ def test_SDSSObj_xid_conflicting_dir_obj():
 		obj = sdssObj(ra=ra, dec=dec, dir_obj=dir_obj)
 
 
-def test_load_photoboj_writefile(obj_dirobj):
+def test_load_photoboj_overwrite(obj_dirobj):
 	obj = obj_dirobj
 	fn = obj.dir_obj+'sdss_photoobj.csv'
 
@@ -108,9 +151,21 @@ def test_load_photoboj_writefile(obj_dirobj):
 		os.remove(fn)
 	assert not os.path.isfile(fn)
 
-	status = obj.load_photoobj(writefile=True)
+	status = obj.load_photoobj(overwrite=True)
 	assert os.path.isfile(fn)
 	assert status
+
+	assert obj.photoobj['objID'][0] == 1237664106315579464
+
+	tab = at.Table.read(fn)
+	tab['objID'] = 0000000000
+	tab.write(fn, overwrite=True)
+
+	status = obj.load_photoobj(overwrite=False)
+	assert obj.photoobj['objID'][0] == 0000000000
+
+	status = obj.load_photoobj(overwrite=True)
+	assert obj.photoobj['objID'][0] == 1237664106315579464
 
 
 def test_SDSSObj_photoobj_fails():
@@ -118,7 +173,7 @@ def test_SDSSObj_photoobj_fails():
 	dec = -89.
 	obj = sdssObj(ra=ra, dec=dec, dir_obj = './badobject/')
 
-	status = obj.load_photoobj(writefile=True)
+	status = obj.load_photoobj(overwrite=True)
 
 	assert status == False
 
@@ -126,7 +181,7 @@ def test_SDSSObj_photoobj_fails():
 	assert not os.path.isfile(fn)
 
 
-def test_SDSSObj_make_spec_writefile(obj_dirobj):
+def test_SDSSObj_make_spec_overwrite(obj_dirobj):
 	obj = obj_dirobj
 	fn = obj.dir_obj+'spec.fits'
 
@@ -155,14 +210,23 @@ def test_SDSSObj_get_spec(obj_dirobj):
 
 
 def test_SDSSObj_xid_datarelease():
-	for dr in [7, 13]:
+	ra = 34.7489566190744
+	dec = -4.04365821949229
+	dir_obj = './testing/SDSSJ0218-0402/'
+
+
+	run2ds = {12: 'v5_7_0', 13: 'v5_9_0'}
+
+	for dr in [12, 13]:
 		obj = sdssObj(ra=ra, dec=dec, dir_obj=dir_obj, data_release=dr)
 		assert obj.data_release == dr
 
-		status = obj.load_xid(writefile=True)
+		status = obj.load_xid(overwrite=True)
 
 		assert status
 		assert round(obj.xid['ra'], 4) == round(ra, 4)
+
+		assert obj.run2d == run2ds[dr]
 
 
 def test_SDSSObj_search_radius():

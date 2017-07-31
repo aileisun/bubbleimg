@@ -60,7 +60,7 @@ class plainObj(object):
 			self.name = self.dir_obj.split('/')[-2]
 
 			# sanity check: dir_obj naming consistent with ra, dec
-			if (self.name[:4]=='SDSS' and self.name != get_obj_name(self.ra, self.dec, obj_naming_sys='sdss')):
+			if (self.name[:4]=='SDSS' and self.name != get_obj_name(self.ra, self.dec, obj_naming_sys=obj_naming_sys)):
 				raise Exception('dir_obj SDSS name inconsistent with ra dec')
 		elif 'dir_parent' in kwargs:
 			dir_parent = kwargs.pop('dir_parent', None)

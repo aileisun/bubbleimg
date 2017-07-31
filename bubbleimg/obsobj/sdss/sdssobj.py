@@ -6,18 +6,21 @@ define class sdssobj, which can check whether there is such an object and load x
 """
 
 import os
-from astropy.coordinates import SkyCoord
+import astropy.coordinates as ac
 import astroquery
 import astropy.table as at
 from astropy.io import fits
 import astropy.units as u
+import astropy.io.ascii
+
 
 from ..plainobj import plainObj
 
 class sdssObj(plainObj):
 	def __init__(self, **kwargs):
 		"""
-		load sdss.xid and sdss.photoboj and write files 'sdss_xid.csv', 'photoobj.csv' automatically.
+		create sdssobj
+		load sdss.xid locally or remotely, depending on whether dir_obj/sdss_xid.csv exists locally or if overwrite == True. 
 		if successful, sdss.status == True
 
 		Params
@@ -36,10 +39,8 @@ class sdssObj(plainObj):
 
 		search_radius = 2.* u.arcsec
 
-		toload_photoobj=True (bool): whether to download photoobj
-
-		writefile=True (bool): whether to write xid ( and photoobj if toload_photoobj=True)
-
+		overwrite=False (bool): 
+			If true, load xid remotely and rewrite local sdss_xid.csv. If false, ready local sdss_xid.csv whenever it eixsts, if not, then load remotely and save to local sdss_xid.csv. 
 
 		Attributes
 		----------
@@ -60,55 +61,54 @@ class sdssObj(plainObj):
 		self.data_release = kwargs.pop('data_release', 12)
 		self.search_radius = kwargs.pop('search_radius', 2.*u.arcsec)
 
-		writefile = kwargs.pop('writefile', True)
-		toload_photoobj = kwargs.pop('toload_photoobj', True)
+		self.fp_photoobj = self.dir_obj+'sdss_photoobj.csv'
 
-		statusxid = self.load_xid(writefile=writefile)
+		overwrite = kwargs.pop('overwrite', True)
 
-		if toload_photoobj:
-			statusphotoobj = self.load_photoobj(writefile=writefile)
-
-		self.status = statusxid
+		self.status = self.load_xid(overwrite=overwrite)
 
 
-	def load_xid(self, writefile=True):
+	def load_xid(self, overwrite=True):
 		"""
 		load xid either locally or remotely and add it as attribute self.xid
 
 		Params
 		------
 		self 
-		writefile=True: 
-			if true then write loaded xid to file self.dir_obj/'xid.csv', if it does not already exists
+		overwrite=True: 
+			If true then always load xid remotely and rewrites local file "sdss_xid.csv". Otherwise, read locally whenever possible. 
 
 		Return
 		------
 		status (bool): if true then the loading was successful, false if not
 		"""
-		xid = self._get_xid(writefile=writefile)
+		xid = self._get_xid(overwrite=overwrite)
 
 		if xid is not None:
 			self.xid = xid
 			for col in xid.colnames: 
-				# setting xid attributes 
-				# ra,dec,objid,run,rerun,camcol,field,z,plate,mjd,fiberID,specobjid,run2d,instrument
 				setattr(self, col, xid[col][0])
-			return True
+
+			status = True
 		else: 
-			return False
+			status = False
+
+		self.status = status
+		return status
 
 
-	def _get_xid(self, writefile=True):
+	def _get_xid(self, overwrite=True):
 		"""
-		return xid.
-		Read xid locally if self.dir_obj+'xid.csv' exist. Otherwise query sdss. 
+		return xid. 
+		If overwrite == true then always load xid remotely and rewrites local file "sdss_xid.csv". Otherwise, read locally whenever file exists or load remotely and write file if not. 
+
 
 		Parameters
 		------
 		self: obj
 			contains: 
 			self.dir_obj, self.ra, self.dec
-		writefile=True
+		overwrite=True
 
 		Returns:
 		------
@@ -123,23 +123,12 @@ class sdssObj(plainObj):
 		specobj_defs=['z', 'plate', 'mjd', 'fiberID', 'specobjid', 'run2d', 'instrument','sciencePrimary']
 
 		# define filename
-		filename = self.dir_obj+'sdss_xid.csv'
+		fn = self.dir_obj+'sdss_xid.csv'
 
-		if os.path.isfile(filename): # retrieve xid locally
-			print "[sdssobj] reading xid locally"
-			xid = at.Table.read(filename,format='ascii.csv',comment='#')
-
-			# sanity check
-			diffra = (round(xid['ra'], 2) != round(self.ra, 2))
-			diffdec = (round(xid['dec'], 2) != round(self.dec, 2))
-			if diffra or diffdec:
-				raise ValueError("local sdss_xid inconsistent with object")
-
-			return xid
-
-		else: # download xid from sdss
+		if not os.path.isfile(fn) or overwrite:
+			# download xid from sdss
 			print "[sdssobj] querying xid from SDSS"
-			c = SkyCoord(self.ra, self.dec, 'icrs', unit='deg')
+			c = ac.SkyCoord(self.ra, self.dec, 'icrs', unit='deg')
 			result = astroquery.sdss.SDSS.query_region(c, spectro=True, photoobj_fields=photoobj_defs, specobj_fields=specobj_defs, data_release=self.data_release, radius=self.search_radius)
 
 			# Retrieving  sdss ids of the spec sciencePrimary 
@@ -149,7 +138,7 @@ class sdssObj(plainObj):
 					print "[sdssobj] science primary object found"
 				elif len(xid) > 1:
 					print "[sdssobj] multiple science primary object found, choose the closest one"
-					cspecs = [SkyCoord(row['ra'], row['dec'], 'icrs', unit='deg') for row in xid]
+					cspecs = [ac.SkyCoord(row['ra'], row['dec'], 'icrs', unit='deg') for row in xid]
 					print "[sdssobj] science primary object found"
 					a = np.array([c.separation(cspec).value for cspec in cspecs])
 					xid = at.Table(xid[np.argmin(a)])
@@ -161,57 +150,110 @@ class sdssObj(plainObj):
 				xid = None
 
 			# write xid
-			if (xid is not None) and writefile:
+			if (xid is not None):
+				self._xid_sanity_check(xid)
 				self.make_dir_obj()
-				xid.write(filename,format='ascii.csv',comment='#')
+				xid.write(fn, format='ascii.csv', comment='#', overwrite=overwrite)
+
+			return xid
+
+		else: 
+			# retrieve xid locally
+			print "[sdssobj] reading xid locally"
+			xid = at.Table.read(fn, format='ascii.csv', comment='#')
+
+			if (xid is not None):
+				self._xid_sanity_check(xid)
+
 			return xid
 
 
-	def load_photoobj(self, writefile=True):
+	def _xid_sanity_check(self, xid):
 		"""
-		If self.dir_obj/PhotoObj.csv exist, load table locally. Otherwise
-		download from SDSS and save it locally. 
+		check whether:
+			1. xid has one unique row
+			2. ra, dec consistent with self.ra, self.dec (within self.search_radius). 
 
-		Parameters
-		-------
-		writefile=False: bool
-			whether to save the table
+		Raised Exception when any of the checks did not pass. Return None. 
+		"""
+		# 1) 
+		if (len(xid) != 1):
+			raise Exception("[sdssObj] xid not unique")
+
+		# 3)
+		cself = ac.SkyCoord(self.ra, self.dec, 'icrs', unit='deg')
+		cxid = ac.SkyCoord(xid['ra'], xid['dec'], 'icrs', unit='deg')
+		sep = cself.separation(cxid)
+		if sep > self.search_radius:
+			raise Exception("[sdssObj] xid coordinate inconsistent with object")
+
+
+	def load_photoobj(self, overwrite=False):
+		"""
+		load sdss photometry table either locally or remotely, depending on whether local file exists and if overwrite=True, and add it as attribute self.photoobj. 
+
+		Params
+		------
+		self
+		overwrite=False (bool)
 
 		Return 
 		------
 		status: true if photoobj successfully loaded as self.photoobj
 		"""
-		import astropy.io.ascii
 		# define filename
-		filename = self.dir_obj+'sdss_photoobj.csv'
 
 		if not hasattr(self, 'xid'):
-			xidstatus = self.load_xid(writefile=writefile)
-		else: 
-			xidstatus = True
+			self.load_xid(overwrite=overwrite)
 
-		if xidstatus:
-			if os.path.isfile(filename): 
-				print "[sdssobj] reading photoobj locally"
-				self.photoobj = at.Table.read(filename, format='ascii.csv',comment='#')
-			else:
-				print "[sdssobj] querying photoobj from SDSS"
-				# load photoobj table and store it in obj.sdss.photoobj
-				sql_query = "SELECT p.* FROM PhotoObj AS p WHERE p.objid="+str(self.objid)
-				tabphotoobj = astroquery.sdss.SDSS.query_sql(sql_query, data_release=self.data_release)
-				self.photoobj = tabphotoobj
+		if self.status:
+			photoobj = self._get_photoobj(overwrite=overwrite)
 
-				if writefile:
-					self.make_dir_obj()
-					tabphotoobj.write(filename, format='ascii.csv',comment='#')
-
-			if hasattr(self, 'photoobj') and isinstance(self.photoobj, at.Table):
+			if photoobj is not None:
+				self.photoobj = photoobj
 				return True
-			else: 
+			else:
 				return False
 		else: 
 			return False
 
+
+	def _get_photoobj(self, overwrite=True):
+		"""
+		return photoobj.
+		Read photoobj locally if self.dir_obj+'sdss_xid.csv' exist. Otherwise query. 
+
+		Params
+		------
+		overwrite=False (bool)
+
+		Returns:
+		------
+		photobj: table, or None if failed
+
+		Write Output: (optional)
+		------
+		self.fp_photoobj
+		"""
+
+		fn = self.fp_photoobj
+
+		if not os.path.isfile(fn) or overwrite:
+			print "[sdssobj] querying photoobj from SDSS"
+			sql_query = "SELECT p.* FROM PhotoObj AS p WHERE p.objid="+str(self.objid)
+			photoobj = astroquery.sdss.SDSS.query_sql(sql_query, data_release=self.data_release)
+
+			if len(photoobj) > 0 :
+				self.make_dir_obj()
+				photoobj.write(fn, format='ascii.csv', comment='#', overwrite=overwrite)
+			else:
+				photoobj = None
+
+		else: 
+			print "[sdssobj] reading photoobj locally"
+			photoobj = at.Table.read(fn, format='ascii.csv',comment='#')
+
+		return photoobj
 
 
 	def get_spec(self):
