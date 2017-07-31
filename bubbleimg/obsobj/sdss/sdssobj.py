@@ -137,7 +137,6 @@ class sdssObj(plainObj):
 			result = _retry_sdss_query(func_query, n_trials=5, **kwargs_query)
 
 
-
 			# Retrieving  sdss ids of the spec sciencePrimary 
 			if result is not None:
 				xid = result[result['sciencePrimary'] == 1]
@@ -390,8 +389,10 @@ def _retry_sdss_query(func_query, n_trials=5, **kwargs_query):
 			results = func_query(**kwargs_query)
 			return results
 			break
-		except requests.exceptions.RequestException as e:
+		except Exception as e:
 			print("[sdssobj] retrying as error detected: "+str(e))
+		# except requests.exceptions.RequestException as e:
+		# 	print("[sdssobj] retrying as error detected: "+str(e))
 
 
 
