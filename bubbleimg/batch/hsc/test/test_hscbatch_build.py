@@ -32,10 +32,10 @@ def setUp_tearDown():
 	if os.path.isdir(dir_parent):
 		shutil.rmtree(dir_parent)
 
-	yield
-	# tear down
-	if os.path.isdir(dir_parent):
-		shutil.rmtree(dir_parent)
+	# yield
+	# # tear down
+	# if os.path.isdir(dir_parent):
+	# 	shutil.rmtree(dir_parent)
 
 @pytest.fixture
 def batch1():
@@ -102,13 +102,45 @@ def test_batch_build_bad(batch_bad):
 
 
 
+
+
+def test_batch_build_check_folders_consistent_w_list(batch1):
+	b = batch1
+
+	status = b.build(func_build_hscobj)
+	b._check_folders_consistent_w_list()
+
+	dir_obj = b.dir_good+b.list_good['obj_name'][-1]+'/'
+
+	if os.path.isdir(dir_obj):
+		shutil.rmtree(dir_obj)
+
+	with pytest.raises(Exception):
+		b._check_folders_consistent_w_list()
+
+	
+
+
+def func_build_hscobj(obj, overwrite=False):
+	"""
+	Params
+	------
+	obj	
+	overwrite=False
+
+	Return
+	------
+	status
+	"""
+
+	return obj.add_hsc()
+
+
 def func_build(obj, overwrite=False, **kwargs):
 	"""
 	Params
 	------
-	ra
-	dec
-	obj_name
+	obj
 	overwrite=False
 
 	**kwargs:
@@ -120,17 +152,20 @@ def func_build(obj, overwrite=False, **kwargs):
 	"""
 
 	# setting
-	environment = kwargs.pop('environment', 'iaa')
 	humvi_bands = 'riz'
 
 	# running
-	L = imgdownload.hscimgLoader(obj=obj, environment=environment)
+	L = imgdownload.hscimgLoader(obj=obj, **kwargs)
 
-	statuss = [
-				L.status, 
-				L.add_obj_sdss(), 
-				L.make_stamps(overwrite=overwrite), 
-				L.plot_colorimg(bands=humvi_bands, img_type='stamp', overwrite=overwrite), 
-				]
+	if L.status:
+		statuss = 	[ 
+					L.make_stamps(overwrite=overwrite), 
+					L.make_psfs(overwrite=overwrite), 
+					L.plot_colorimg(bands=humvi_bands, img_type='stamp', overwrite=overwrite),
+					L.add_obj_sdss(), 
+					L.obj.sdss.make_spec(overwrite=overwrite),
+					]
 
-	return all(statuss)
+		return all(statuss)
+	else:
+		return False

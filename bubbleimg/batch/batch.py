@@ -124,8 +124,6 @@ class Batch(object):
 		if self.survey not in ['sdss', 'hsc']:
 			raise Exception("[batch] survey not recognized")
 
-		self._check_list_good_except_updated()
-
 
 	def mkdir_batch(self):
 		if not os.path.isdir(self.dir_batch):
@@ -402,19 +400,32 @@ class Batch(object):
 				tab.rename_column(arg, arg+'_1')
 
 
-	def _check_list_good_except_updated(self):
-		""" raise exception if not """
-		# sanity check -- directories consistent with list_good
-		dirs_obj_good = [x[0].split('/')[-1] for x in os.walk(self.dir_good)][1::]
-		obj_names_good = copy.copy(self.list_good['obj_name'])
-		if dirs_obj_good.sort() != obj_names_good.sort():
-			raise Exception("[batch] list_good inconsistent with directories under dirbatch/good/.")
+	def _check_folders_consistent_w_list(self):
+		"""
+		check that the created obj directories is the same as the list, for list, list_good, and list_except. 
+		"""	
+		dp_good = self.dir_good
+		dp_excp = self.dir_except
 
-		# sanity check -- directories consistent with list_except
-		dirs_obj_except = [x[0].split('/')[-1] for x in os.walk(self.dir_except)][1::]
-		obj_names_except = copy.copy(self.list_except['obj_name'])
-		if dirs_obj_except.sort() != obj_names_except.sort():
-			raise Exception("[batch] list_except inconsistent with directories under dirbatch/except/.")
+		lfolder_good = [obj_name for obj_name in os.listdir(dp_good) if os.path.isdir(os.path.join(dp_good, obj_name))]
+		lfolder_excp = [obj_name for obj_name in os.listdir(dp_excp) if os.path.isdir(os.path.join(dp_excp, obj_name))]
+		lfolder = lfolder_good + lfolder_excp
+
+		# lfolder = lfolder[:-1]
+		for name, thelist, thefolders in (('list', self.list, lfolder), ('good', self.list_good, lfolder_good), ('except', self.list_except, lfolder_excp)):
+
+			arr_list = np.array(thelist['obj_name'])
+			arr_fold = np.array(thefolders)
+
+			arr_list.sort()
+			arr_fold.sort()
+
+			if any([len(arr_list)>0, len(arr_fold)>0]):
+				if len(arr_list) != len(arr_fold):
+					raise Exception("[batch] number of object folders inconsistent with the list in the batch")
+
+				if not all(arr_list == arr_fold): 
+					raise Exception("[batch] list of object folders inconsistent with the list in the batch")
 
 
 	def _batch__build_core(self, func_build, overwrite=False, **kwargs):
@@ -484,7 +495,7 @@ class Batch(object):
 			else: 
 				print("[batch] {obj_name} skipped".format(obj_name=obj_name))
 
-		self._check_list_good_except_updated()
+		self._check_folders_consistent_w_list()
 
 
 		# status reflects that all is ran (list = list_good + list_except)

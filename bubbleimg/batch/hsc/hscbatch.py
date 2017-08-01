@@ -53,11 +53,10 @@ class hscBatch(Batch):
 		"""
 
 		# setting
-		environment = kwargs.pop('environment', 'iaa')
 		humvi_bands = 'riz'
 
 		# running
-		L = imgdownload.hscimgLoader(obj=obj, environment=environment, **kwargs)
+		L = imgdownload.hscimgLoader(obj=obj, **kwargs)
 
 		if L.status:
 			statuss = 	[ 

@@ -47,8 +47,8 @@ def match_psf_fits(fp_img, fp_psf, fp_psfto, fp_img_out, fp_psf_out, fp_psk_out,
 
 	# sanity check -- normalization of psf
 	for a in [psf, psfto]:
-		if np.absolute(np.sum(a) - 1.) > 1.e-4:
-			raise ValueError("[matchpsf] input psf is not normalized")
+		if np.absolute(np.sum(a) - 1.) > 3.e-4:
+			raise ValueError("[matchpsf] input psf is not normalized with sum".format('%.5f'%np.sum(a)))
 
 	img_out, psf_out, psk_out, = match_psf(img, psf, psfto)
 
