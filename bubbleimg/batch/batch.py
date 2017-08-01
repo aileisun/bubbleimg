@@ -130,92 +130,6 @@ class Batch(object):
 			os.makedirs(self.dir_batch)
 
 
-	def _make_attr_list(self):
-		"""
-		extract list (table of cols ['ra', 'dec', 'obj_name']) from catalog
-		"""
-		if ('ra' in self.catalog.colnames) and ('dec' in self.catalog.colnames):
-			self.list = self.catalog['ra', 'dec']
-		elif ('RA' in self.catalog.colnames) and ('DEC' in self.catalog.colnames):
-			self.list = self.catalog['RA', 'DEC']
-			self.list.rename_column('RA', 'ra')
-			self.list.rename_column('DEC', 'dec')
-		else: 
-			raise NameError("[batch] catalog table does not contain ra, dec or RA, DEC")
-
-		if 'obj_name' in self.catalog.colnames:
-			self.list['obj_name'] = self.catalog['obj_name']
-		else: 
-			objname = at.Column(name='obj_name', dtype='S64', length=len(self.list))
-			for i, row in enumerate(self.list):
-				ra = row['ra']
-				dec = row['dec']
-				objname[i] = obsobj.objnaming.get_obj_name(ra=ra, dec=dec, obj_naming_sys=self.obj_naming_sys)
-
-			self.list.add_column(objname)
-
-		if len(self.args_to_list) > 0:
-			self.args_to_list_dtype = self.catalog[self.args_to_list].dtype
-			for arg in self.args_to_list:
-				self.list[arg] = self.catalog[arg]
-		else: 
-			self.args_to_list_dtype = None
-
-		self.list.sort('ra')
-
-
-	def _make_attr_list_good(self):
-		if os.path.isfile(self.fp_list_good):
-			self.list_good = at.Table.read(self.fp_list_good)
-			if len(self.list_good) == 0:
-				self.list_good = self._create_empty_list_table()
-		else:
-			self.list_good = self._create_empty_list_table()
-
-		self.list_good.sort('ra')
-
-
-
-	def _make_attr_list_except(self):
-		if os.path.isfile(self.fp_list_except):
-			self.list_except = at.Table.read(self.fp_list_except)
-			if len(self.list_except) == 0:
-				self.list_except = self._create_empty_list_table()
-		else:
-			self.list_except = self._create_empty_list_table()
-
-		self.list_except.sort('ra')
-
-
-	def _create_empty_list_table(self):
-
-		d = np.dtype([('ra', 'float64'), ('dec', 'float64'), ('obj_name', 'S64')])
-		tab0 = at.Table(dtype=d)
-
-		if len(self.args_to_list) > 0:
-			tab1 = at.Table(dtype=self.args_to_list_dtype)
-			tab =  at.hstack([tab0, tab1])
-		else:
-			tab = tab0
-
-		return tab
-
-
-	def _write_list(self):
-		self.mkdir_batch()
-		self.list.write(self.fp_list, format='ascii.csv', overwrite=True)
-
-
-	def _write_list_good(self):
-		self.mkdir_batch()
-		self.list_good.write(self.fp_list_good, format='ascii.csv', overwrite=True)
-
-
-	def _write_list_except(self):
-		self.mkdir_batch()
-		self.list_except.write(self.fp_list_except, format='ascii.csv', overwrite=True)
-
-
 	def iterlist(self, func, listargs=[], listname='good', overwrite=False, **kwargs): 
 		"""
 		Apply function to each of the objects in list (default: good). Nothing is done to the function return. 
@@ -239,6 +153,7 @@ class Batch(object):
 	    results (list):
 	    	a list of all the results returned by fun, usually "status" (bool array)
 		"""
+		self._check_folders_consistent_w_list()
 
 		dir_list = self._get_dir_list_from_listname(listname=listname)
 		lst = self._get_list_from_listname(listname=listname)
@@ -262,21 +177,6 @@ class Batch(object):
 			results += [result]
 
 		return results
-
-
-	def _get_dir_list_from_listname(self, listname='good'):
-		if listname == 'good':
-			return self.dir_good
-
-		elif listname == 'except':
-			return self.dir_except
-
-
-	def _get_list_from_listname(self, listname='good'):
-		if listname == 'good':
-			return self.list_good
-		elif listname == 'except':
-			return self.list_except
 
 
 	def get_ith_obj_from_list(self, iobj, listname='good'):
@@ -315,6 +215,8 @@ class Batch(object):
 		self.dir_batch + fn_tab:
 			e.g., 'batch_rz/sdss_photoobj.csv'
 		"""		
+		self._check_folders_consistent_w_list()
+
 		fp = self.dir_batch+fn_tab
 
 		if not os.path.isfile(fp) or overwrite:
@@ -355,77 +257,6 @@ class Batch(object):
 
 		status = os.path.isfile(fp)	
 		return status 
-
-
-	# def _iterfunc_read_table(self, obj, fn_tab, overwrite=False):
-	# 	""" 
-	# 	function to be iterated for each object to access the table being compiled
-
-	# 	Params
-	# 	------
-	# 	self
-	# 	obj
-	# 	fn_tab (str):
-	# 		file name of the table to be compiled, e.g., 'sdss_photoobj.csv'.
-	# 	overwrite (bool):
-	# 		can be ignored
-	# 	"""
-	# 	return at.Table.read(obj.dir_obj+fn_tab)
-
-	def _iterfunc_extract_line_from_file(self, obj, fn, iline=1, overwrite=False):
-		""" 
-		function to be iterated for each object to return a particular line in the file as a string
-
-		Params
-		------
-		self
-		obj
-		fn (str):
-			file name 
-		iline (int):
-			the number of the row
-		overwrite (bool):
-			can be ignored
-		"""
-		return _extract_line_from_file(obj.dir_obj+fn, iline=iline)
-
-
-	def _rename_list_args(self, tab):
-		""" rename the arguments that could conflict with the ones in list """
-
-		args = ['ra', 'dec', 'obj_name'] + self.args_to_list
-
-		for arg in args:
-			if arg in tab.colnames:
-				tab.rename_column(arg, arg+'_1')
-
-
-	def _check_folders_consistent_w_list(self):
-		"""
-		check that the created obj directories is the same as the list, for list, list_good, and list_except. 
-		"""	
-		dp_good = self.dir_good
-		dp_excp = self.dir_except
-
-		lfolder_good = [obj_name for obj_name in os.listdir(dp_good) if os.path.isdir(os.path.join(dp_good, obj_name))]
-		lfolder_excp = [obj_name for obj_name in os.listdir(dp_excp) if os.path.isdir(os.path.join(dp_excp, obj_name))]
-		lfolder = lfolder_good + lfolder_excp
-
-		# lfolder = lfolder[:-1]
-		for name, thelist, thefolders in (('list', self.list, lfolder), ('good', self.list_good, lfolder_good), ('except', self.list_except, lfolder_excp)):
-
-			arr_list = np.array(thelist['obj_name'])
-			arr_fold = np.array(thefolders)
-
-			arr_list.sort()
-			arr_fold.sort()
-
-			if any([len(arr_list)>0, len(arr_fold)>0]):
-				if len(arr_list) != len(arr_fold):
-					raise Exception("[batch] number of object folders inconsistent with the list in the batch")
-
-				if not all(arr_list == arr_fold): 
-					raise Exception("[batch] list of object folders inconsistent with the list in the batch")
 
 
 	def _batch__build_core(self, func_build, overwrite=False, **kwargs):
@@ -513,6 +344,180 @@ class Batch(object):
 			print("[batch] building batch {0} unfinished".format(self.name))
 
 		return status
+
+
+	def _make_attr_list(self):
+		"""
+		extract list (table of cols ['ra', 'dec', 'obj_name']) from catalog
+		"""
+		if ('ra' in self.catalog.colnames) and ('dec' in self.catalog.colnames):
+			self.list = self.catalog['ra', 'dec']
+		elif ('RA' in self.catalog.colnames) and ('DEC' in self.catalog.colnames):
+			self.list = self.catalog['RA', 'DEC']
+			self.list.rename_column('RA', 'ra')
+			self.list.rename_column('DEC', 'dec')
+		else: 
+			raise NameError("[batch] catalog table does not contain ra, dec or RA, DEC")
+
+		if 'obj_name' in self.catalog.colnames:
+			self.list['obj_name'] = self.catalog['obj_name']
+		else: 
+			objname = at.Column(name='obj_name', dtype='S64', length=len(self.list))
+			for i, row in enumerate(self.list):
+				ra = row['ra']
+				dec = row['dec']
+				objname[i] = obsobj.objnaming.get_obj_name(ra=ra, dec=dec, obj_naming_sys=self.obj_naming_sys)
+
+			self.list.add_column(objname)
+
+		if len(self.args_to_list) > 0:
+			self.args_to_list_dtype = self.catalog[self.args_to_list].dtype
+			for arg in self.args_to_list:
+				self.list[arg] = self.catalog[arg]
+		else: 
+			self.args_to_list_dtype = None
+
+		self.list.sort('ra')
+
+
+	def _make_attr_list_good(self):
+		if os.path.isfile(self.fp_list_good):
+			self.list_good = at.Table.read(self.fp_list_good)
+			if len(self.list_good) == 0:
+				self.list_good = self._create_empty_list_table()
+		else:
+			self.list_good = self._create_empty_list_table()
+
+		self.list_good.sort('ra')
+
+
+
+	def _make_attr_list_except(self):
+		if os.path.isfile(self.fp_list_except):
+			self.list_except = at.Table.read(self.fp_list_except)
+			if len(self.list_except) == 0:
+				self.list_except = self._create_empty_list_table()
+		else:
+			self.list_except = self._create_empty_list_table()
+
+		self.list_except.sort('ra')
+
+
+	def _create_empty_list_table(self):
+
+		d = np.dtype([('ra', 'float64'), ('dec', 'float64'), ('obj_name', 'S64')])
+		tab0 = at.Table(dtype=d)
+
+		if len(self.args_to_list) > 0:
+			tab1 = at.Table(dtype=self.args_to_list_dtype)
+			tab =  at.hstack([tab0, tab1])
+		else:
+			tab = tab0
+
+		return tab
+
+
+	def _write_list(self):
+		self.mkdir_batch()
+		self.list.write(self.fp_list, format='ascii.csv', overwrite=True)
+
+
+	def _write_list_good(self):
+		self.mkdir_batch()
+		self.list_good.write(self.fp_list_good, format='ascii.csv', overwrite=True)
+
+
+	def _write_list_except(self):
+		self.mkdir_batch()
+		self.list_except.write(self.fp_list_except, format='ascii.csv', overwrite=True)
+
+
+
+	def _get_dir_list_from_listname(self, listname='good'):
+		if listname == 'good':
+			return self.dir_good
+
+		elif listname == 'except':
+			return self.dir_except
+
+
+	def _get_list_from_listname(self, listname='good'):
+		if listname == 'good':
+			return self.list_good
+		elif listname == 'except':
+			return self.list_except
+
+
+
+	# def _iterfunc_read_table(self, obj, fn_tab, overwrite=False):
+	# 	""" 
+	# 	function to be iterated for each object to access the table being compiled
+
+	# 	Params
+	# 	------
+	# 	self
+	# 	obj
+	# 	fn_tab (str):
+	# 		file name of the table to be compiled, e.g., 'sdss_photoobj.csv'.
+	# 	overwrite (bool):
+	# 		can be ignored
+	# 	"""
+	# 	return at.Table.read(obj.dir_obj+fn_tab)
+
+	def _iterfunc_extract_line_from_file(self, obj, fn, iline=1, overwrite=False):
+		""" 
+		function to be iterated for each object to return a particular line in the file as a string
+
+		Params
+		------
+		self
+		obj
+		fn (str):
+			file name 
+		iline (int):
+			the number of the row
+		overwrite (bool):
+			can be ignored
+		"""
+		return _extract_line_from_file(obj.dir_obj+fn, iline=iline)
+
+
+	def _rename_list_args(self, tab):
+		""" rename the arguments that could conflict with the ones in list """
+
+		args = ['ra', 'dec', 'obj_name'] + self.args_to_list
+
+		for arg in args:
+			if arg in tab.colnames:
+				tab.rename_column(arg, arg+'_1')
+
+
+	def _check_folders_consistent_w_list(self):
+		"""
+		check that the created obj directories is the same as the list, for list, list_good, and list_except. 
+		"""	
+		dp_good = self.dir_good
+		dp_excp = self.dir_except
+
+		lfolder_good = [obj_name for obj_name in os.listdir(dp_good) if os.path.isdir(os.path.join(dp_good, obj_name))]
+		lfolder_excp = [obj_name for obj_name in os.listdir(dp_excp) if os.path.isdir(os.path.join(dp_excp, obj_name))]
+		lfolder = lfolder_good + lfolder_excp
+
+		# lfolder = lfolder[:-1]
+		for name, thelist, thefolders in (('list', self.list, lfolder), ('good', self.list_good, lfolder_good), ('except', self.list_except, lfolder_excp)):
+
+			arr_list = np.array(thelist['obj_name'])
+			arr_fold = np.array(thefolders)
+
+			arr_list.sort()
+			arr_fold.sort()
+
+			if any([len(arr_list)>0, len(arr_fold)>0]):
+				if len(arr_list) != len(arr_fold):
+					raise Exception("[batch] number of object folders inconsistent with the list in the batch")
+
+				if not all(arr_list == arr_fold): 
+					raise Exception("[batch] list of object folders inconsistent with the list in the batch")
 
 
 def _extract_line_from_file(fn, iline=1):
