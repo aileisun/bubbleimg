@@ -520,8 +520,19 @@ class Batch(object):
 					raise Exception("[batch] list of object folders inconsistent with the list in the batch")
 
 
-def _extract_line_from_file(fn, iline=1):
+def _extract_line_from_file(fn, iline=1, comment='#'): 
+	""" return the iline-th line of the file which is non-empty and does not start with the comment # """
+
 	with open(fn, 'r') as f:
 		data = f.read()
+	lines = data.split('\n')
 
-	return data.split('\n')[iline]
+	lines_noncomment = []
+	for line in lines:
+		if len(line) > 0:
+			if (line[0] != comment):
+				print ""
+				print line
+				lines_noncomment += [line]
+
+	return lines_noncomment[iline]
