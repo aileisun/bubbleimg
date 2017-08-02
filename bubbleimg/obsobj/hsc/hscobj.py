@@ -75,6 +75,7 @@ class hscObj(plainObj):
 		self.search_radius = kwargs.pop('search_radius', 2.*u.arcsec)
 
 		self.fp_xid = self.dir_obj+'hsc_xid.csv'
+		self.fp_xid_temp = self.dir_obj+'hsc_xid_temp.csv'
 		self.fp_photoobj = self.dir_obj+'hsc_photoobj.csv'
 
 		overwrite = kwargs.pop('overwrite', False)
@@ -129,45 +130,79 @@ class hscObj(plainObj):
 		------
 		self.dir_obj+'xid.csv'
 		"""
-
+		fn_temp = self.fp_xid_temp
 		fn = self.fp_xid
+
+		if os.path.isfile(fn_temp):
+			os.remove(fn_temp)
 
 		if not os.path.isfile(fn) or overwrite: # download xid from sdss
 			print "[hscObj] querying xid from server"
 			self.make_dir_obj()	
 			sql = _get_xid_sql(ra=self.ra, dec=self.dec, rerun=self.rerun, search_radius=self.search_radius)
-			hscsspquery.hscSspQuery_retry(n_trials=5, sql=sql, filename_out=fn, release_version=self.data_release)
+			hscsspquery.hscSspQuery_retry(n_trials=5, sql=sql, filename_out=fn_temp, release_version=self.data_release)
+			xid = self._read_xid_from_fp_xid_temp_and_delete_file(fn_temp)
+
+			if xid is not None:
+				xid.write(fn, format='ascii.csv', overwrite=overwrite)
+
 		else: # retrieve xid locally
 			print "[hscObj] reading xid locally"
+			xid = at.Table.read(fn, format='ascii.csv', comment='#')
+			self._xid_sanity_check(xid)
 
-		if os.path.isfile(fn): 
-			if os.stat(fn).st_size > 0:
-				xid = at.Table.read(fn, format='ascii.csv', comment='#')
+		return xid
 
-				if len(xid) == 1:
-					self._xid_sanity_check(xid)
-					return xid
-
-				elif len(xid) > 1: 
-					xid = self._resolve_multiple_sources(xid)
-					self._xid_sanity_check(xid)
-					xid.write(fn, format='ascii.csv', overwrite=True)
-					return xid
-
-				elif len(xid) < 1:
-					print "[hscObj] no object found"
-					if overwrite:
-						os.remove(fn)
-					return None
-
+	def _read_xid_from_fp_xid_temp_and_delete_file(self, fn_temp):
+		""" read in xid from file and return it, delete fn_temp after reading """
+		if os.path.isfile(fn_temp): 
+			if os.stat(fn_temp).st_size > 0:
+				xid = at.Table.read(fn_temp, format='ascii.csv', comment='#')
+				os.remove(fn_temp)
+				xid = self._xid_pick_only_closest(xid)
 			else: 
-				print "[hscObj] no object found"
-				if overwrite:
-					os.remove(fn)
-				return None
+				print "[hscObj] no object found - xid file empty"
+				os.remove(fn_temp)
+				xid = None
 		else: 
 			print "[hscObj] query failed"
-			return None
+			xid = None
+		return xid
+
+
+	def _xid_pick_only_closest(self, xid):
+		""" takes in xid as arg, picks one, and return """
+		if len(xid) == 1:
+			self._xid_sanity_check(xid)
+
+		elif len(xid) > 1: 
+			print "[hscObj] multiple objects found, picking the closest"
+			xid = self._resolve_multiple_sources(xid)
+			self._xid_sanity_check(xid)
+
+		elif len(xid) < 1:
+			print "[hscObj] no object found"
+			xid = None
+
+		return xid
+
+
+			# xid.write(fn, format='ascii.csv', overwrite=True)
+
+
+		# if os.path.isfile(fn_temp): 
+		# 	if os.stat(fn_temp).st_size > 0:
+		# 		xid = at.Table.read(fn_temp, format='ascii.csv', comment='#')
+		# 		os.remove(fn_temp)
+
+		# 		xid = _xid_pick_only_closest(xid)
+		# 	else: 
+		# 		print "[hscObj] no object found"
+		# 		os.remove(fn_temp)
+		# 		return None
+		# else: 
+		# 	print "[hscObj] query failed"
+		# 	return None
 
 
 	def _xid_sanity_check(self, xid):

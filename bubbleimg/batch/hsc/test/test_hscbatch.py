@@ -11,15 +11,16 @@ import copy
 from ..hscbatch import hscBatch
 from .... import obsobj
 
+from setpaths import *
 
-dir_parent = 'testing/'
-dir_batch = 'testing/batch_ri/'
-name = 'batch_ri'
-fn_cat = 'test_verification_data/example_catalog.fits'
-fn_cat_bad = 'test_verification_data/bad_catalog.fits' # the last row of bad cat has bad ra, dec
-catalog = at.Table.read(fn_cat, format='fits')
-survey ='hsc'
+
+# dir_parent = 'testing/'
+# dir_batch = 'testing/batch_ri/'
+# name = 'batch_ri'
+# fn_cat = 'test_verification_data/catalog_good.fits'
+# survey ='hsc'
 obj_naming_sys = 'sdss'
+catalog = at.Table.read(fn_cat, format='fits')
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -36,12 +37,8 @@ def setUp_tearDown():
 		shutil.rmtree(dir_parent)
 
 @pytest.fixture
-def batch1():
+def batch_good():
 	return hscBatch(dir_batch=dir_batch, fn_cat=fn_cat, survey=survey)
-
-
-def batch_bad():
-	return hscBatch(dir_batch=dir_batch, fn_cat_bad=fn_cat_bad, survey=survey)
 
 
 def test_batch_init():
@@ -83,8 +80,8 @@ def test_batch_init_with_fn_cat():
 	assert len(b.catalog) == len(catalog)
 
 
-def test_batch_write_list(batch1):
-	b = batch1
+def test_batch_write_list(batch_good):
+	b = batch_good
 
 	b._write_list()
 

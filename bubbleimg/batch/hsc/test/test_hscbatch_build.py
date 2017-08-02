@@ -12,16 +12,7 @@ from ..hscbatch import hscBatch
 from .... import imgdownload
 from .... import obsobj
 
-
-dir_parent = 'testing/'
-dir_batch = 'testing/batch_ri/'
-dir_batch_bad = 'testing/batch_ri_bad/'
-name = 'batch_ri'
-fn_cat = 'test_verification_data/example_catalog.fits'
-fn_cat_bad = 'test_verification_data/bad_catalog.fits' # the last row of bad cat has bad ra, dec
-catalog = at.Table.read(fn_cat, format='fits')
-survey ='hsc'
-obj_naming_sys = 'sdss'
+from setpaths import *
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -38,17 +29,17 @@ def setUp_tearDown():
 	# 	shutil.rmtree(dir_parent)
 
 @pytest.fixture
-def batch1():
+def batch_good():
 	return hscBatch(dir_batch=dir_batch, fn_cat=fn_cat)
 
 
 @pytest.fixture
-def batch_bad():
-	return hscBatch(dir_batch=dir_batch_bad, fn_cat=fn_cat_bad)
+def batch_wexcept():
+	return hscBatch(dir_batch=dir_batch_wexcept, fn_cat=fn_cat_wexcept)
 
 
-def test_batch_build(batch1):
-	b = batch1
+def test_batch_build(batch_good):
+	b = batch_good
 
 	kwargs = {'environment': 'online'}
 	status = b.build(func_build, **kwargs)
@@ -74,8 +65,8 @@ def test_batch_build(batch1):
 		assert os.path.isdir(b.dir_batch+'except/'+obj_name+'/')
 
 
-def test_batch_build_bad(batch_bad):
-	b = batch_bad
+def test_batch_build_wexcept(batch_wexcept):
+	b = batch_wexcept
 
 	kwargs = {'environment': 'online'}
 	status = b.build(func_build, **kwargs)
@@ -101,11 +92,8 @@ def test_batch_build_bad(batch_bad):
 		assert os.path.isdir(b.dir_batch+'except/'+obj_name+'/')
 
 
-
-
-
-def test_batch_build_check_folders_consistent_w_list(batch1):
-	b = batch1
+def test_batch_build_check_folders_consistent_w_list(batch_good):
+	b = batch_good
 
 	status = b.build(func_build_hscobj)
 	b._check_folders_consistent_w_list()
@@ -116,9 +104,16 @@ def test_batch_build_check_folders_consistent_w_list(batch1):
 		shutil.rmtree(dir_obj)
 
 	with pytest.raises(Exception):
-		b._check_folders_consistent_w_list()
+		b._check_folders_consistent_w_list()	
 
-	
+def test_batch_build_other_batches():
+
+	b1 = hscBatch(dir_batch=dir_batch_onlyexcept, fn_cat=fn_cat_onlyexcept)
+	b2 = hscBatch(dir_batch=dir_batch_confus, fn_cat=fn_cat_confus)
+
+	for b in [b1, b2]:
+		status = b.build(func_build_hsc_sdss)
+		assert status
 
 
 def func_build_hscobj(obj, overwrite=False):
@@ -169,3 +164,35 @@ def func_build(obj, overwrite=False, **kwargs):
 		return all(statuss)
 	else:
 		return False
+
+
+def func_build_hsc_sdss(obj, overwrite=False, **kwargs):
+	"""
+	Params
+	------
+	obj
+	overwrite=False
+
+	**kwargs:
+		environment='iaa'
+
+	Return
+	------
+	status
+	"""
+
+	# setting
+	environment = kwargs.pop('environment', 'iaa')
+	humvi_bands = 'riz'
+
+	# running
+	L = imgdownload.hscimgLoader(obj=obj, environment=environment)
+
+	statuss = [
+				L.status, 
+				L.add_obj_sdss(), 
+				]
+
+	return all(statuss)
+
+

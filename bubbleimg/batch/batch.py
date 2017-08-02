@@ -447,8 +447,6 @@ class Batch(object):
 		elif listname == 'except':
 			return self.list_except
 
-
-
 	# def _iterfunc_read_table(self, obj, fn_tab, overwrite=False):
 	# 	""" 
 	# 	function to be iterated for each object to access the table being compiled
@@ -531,8 +529,6 @@ def _extract_line_from_file(fn, iline=1, comment='#'):
 	for line in lines:
 		if len(line) > 0:
 			if (line[0] != comment):
-				print ""
-				print line
 				lines_noncomment += [line]
 
 	return lines_noncomment[iline]
