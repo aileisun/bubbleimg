@@ -22,13 +22,10 @@ def setUp_tearDown():
 		shutil.rmtree(dir_parent)
 	os.mkdir(dir_parent)
 
-
-	# yield
-	# # tear down
-	# if os.path.isdir(dir_parent):
-	# 	shutil.rmtree(dir_parent)
-
-
+	yield
+	# tear down
+	if os.path.isdir(dir_parent):
+		shutil.rmtree(dir_parent)
 
 
 def test_batch_compile_table(batch_good):

@@ -104,7 +104,8 @@ class Batch(object):
 				raise Exception("[batch] input catalog file extension not recognized")
 
 		elif os.path.isfile(self.fp_list):
-			self.catalog = at.Table.read(fp_list)
+			self.catalog = at.Table.read(self.fp_list)
+			args_to_list = [col for col in self.catalog.colnames if col not in ['ra', 'dec', 'obj_name']]
 
 		else:
 			raise Exception("[batch] input catalog not specified")
@@ -258,6 +259,46 @@ class Batch(object):
 		status = os.path.isfile(fp)	
 		return status 
 
+
+	def steal_columns(self, tab, colnames=['z'], keys=['ra', 'dec']):
+		"""
+		steal columns (colnames) from a table (tab) and add them to list (including list_good, list_except). The table has to have identical objects and keys (ra, dec) as the list in batch.
+
+		Params
+		------
+		self
+		tab (astropy table):
+			a table with identical objects and keys (ra, dec) as the list
+		colnames=['z']:
+			a list of columns names to steal (string)
+		keys=['ra', 'dec']:
+			a list of the keys used for matching. 
+
+		Write output
+		------------
+		rewrites list, list_good, and list_except, and update then as self.*. 
+		"""
+
+		for col in colnames:
+			if col in self.list.colnames:
+				raise Exception("[batch] column to steal already exists in list")
+
+		cols_trim = keys + colnames
+		tab_trim = tab[cols_trim]
+
+		for lst in [self.list, self.list_good, self.list_except]:
+			if len(lst) > 0:
+				lst_joined = at.join(lst, tab_trim, keys=keys, join_type='left')
+				columns_toadd = [lst_joined[cn] for cn in colnames]
+				lst.add_columns(columns_toadd)
+			else:
+				columns_toadd = [tab_trim[cn] for cn in colnames]
+				lst.add_columns([at.Column(name = c.name, dtype=c.dtype, meta=c.meta) for c in columns_toadd])
+
+		self._write_list()
+		self._write_list_good()
+		self._write_list_except()
+		
 
 	def _batch__build_core(self, func_build, overwrite=False, **kwargs):
 		"""
