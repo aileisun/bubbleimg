@@ -262,7 +262,9 @@ class Batch(object):
 
 	def steal_columns(self, tab, colnames=['z'], keys=['ra', 'dec']):
 		"""
-		steal columns (colnames) from a table (tab) and add them to list (including list_good, list_except). The table has to have identical objects and keys (ra, dec) as the list in batch.
+		steal columns (colnames) from a table (tab) and add them to list (including list_good, list_except). The table has to have identical objects and keys (ra, dec) as the list in batch. 
+
+		One needs to run compile_table to update compiled tables. 
 
 		Params
 		------
@@ -298,7 +300,34 @@ class Batch(object):
 		self._write_list()
 		self._write_list_good()
 		self._write_list_except()
-		
+
+
+
+	def remove_columns(self, colnames=['z']):
+		"""
+		remove columns (colnames) from a list, list_good, and list_except
+
+		Params
+		------
+		self
+		colnames=['z']:
+			a list of columns names to steal (string)
+
+		Write output
+		------------
+		rewrites list, list_good, and list_except, and update then as self.*. 
+		"""
+
+		for col in colnames:
+			if col not in self.list.colnames:
+				raise Exception("[batch] column {} to remove not in list".format(col))
+
+		for lst in [self.list, self.list_good, self.list_except]:
+			lst.remove_columns(colnames)
+
+		self._write_list()
+		self._write_list_good()
+		self._write_list_except()
 
 	def _batch__build_core(self, func_build, overwrite=False, **kwargs):
 		"""

@@ -45,8 +45,6 @@ def test_batch_steal_columns_good(batch_good):
 		assert col in lst.colnames
 
 		if len(lst)>0:
-			print lst
-			print tab_cat
 			tab_join = at.join(lst, tab_cat, keys=['ra', 'dec'], join_type='left')
 			assert all(tab_join[col+'_1'] == tab_join[col+'_2'])
 
@@ -56,3 +54,12 @@ def test_batch_steal_columns_good(batch_good):
 		assert col in tab.colnames
 
 
+	b.remove_columns(colnames=[col])
+
+	for lst in [b.list, b.list_good, b.list_except, ]:
+		assert col not in lst.colnames
+
+
+	for fn in [b.fp_list, b.fp_list_good, b.fp_list_except]:
+		tab = at.Table.read(fn)
+		assert col not in tab.colnames
