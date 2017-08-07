@@ -298,27 +298,29 @@ class hscObj(plainObj):
 		self.dir_obj+'xid.csv'
 		"""
 		if fn == None:
-			fn = self.fp_photoobj
+			fp = self.fp_photoobj
+		else: 
+			fp = self.dir_obj + fn
 
-		if not os.path.isfile(fn) or overwrite:
+		if not os.path.isfile(fp) or overwrite:
 			print "[hscobj] querying photoobj from HSC"
 			object_id = self.xid['object_id'][0]
 			sql = _get_photoobj_sql(object_id=object_id, columns=columns, bands=bands, all_columns=all_columns, rerun=rerun, catalog=catalog)
 
-			hscsspquery.hscSspQuery_retry(n_trials=20, sql=sql, filename_out=fn, release_version=data_release)
-			# hscSspQuery(sql=sql, filename_out=fn, release_version=data_release)
+			hscsspquery.hscSspQuery_retry(n_trials=20, sql=sql, filename_out=fp, release_version=data_release)
+			# hscSspQuery(sql=sql, filename_out=fp, release_version=data_release)
 
-			if os.path.isfile(fn) and (os.stat(fn).st_size > 0):
-				photoobj = at.Table.read(fn, format='ascii.csv', comment='#')
+			if os.path.isfile(fp) and (os.stat(fp).st_size > 0):
+				photoobj = at.Table.read(fp, format='ascii.csv', comment='#')
 				photoobj = at.hstack([at.Table([[catalog]], names=['catalog']), photoobj])
-				photoobj.write(fn, format='ascii.csv', overwrite=True)
+				photoobj.write(fp, format='ascii.csv', overwrite=True)
 				return photoobj
 			else: 
 				print("[hscobj] querying photoobj from HSC failed")
 				return None
 		else:
 			print "[hscobj] reading hsc_photoobj locally"
-			photoobj = at.Table.read(fn, format='ascii.csv', comment='#')
+			photoobj = at.Table.read(fp, format='ascii.csv', comment='#')
 			return photoobj
 
 
