@@ -52,7 +52,7 @@ class Struct:
     def __init__(self, **entries):
         self.__dict__.update(entries)
 
-def hscSspQuery_retry(n_trials=5, **kwargs):
+def hscSspQuery_retry(n_trials=20, **kwargs):
     """ 
     executing hscSspQuery and retries (n_trials times) when urllib2.URLError or urllib2.URLError happens. 
 

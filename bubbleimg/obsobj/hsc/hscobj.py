@@ -140,7 +140,7 @@ class hscObj(plainObj):
 			print "[hscObj] querying xid from server"
 			self.make_dir_obj()	
 			sql = _get_xid_sql(ra=self.ra, dec=self.dec, rerun=self.rerun, search_radius=self.search_radius)
-			hscsspquery.hscSspQuery_retry(n_trials=5, sql=sql, filename_out=fn_temp, release_version=self.data_release)
+			hscsspquery.hscSspQuery_retry(n_trials=20, sql=sql, filename_out=fn_temp, release_version=self.data_release)
 			xid = self._read_xid_from_fp_xid_temp_and_delete_file(fn_temp)
 
 			if xid is not None:
@@ -317,7 +317,7 @@ class hscObj(plainObj):
 			object_id = self.xid['object_id'][0]
 			sql = _get_photoobj_sql(object_id=object_id, columns=columns, bands=bands, all_columns=all_columns, rerun=rerun, catalog=catalog)
 
-			hscsspquery.hscSspQuery_retry(n_trials=5, sql=sql, filename_out=fn, release_version=data_release)
+			hscsspquery.hscSspQuery_retry(n_trials=20, sql=sql, filename_out=fn, release_version=data_release)
 			# hscSspQuery(sql=sql, filename_out=fn, release_version=data_release)
 
 			if os.path.isfile(fn) and (os.stat(fn).st_size > 0):
