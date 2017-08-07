@@ -187,24 +187,6 @@ class hscObj(plainObj):
 		return xid
 
 
-			# xid.write(fn, format='ascii.csv', overwrite=True)
-
-
-		# if os.path.isfile(fn_temp): 
-		# 	if os.stat(fn_temp).st_size > 0:
-		# 		xid = at.Table.read(fn_temp, format='ascii.csv', comment='#')
-		# 		os.remove(fn_temp)
-
-		# 		xid = _xid_pick_only_closest(xid)
-		# 	else: 
-		# 		print "[hscObj] no object found"
-		# 		os.remove(fn_temp)
-		# 		return None
-		# else: 
-		# 	print "[hscObj] query failed"
-		# 	return None
-
-
 	def _xid_sanity_check(self, xid):
 		"""
 		check whether:
@@ -242,26 +224,29 @@ class hscObj(plainObj):
 		return xid
 
 
-	def load_photoobj(self, columns=[], bands=[], catalog='forced', all_columns=False, overwrite=False):
+	def load_photoobj(self, columns=[], bands=[], catalog='forced', all_columns=False, fn=None, overwrite=False):
 		"""
 		load hsc photometry table either locally or remotely, depending on whether local file exists and if overwrite=True, and add it as attribute self.photoobj. 
 
 		Params
 		------
 
-		[0] self 
+		self 
 
-		[1] Columns: Either contains the columns when called upon or has a default choice of columns if found NULL
-		Enter the required columns:
+		columns: Either contains the columns when called upon or has a default choice of columns if found NULL
+			Enter the required columns:
 			Refer Schema Browser -> "https://hscdata.mtk.nao.ac.jp/schema_browser2/"
 			Note: STARs account required
 	
-		[2] Bands: Either contains the bands req. when called upon or has a default choice of bands if found NULL
-		Available bands: g, r, i, z and y
+		bands: Either contains the bands req. when called upon or has a default choice of bands if found NULL
+			Available bands: g, r, i, z and y
 	
-		[3] catalog='forced': which catalog to load from remote hsc database
+		catalog='forced': which catalog to load from remote hsc database
 
-		[4] all_columns=True: Generates SQL code such that all the fields from the table are included
+		all_columns=True: Generates SQL code such that all the fields from the table are included
+
+		fn=None:
+			set it to a file name, e.g., hsc_photoz.csv, to save the file to, otherwise the default is hsc_photoobj.csv. 
 
 		overwrite=False (bool)
 
@@ -274,7 +259,7 @@ class hscObj(plainObj):
 			self.load_xid()
 
 		if self.status: 
-			photoobj = self._get_photoobj(columns=columns, bands=bands, catalog=catalog, all_columns=all_columns, rerun=self.rerun, data_release=self.data_release, overwrite=overwrite)
+			photoobj = self._get_photoobj(columns=columns, bands=bands, catalog=catalog, all_columns=all_columns, rerun=self.rerun, data_release=self.data_release, fn=fn, overwrite=overwrite)
 
 			if photoobj is not None:
 				self.photoobj = photoobj
@@ -287,7 +272,7 @@ class hscObj(plainObj):
 			return False
 
 
-	def _get_photoobj(self, columns=[], bands=[], all_columns=False, catalog='forced', rerun='s16a_wide', data_release='dr1', overwrite=False):
+	def _get_photoobj(self, columns=[], bands=[], all_columns=False, catalog='forced', rerun='s16a_wide', data_release='dr1', fn=None, overwrite=False):
 		"""
 		return photoobj.
 		Read photoobj locally if self.dir_obj+'hsc_xid.csv' exist. Otherwise query. 
@@ -300,6 +285,8 @@ class hscObj(plainObj):
 		catalog='forced'
 		rerun='s16a_wide'
 		data_release='dr1'
+		fn=None:
+			set it to a file name, e.g., hsc_photoz.csv, to save the file to, otherwise the default is hsc_photoobj.csv. 
 		overwrite=False (bool)
 
 		Returns:
@@ -310,7 +297,8 @@ class hscObj(plainObj):
 		------
 		self.dir_obj+'xid.csv'
 		"""
-		fn = self.fp_photoobj
+		if fn == None:
+			fn = self.fp_photoobj
 
 		if not os.path.isfile(fn) or overwrite:
 			print "[hscobj] querying photoobj from HSC"
@@ -332,8 +320,6 @@ class hscObj(plainObj):
 			print "[hscobj] reading hsc_photoobj locally"
 			photoobj = at.Table.read(fn, format='ascii.csv', comment='#')
 			return photoobj
-
-
 
 
 def _get_xid_sql(ra, dec, search_radius=2 * u.arcsec, rerun='s16a_wide'):

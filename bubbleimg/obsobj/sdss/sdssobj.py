@@ -6,6 +6,7 @@ define class sdssobj, which can check whether there is such an object and load x
 """
 
 import os
+import numpy as np
 import astropy.coordinates as ac
 import astroquery
 import astropy.table as at
