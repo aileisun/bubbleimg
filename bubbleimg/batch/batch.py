@@ -8,8 +8,10 @@ import os
 import sys
 import shutil
 import copy
+import multiprocessing as mtp
 
 from .. import obsobj
+import mtp_tools
 
 class Batch(object):
 	def __init__(self, survey, obj_naming_sys='sdss', args_to_list=[], **kwargs):
@@ -131,7 +133,7 @@ class Batch(object):
 			os.makedirs(self.dir_batch)
 
 
-	def iterlist(self, func, listargs=[], listname='good', overwrite=False, **kwargs): 
+	def iterlist(self, func, listargs=[], listname='good', overwrite=False, processes=None, **kwargs): 
 		"""
 		Apply function to each of the objects in list (default: good). Nothing is done to the function return. 
 
@@ -146,6 +148,9 @@ class Batch(object):
 
 		overwrite=False
 
+		processes = None (int):
+			how many processes to use for multiprocessing. Default is None, the default of multiprocessing.Pool. If processes == -1, then it will be ran sequentially and no multiprocessing is used. 
+
 		**kwargs:
 	    	other arguments to be passed to func
 
@@ -159,25 +164,38 @@ class Batch(object):
 		dir_list = self._get_dir_list_from_listname(listname=listname)
 		lst = self._get_list_from_listname(listname=listname)
 
-		results = []
-		for i, row in enumerate(lst):
+		if processes != -1: # to run multiprocessing
+			ikernel_partial = mtp_tools.partialmethod(self._iterlist_kernel, func=func, listargs=listargs, dir_list=dir_list, overwrite=overwrite, **kwargs)
+			p = mtp.Pool(processes=processes)
+			results = p.map(ikernel_partial, lst)
+			p.close()
+			p.join()
 
-			ra = row['ra']
-			dec = row['dec']
-			obj_name = row['obj_name']
-
-			print("[batch] {obj_name} iterating".format(obj_name=obj_name))
-
-			for arg in listargs:
-				kwargs.update({arg: row[arg]})
-
-			obj = obsobj.obsObj(ra=ra, dec=dec, dir_parent=dir_list, obj_naming_sys=self.obj_naming_sys, overwrite=overwrite)
-			obj.survey = self.survey		
-
-			result = func(obj, overwrite=overwrite, **kwargs)
-			results += [result]
+		else:  # to run sequantially
+			results = []
+			for row in lst:
+				result = self._iterlist_kernel(row=row, func=func, listargs=listargs, dir_list=dir_list, overwrite=overwrite, **kwargs)
+				results += [result]
 
 		return results
+
+
+	def _iterlist_kernel(self, row, func, listargs, dir_list, overwrite, **kwargs):
+		""" the kernel to be iterated over (with different input row) in self.iterlist() """
+		ra = row['ra']
+		dec = row['dec']
+		obj_name = row['obj_name']
+
+		print("[batch] {obj_name} iterating".format(obj_name=obj_name))
+
+		for arg in listargs:
+			kwargs.update({arg: row[arg]})
+
+		obj = obsobj.obsObj(ra=ra, dec=dec, dir_parent=dir_list, obj_naming_sys=self.obj_naming_sys, overwrite=overwrite)
+		obj.survey = self.survey		
+
+		result = func(obj, overwrite=overwrite, **kwargs)
+		return result
 
 
 	def get_ith_obj_from_list(self, iobj, listname='good'):
@@ -302,7 +320,6 @@ class Batch(object):
 		self._write_list_except()
 
 
-
 	def remove_columns(self, colnames=['z']):
 		"""
 		remove columns (colnames) from a list, list_good, and list_except
@@ -328,6 +345,7 @@ class Batch(object):
 		self._write_list()
 		self._write_list_good()
 		self._write_list_except()
+
 
 	def _batch__build_core(self, func_build, overwrite=False, **kwargs):
 		"""
@@ -363,7 +381,7 @@ class Batch(object):
 		self._write_list_good()
 		self._write_list_except()
 
-		for i, row in enumerate(self.list):
+		for row in self.list:
 			ra = row['ra']
 			dec = row['dec']
 			obj_name = row['obj_name']
@@ -502,7 +520,6 @@ class Batch(object):
 		self.list_except.write(self.fp_list_except, format='ascii.csv', overwrite=True)
 
 
-
 	def _get_dir_list_from_listname(self, listname='good'):
 		if listname == 'good':
 			return self.dir_good
@@ -517,20 +534,6 @@ class Batch(object):
 		elif listname == 'except':
 			return self.list_except
 
-	# def _iterfunc_read_table(self, obj, fn_tab, overwrite=False):
-	# 	""" 
-	# 	function to be iterated for each object to access the table being compiled
-
-	# 	Params
-	# 	------
-	# 	self
-	# 	obj
-	# 	fn_tab (str):
-	# 		file name of the table to be compiled, e.g., 'sdss_photoobj.csv'.
-	# 	overwrite (bool):
-	# 		can be ignored
-	# 	"""
-	# 	return at.Table.read(obj.dir_obj+fn_tab)
 
 	def _iterfunc_extract_line_from_file(self, obj, fn, iline=1, overwrite=False):
 		""" 
@@ -602,3 +605,5 @@ def _extract_line_from_file(fn, iline=1, comment='#'):
 				lines_noncomment += [line]
 
 	return lines_noncomment[iline]
+
+

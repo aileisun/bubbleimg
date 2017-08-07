@@ -106,6 +106,7 @@ def test_batch_build_check_folders_consistent_w_list(batch_good):
 	with pytest.raises(Exception):
 		b._check_folders_consistent_w_list()	
 
+
 def test_batch_build_other_batches():
 
 	b1 = hscBatch(dir_batch=dir_batch_onlyexcept, fn_cat=fn_cat_onlyexcept)
@@ -186,11 +187,8 @@ def func_build_hsc_sdss(obj, overwrite=False, **kwargs):
 	humvi_bands = 'riz'
 
 	# running
-	L = imgdownload.hscimgLoader(obj=obj, environment=environment)
-
-	statuss = [
-				L.status, 
-				L.add_obj_sdss(), 
+	statuss = [obj.add_hsc(), 
+				obj.add_sdss()
 				]
 
 	return all(statuss)

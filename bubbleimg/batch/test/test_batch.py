@@ -30,8 +30,6 @@ def setUp_tearDown():
 	if os.path.isdir(dir_parent):
 		shutil.rmtree(dir_parent)
 
-	shutil.copytree(fn_batch_photo_veri, fn_batch_photo_test)
-
 	yield
 	# tear down
 	if os.path.isdir(dir_parent):

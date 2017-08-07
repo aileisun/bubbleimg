@@ -51,17 +51,41 @@ def test_batch_iterlist(batch_good):
 	assert a.sort() == b.list_good['obj_name'].sort()
 	
 
-def test_batch_build_wexcept(batch_wexcept):
-	b = batch_wexcept
+def test_batch_iterlist_imgdownload_squential(batch_good):
+	b = batch_good
 
-	list_good = at.Table.read(b.dir_batch+'good/list_good.csv')
-	list_except = at.Table.read(b.dir_batch+'except/list_except.csv')
+	statuss = b.iterlist(func_iterlist_imgdownload, listname='good', overwrite=True, processes=-1)
 
-	# to be constructed
-	assert len(list_good) == 3
-	assert len(b.list_good) == 3
-	assert len(list_except) == 1
-	assert len(b.list_except) == 1
+	assert all(statuss)
+
+	obj = b.get_ith_obj_from_list(iobj=0, listname='good')
+
+	assert os.path.isfile(obj.dir_obj + 'stamp-i.fits')
+
+
+
+def test_batch_iterlist_imgdownload_3processes(batch_good):
+	b = batch_good
+
+	statuss = b.iterlist(func_iterlist_imgdownload, listname='good', overwrite=True, processes=3)
+
+	assert all(statuss)
+
+	obj = b.get_ith_obj_from_list(iobj=0, listname='good')
+
+	assert os.path.isfile(obj.dir_obj + 'stamp-i.fits')
+
+
+def test_batch_iterlist_imgdownload_default_processes(batch_good):
+	b = batch_good
+
+	statuss = b.iterlist(func_iterlist_imgdownload, listname='good', overwrite=True, processes=None)
+
+	assert all(statuss)
+
+	obj = b.get_ith_obj_from_list(iobj=0, listname='good')
+
+	assert os.path.isfile(obj.dir_obj + 'stamp-i.fits')
 
 
 def func_iterlist(obj, overwrite=False, **kwargs):
@@ -72,3 +96,13 @@ def func_iterlist(obj, overwrite=False, **kwargs):
 		f.write(obj.name+'\n')
 
 	return True
+
+
+def func_iterlist_imgdownload(obj, overwrite=False, **kwargs):
+
+	obj.add_hsc(overwrite = overwrite)
+	L = imgdownload.hscimgLoader(obj=obj)
+
+	status = L.make_stamps(overwrite=overwrite)
+
+	return status
