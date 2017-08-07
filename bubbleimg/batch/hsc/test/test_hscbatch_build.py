@@ -6,7 +6,9 @@ import pytest
 import os
 import shutil
 import astropy.table as at
+import numpy as np
 import copy
+
 
 from ..hscbatch import hscBatch
 from .... import imgdownload
@@ -23,10 +25,11 @@ def setUp_tearDown():
 	if os.path.isdir(dir_parent):
 		shutil.rmtree(dir_parent)
 
-	# yield
-	# # tear down
-	# if os.path.isdir(dir_parent):
-	# 	shutil.rmtree(dir_parent)
+	yield
+	# tear down
+	if os.path.isdir(dir_parent):
+		shutil.rmtree(dir_parent)
+
 
 @pytest.fixture
 def batch_good():
@@ -107,14 +110,40 @@ def test_batch_build_check_folders_consistent_w_list(batch_good):
 		b._check_folders_consistent_w_list()	
 
 
-def test_batch_build_other_batches():
+def test_batch_build_other_batches_sequential():
 
 	b1 = hscBatch(dir_batch=dir_batch_onlyexcept, fn_cat=fn_cat_onlyexcept)
 	b2 = hscBatch(dir_batch=dir_batch_confus, fn_cat=fn_cat_confus)
 
 	for b in [b1, b2]:
-		status = b.build(func_build_hsc_sdss)
+		status = b.build(func_build_hsc_sdss, processes=-1)
 		assert status
+
+		check_lst_in_order(b.list)
+		check_lst_in_order(b.list_good)
+		check_lst_in_order(b.list_except)
+
+
+def test_batch_build_other_batches_default_processes():
+
+	b1 = hscBatch(dir_batch=dir_batch_onlyexcept, fn_cat=fn_cat_onlyexcept)
+	b2 = hscBatch(dir_batch=dir_batch_confus, fn_cat=fn_cat_confus)
+
+	for b in [b1, b2]:
+		status = b.build(func_build_hsc_sdss, processes=None)
+		assert status
+
+		check_lst_in_order(b.list)
+		check_lst_in_order(b.list_good)
+		check_lst_in_order(b.list_except)
+
+
+def check_lst_in_order(lst):
+
+	lst_sort = copy.deepcopy(lst)
+	lst_sort.sort('ra')
+
+	assert np.all(lst == lst_sort)
 
 
 def func_build_hscobj(obj, overwrite=False):

@@ -116,9 +116,9 @@ class Batch(object):
 		self.survey = survey
 		self.obj_naming_sys = obj_naming_sys
 		self.args_to_list = args_to_list
-		self._make_attr_list()
-		self._make_attr_list_good()
-		self._make_attr_list_except()
+		self._set_attr_list()
+		self._set_attr_list_good()
+		self._set_attr_list_except()
 
 		# sanity check
 		if self.dir_batch[-1] != '/':
@@ -149,7 +149,7 @@ class Batch(object):
 		overwrite=False
 
 		processes = None (int):
-			how many processes to use for multiprocessing. Default is None, the default of multiprocessing.Pool. If processes == -1, then it will be ran sequentially and no multiprocessing is used. 
+			How many processes to use for multiprocessing. Default is None, the default of multiprocessing.Pool. If processes == -1, then it will be ran sequentially and no multiprocessing is used. 
 
 		**kwargs:
 	    	other arguments to be passed to func
@@ -162,7 +162,7 @@ class Batch(object):
 		self._check_folders_consistent_w_list()
 
 		dir_list = self._get_dir_list_from_listname(listname=listname)
-		lst = self._get_list_from_listname(listname=listname)
+		lst = self._get_list_of_listname(listname=listname)
 
 		if processes != -1: # to run multiprocessing
 			ikernel_partial = mtp_tools.partialmethod(self._iterlist_kernel, func=func, listargs=listargs, dir_list=dir_list, overwrite=overwrite, **kwargs)
@@ -203,7 +203,7 @@ class Batch(object):
 		return the obj for the ith object from the specified list (good or except)
 		"""
 		dir_list = self._get_dir_list_from_listname(listname=listname)
-		lst = self._get_list_from_listname(listname=listname)
+		lst = self._get_list_of_listname(listname=listname)
 
 		ra = lst['ra'][iobj]
 		dec = lst['dec'][iobj]
@@ -315,9 +315,7 @@ class Batch(object):
 				columns_toadd = [tab_trim[cn] for cn in colnames]
 				lst.add_columns([at.Column(name = c.name, dtype=c.dtype, meta=c.meta) for c in columns_toadd])
 
-		self._write_list()
-		self._write_list_good()
-		self._write_list_except()
+		self._write_all_lists()
 
 
 	def remove_columns(self, colnames=['z']):
@@ -342,12 +340,10 @@ class Batch(object):
 		for lst in [self.list, self.list_good, self.list_except]:
 			lst.remove_columns(colnames)
 
-		self._write_list()
-		self._write_list_good()
-		self._write_list_except()
+		self._write_all_lists()
 
 
-	def _batch__build_core(self, func_build, overwrite=False, **kwargs):
+	def _batch__build_core(self, func_build, overwrite=False, processes=None, **kwargs):
 		"""
 		Build batch by making directories and running func_build. To be called by child class. 
 		Good objects will be stored in dir_batch/good/.
@@ -360,6 +356,8 @@ class Batch(object):
 			and returns status (bool)
 			The obj contains: ra, dec, dir_parent, dir_obj, name, overwrite, and "survey" of batch
 		overwrite=False (bool)
+		processes = None (int):
+			How many processes to use for multiprocessing. Default is None, the default of multiprocessing.Pool. If processes == -1, then it will be ran sequentially and no multiprocessing is used. 
 		**kwargs:
 			 to be entered into func_build() in the kwargs part
 
@@ -368,7 +366,6 @@ class Batch(object):
 		status: True if successful. 
 		"""
 		self.mkdir_batch()
-		self._write_list()
 
 		for directory in [self.dir_good, self.dir_except]:
 			if not os.path.isdir(directory):
@@ -378,44 +375,26 @@ class Batch(object):
 			# reset list_good and list_except
 			self.list_good = self._create_empty_list_table()
 			self.list_except = self._create_empty_list_table()
-		self._write_list_good()
-		self._write_list_except()
 
-		for row in self.list:
-			ra = row['ra']
-			dec = row['dec']
-			obj_name = row['obj_name']
-			dir_obj_good = self.dir_good+row['obj_name']+'/'
-			dir_obj_except = self.dir_except+row['obj_name']+'/'
+		self._write_all_lists()
 
-			if (obj_name not in self.list_good['obj_name']) and (obj_name not in self.list_except['obj_name']):
-				print("[batch] {obj_name} building".format(obj_name=obj_name))
+		if processes != -1: # to run multiprocessing
+		
+			bkernel_partial = mtp_tools.partialmethod(self._buildcore_kernel, func_build=func_build, overwrite=overwrite, **kwargs)
+			p = mtp.Pool(processes=processes)
+			results = p.map(bkernel_partial, self.list)
+			p.close()
+			p.join()
 
-				try:
-					obj = obsobj.obsObj(ra=ra, dec=dec, dir_parent=self.dir_good, obj_naming_sys=self.obj_naming_sys, overwrite=overwrite)
-					obj.survey = self.survey
-					status = func_build(obj=obj, overwrite=overwrite, **kwargs)
+		else:  # to run sequantially
+			for row in self.list:
+				self._buildcore_kernel(row=row, func_build=func_build, overwrite=overwrite, **kwargs)
 
-				except KeyboardInterrupt, e:
-					print("[batch] func_build() encounters exception {0}".format(str(e)))
-					if os.path.isdir(dir_obj_good) and (obj_name not in self.list_good['obj_name']):
-						shutil.rmtree(dir_obj_good)
-					sys.exit(1)
-
-				if status:
-					print("[batch] Successful")
-					self.list_good = at.vstack([self.list_good, row])
-					self._write_list_good()
-				else: 
-					print("[batch] Failed, moving to except/. ")
-					self.list_except = at.vstack([self.list_except, row])
-					shutil.move(dir_obj_good, dir_obj_except)
-					self._write_list_except()
-			else: 
-				print("[batch] {obj_name} skipped".format(obj_name=obj_name))
-
+		self._set_attr_list_good()
+		self._set_attr_list_except()
+		self._write_a_list(listname='good')
+		self._write_a_list(listname='except')
 		self._check_folders_consistent_w_list()
-
 
 		# status reflects that all is ran (list = list_good + list_except)
 		list_ran = []
@@ -434,7 +413,47 @@ class Batch(object):
 		return status
 
 
-	def _make_attr_list(self):
+	def _buildcore_kernel(self, row, func_build, overwrite, **kwargs):
+		""" the kernel to be iterated over (with different input row) in self._batch__build_core() """
+		ra = row['ra']
+		dec = row['dec']
+		obj_name = row['obj_name']
+		dir_obj_good = self.dir_good+row['obj_name']+'/'
+		dir_obj_except = self.dir_except+row['obj_name']+'/'
+
+		if (obj_name not in self.list_good['obj_name']) and (obj_name not in self.list_except['obj_name']):
+			print("[batch] {obj_name} building".format(obj_name=obj_name))
+
+			try:
+				obj = obsobj.obsObj(ra=ra, dec=dec, dir_parent=self.dir_good, obj_naming_sys=self.obj_naming_sys, overwrite=overwrite)
+				obj.survey = self.survey
+				status = func_build(obj=obj, overwrite=overwrite, **kwargs)
+
+			except KeyboardInterrupt, e:
+				print("[batch] func_build() encounters exception {0}".format(str(e)))
+				if os.path.isdir(dir_obj_good) and (obj_name not in self.list_good['obj_name']):
+					shutil.rmtree(dir_obj_good)
+				sys.exit(1)
+
+			if status:
+				print("[batch] Successful")
+				with open(self.fp_list_good, "a") as f:
+					ascii.write(row, output=f, format='no_header', delimiter=',')
+
+				# self.list_good = at.vstack([self.list_good, row])
+				# self._write_a_list(listname='good')
+			else: 
+				print("[batch] Failed, moving to except/. ")
+				shutil.move(dir_obj_good, dir_obj_except)
+				with open(self.fp_list_except, "a") as f:
+					ascii.write(row, output=f, format='no_header', delimiter=',')
+				# self.list_except = at.vstack([self.list_except, row])
+				# self._write_a_list(listname='except')
+		else: 
+			print("[batch] {obj_name} skipped".format(obj_name=obj_name))
+
+
+	def _set_attr_list(self):
 		"""
 		extract list (table of cols ['ra', 'dec', 'obj_name']) from catalog
 		"""
@@ -468,26 +487,13 @@ class Batch(object):
 		self.list.sort('ra')
 
 
-	def _make_attr_list_good(self):
-		if os.path.isfile(self.fp_list_good):
-			self.list_good = at.Table.read(self.fp_list_good)
-			if len(self.list_good) == 0:
-				self.list_good = self._create_empty_list_table()
-		else:
-			self.list_good = self._create_empty_list_table()
-
+	def _set_attr_list_good(self):
+		self.list_good = self._read_a_list(listname='good')
 		self.list_good.sort('ra')
 
 
-
-	def _make_attr_list_except(self):
-		if os.path.isfile(self.fp_list_except):
-			self.list_except = at.Table.read(self.fp_list_except)
-			if len(self.list_except) == 0:
-				self.list_except = self._create_empty_list_table()
-		else:
-			self.list_except = self._create_empty_list_table()
-
+	def _set_attr_list_except(self):
+		self.list_except = self._read_a_list(listname='except')
 		self.list_except.sort('ra')
 
 
@@ -505,34 +511,58 @@ class Batch(object):
 		return tab
 
 
-	def _write_list(self):
+	def _read_a_list(self, listname='good'):
+		fn = self._get_fp_of_listname(listname=listname)
+		if os.path.isfile(fn):
+			lst = at.Table.read(fn)
+			if len(lst) == 0:
+				lst = self._create_empty_list_table()
+		else:
+			lst = self._create_empty_list_table()
+		return lst
+
+
+	def _write_a_list(self, listname='good'):
+		fn = self._get_fp_of_listname(listname=listname)
+		lst = self._get_list_of_listname(listname=listname)
 		self.mkdir_batch()
-		self.list.write(self.fp_list, format='ascii.csv', overwrite=True)
+		lst.write(fn, format='ascii.csv', overwrite=True)
 
 
-	def _write_list_good(self):
-		self.mkdir_batch()
-		self.list_good.write(self.fp_list_good, format='ascii.csv', overwrite=True)
+	def _write_all_lists(self):
+		for listname in ['', 'good', 'except']:
+			self._write_a_list(listname=listname)
 
 
-	def _write_list_except(self):
-		self.mkdir_batch()
-		self.list_except.write(self.fp_list_except, format='ascii.csv', overwrite=True)
-
-
-	def _get_dir_list_from_listname(self, listname='good'):
-		if listname == 'good':
-			return self.dir_good
-
+	def _get_dir_list_from_listname(self, listname=''):
+		if listname == '':
+			dir_fp = self.dir_ba
+		elif listname == 'good':
+			dir_fp = self.dir_good
 		elif listname == 'except':
-			return self.dir_except
+			dir_fp = self.dir_except
+		return dir_fp
 
 
-	def _get_list_from_listname(self, listname='good'):
-		if listname == 'good':
-			return self.list_good
+	def	_get_fp_of_listname(self, listname=''):
+		if listname == '':
+			fp = self.fp_list
+		elif listname == 'good':
+			fp = self.fp_list_good
 		elif listname == 'except':
-			return self.list_except
+			fp = self.fp_list_except
+
+		return fp
+
+	def _get_list_of_listname(self, listname=''):
+		if listname == '':
+			lst = self.list
+		elif listname == 'good':
+			lst = self.list_good
+		elif listname == 'except':
+			lst = self.list_except
+
+		return lst
 
 
 	def _iterfunc_extract_line_from_file(self, obj, fn, iline=1, overwrite=False):
