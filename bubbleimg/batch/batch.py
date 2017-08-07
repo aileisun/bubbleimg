@@ -463,16 +463,13 @@ class Batch(object):
 		else: 
 			raise NameError("[batch] catalog table does not contain ra, dec or RA, DEC")
 
-		if 'obj_name' in self.catalog.colnames:
-			self.list['obj_name'] = self.catalog['obj_name']
-		else: 
-			objname = at.Column(name='obj_name', dtype='S64', length=len(self.list))
-			for i, row in enumerate(self.list):
-				ra = row['ra']
-				dec = row['dec']
-				objname[i] = obsobj.objnaming.get_obj_name(ra=ra, dec=dec, obj_naming_sys=self.obj_naming_sys)
+		objname = at.Column(name='obj_name', dtype='S64', length=len(self.list))
+		for i, row in enumerate(self.list):
+			ra = row['ra']
+			dec = row['dec']
+			objname[i] = obsobj.objnaming.get_obj_name(ra=ra, dec=dec, obj_naming_sys=self.obj_naming_sys)
 
-			self.list.add_column(objname)
+		self.list.add_column(objname)
 
 		if len(self.args_to_list) > 0:
 			self.args_to_list_dtype = self.catalog[self.args_to_list].dtype

@@ -26,4 +26,5 @@ dir_batch_confus = dir_parent+'batch_confus/'
 dir_verif_hscphoto = dir_verifc+'batch_hscphoto/'
 dir_batch_hscphoto = dir_parent+'batch_hscphoto/'
 
+fn_list_w_short_obj_name = dir_verifc+'list_w_short_obj_name.csv'
 

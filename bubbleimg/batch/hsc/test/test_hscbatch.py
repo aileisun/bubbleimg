@@ -51,7 +51,6 @@ def test_batch_init():
 	assert len(b.catalog) == len(catalog)
 
 
-
 def test_batch_init_error_noname():
 	with pytest.raises(Exception):
 		b = hscBatch(dir_parent=dir_parent, catalog=catalog, survey=survey)
@@ -94,3 +93,21 @@ def test_batch_args_to_list():
 
 	for arg in args_to_list:
 		assert arg in lst.colnames
+
+def test_batch_override_short_obj_name_in_catalog():
+	""" have obj_naming_sys overriding 'obj_name' in the input catalog """
+
+	fn_list_w_short_obj_name = dir_verifc+'list_w_short_obj_name.csv'
+	catalog = at.Table.read(fn_list_w_short_obj_name, format='ascii.csv')
+
+	dir_batch = dir_parent + 'batch_short_obj_name/'
+	survey = 'hsc'
+
+	b = hscBatch(dir_batch=dir_batch, catalog=catalog, survey=survey)
+	print(b.list[0]['obj_name'])
+	assert len(b.list[0]['obj_name']) == 14
+
+	b = hscBatch(dir_batch=dir_batch, catalog=catalog, survey=survey, obj_naming_sys='sdss_precise')
+
+	print(b.list[0]['obj_name'])
+	assert len(b.list[0]['obj_name']) == 18
