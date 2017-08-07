@@ -45,6 +45,9 @@ def fline_over_fnuband(fl, wl, Tl, fs, ws, Ts):
 
 	# calculation
 	firstterm = const.c / (Tl * wl * u.AA)
+	print("fs", fs)
+	print("ws", ws)
+	print("Ts", Ts)
 	secondterm = FWT(fl, wl, Tl) / sumFWT(fs, ws, Ts)
 
 	return firstterm * secondterm

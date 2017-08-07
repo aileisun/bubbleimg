@@ -5,22 +5,19 @@ import os
 import numpy as np
 import astropy.units as u
 import astropy.table as at
+from astropy.io import fits
+import filecmp
 
 from ....obsobj import obsObj
 
 from .. import isoMeasurer
 from .. import polytools
 
-ra = 140.099341430207
-dec = 0.580162492432517
 dir_parent = './testing/'
-dir_obj = './testing/SDSSJ0920+0034/'
 
-dir_verif = 'verification_data/SDSSJ0920+0034/'
 bandline = 'i'
 bandconti = 'r'
 survey = 'hsc'
-z = 0.4114188
 
 isocut = 1.e-15*u.Unit('erg / (arcsec2 cm2 s)')
 
@@ -33,7 +30,6 @@ def setUp_tearDown():
 		shutil.rmtree(dir_parent)
 
 	os.makedirs(dir_parent)
-	shutil.copytree(dir_verif, dir_obj)
 
 	# yield
 	# # tear down
@@ -41,14 +37,38 @@ def setUp_tearDown():
 	# 	shutil.rmtree(dir_parent)
 
 
+
 @pytest.fixture
-def obj_dirobj():
-	return obsObj(ra=ra, dec=dec, dir_obj = dir_obj)
+def measurer1():
+	ra = 140.099341430207
+	dec = 0.580162492432517
+	z = 0.4114188
+
+	dir_obj = './testing/SDSSJ0920+0034/'
+	dir_verif = 'verification_data/SDSSJ0920+0034/'
+
+	if os.path.isdir(dir_obj):
+		shutil.rmtree(dir_obj)
+
+	shutil.copytree(dir_verif, dir_obj)
+	obj = obsObj(ra=ra, dec=dec, dir_obj = dir_obj)
+	return isoMeasurer(obj=obj, survey='hsc', z=z, center_mode='n/2-1')
 
 
 @pytest.fixture
-def measurer1(obj_dirobj):
-	obj = obj_dirobj
+def measurer_nanimg():
+	ra = 140.826752453534
+	dec = 0.530545728517824
+
+	z = 0.548
+	dir_verif = './verification_data/SDSSJ092318+003149/'
+	dir_obj = './testing/SDSSJ092318+003149/'
+
+	if os.path.isdir(dir_obj):
+		shutil.rmtree(dir_obj)
+	shutil.copytree(dir_verif, dir_obj)
+
+	obj = obsObj(ra=ra, dec=dec, dir_obj=dir_obj, obj_naming_sys='sdss_precise')
 	return isoMeasurer(obj=obj, survey='hsc', z=z, center_mode='n/2-1')
 
 
@@ -58,31 +78,25 @@ def test_isomeasurer_get_fp_msr(measurer1):
 	assert m.get_fp_msr(imgtag='OIII5008_I') == m.dir_obj+'msr_iso-OIII5008_I.csv'
 
 
-def test_isomeasurer_get_fp_contour(measurer1):
+def test_isomeasurer_get_fp_contours(measurer1):
 	m = measurer1
 
 
-	imgtag='OIII5008_I'
+	imgtag = 'OIII5008_I'
 
-	assert m.get_fp_contour(imgtag=imgtag, onlycenter=False) == m.dir_obj+'contour-OIII5008_I.pkl'
-	assert m.get_fp_contour(imgtag=imgtag, onlycenter=True) == m.dir_obj+'contour_ctr-OIII5008_I.pkl'
-
-
-
-# def test_isomeasurer_measure_line_I(measurer1):
-# 	m = measurer1
-
-# 	m.make_measurements_line_I(line='OIII5008', overwrite=True, isocut=isocut, isoareallimit=0, onlycenter=True)
-
-# 	assert os.path.file(m.dir_obj+'msr_iso-OIII5008_I.csv')
+	assert m.get_fp_contours(imgtag=imgtag, onlycenter=False) == m.dir_obj+'msr_iso-OIII5008_I_contours.pkl'
+	assert m.get_fp_contours(imgtag=imgtag, onlycenter=True) == m.dir_obj+'msr_iso-OIII5008_I_contours-ctr.pkl'
 
 
-
-def test_isomeasurer_get_contours_from_fits(measurer1):
+def test_isomeasurer_get_contours_from_img(measurer1):
 	m = measurer1
 
 	fn_img = m.dir_obj+'stamp-OIII5008_I.fits'
-	contours = m._get_contours_from_fits(fn_img=fn_img, isocut=isocut, minarea=0., onlycenter=False, centerradius=2.*u.arcsec)
+	img = fits.getdata(fn_img)
+
+	xc, yc = m._get_xc_yc(img)
+	isocut = 1.e-15
+	contours = m._get_contours_from_img(img=img, isocut=isocut, xc=xc, yc=yc, minarea=0., onlycenter=False, centerradius=2.*u.arcsec)
 
 	assert polytools.ispolys(contours)
 	assert polytools.NetPolygonsArea(contours) > 0
@@ -98,7 +112,7 @@ def test_isomeasurer_make_measurements(measurer1):
 
 	assert os.path.isfile(m.dir_obj+'msr_iso-OIII5008_I.pdf')
 	assert os.path.isfile(m.dir_obj+'msr_iso-OIII5008_I.csv')
-	assert os.path.isfile(m.dir_obj+'contours_ctr-OIII5008_I.pkl')
+	assert os.path.isfile(m.dir_obj+'msr_iso-OIII5008_I_contours-ctr.pkl')
 
 	tab = at.Table.read(m.dir_obj+'msr_iso-OIII5008_I.csv')
 
@@ -113,18 +127,44 @@ def test_isomeasurer_make_measurements(measurer1):
 
 
 
+def test_isomeasurer_make_measurements_suffix(measurer1):
+	m = measurer1
+ 	imgtag = 'OIII5008_I'
+	minarea = 5
+	isocut1 = 1.e-15*u.Unit('erg / (arcsec2 cm2 s)')
+	suffix1 = '_1e-15'
+
+	isocut2 = 3.e-15*u.Unit('erg / (arcsec2 cm2 s)')
+	suffix2 = '_3e-15'
+
+	for isocut, suffix in ((isocut1, suffix1), (isocut2, suffix2)):
+		status = m.make_measurements(imgtag=imgtag, isocut=isocut, minarea=minarea, onlycenter=True, centerradius=5.*u.arcsec, suffix=suffix, overwrite=True, savecontours=True, plotmsr=True)
+
+		assert status
+
+		assert os.path.isfile(m.dir_obj+'msr_iso-OIII5008_I{suffix}.pdf'.format(suffix=suffix))
+		assert os.path.isfile(m.dir_obj+'msr_iso-OIII5008_I{suffix}.csv'.format(suffix=suffix))
+		assert os.path.isfile(m.dir_obj+'msr_iso-OIII5008_I{suffix}_contours-ctr.pkl'.format(suffix=suffix))
 
 
-# def test_find_contours_one_w_unit():
+	f1 = m.dir_obj+'msr_iso-OIII5008_I{suffix}.csv'.format(suffix=suffix1)
+	f2 = m.dir_obj+'msr_iso-OIII5008_I{suffix}.csv'.format(suffix=suffix2)
+	assert not filecmp.cmp(f1, f2)
 
-# 	unit = u.Unit('erg s-1 cm-2')
-# 	img = img_dot * unit
-# 	threshold = thrshld * unit
 
-# 	contours = polytools.find_contours(img, threshold, tocomplete=True)
 
-# 	assert len(contours) == 1.
+def test_isomeasurer_nan_image(measurer_nanimg):
+	m = measurer_nanimg
 
-# 	print("real area: ", np.sum(img), "cntr area: ", polytools.NetPolygonsArea(contours))
+ 	imgtag = 'OIII5008_I'
+	minarea = 5
+	status = m.make_measurements(imgtag=imgtag, isocut=isocut, minarea=minarea, onlycenter=True, centerradius=5.*u.arcsec, overwrite=False, savecontours=True, plotmsr=True)
 
-# 	assert about_the_same_area(contours, np.sum(img), uncertainty=0.)
+	fn = m.get_fp_msr(imgtag=imgtag)
+	tab = at.Table.read(fn)
+
+	for col in ['area_kpc', 'dmax_kpc', 'rmax_kpc', 'dper_kpc', 'area_ars', 'dmax_ars', 'rmax_ars', 'dper_ars', 'area_pix', 'dmax_pix', 'rmax_pix', 'dper_pix', 'theta_dmax', 'theta_rmax', 'theta_dper', 'aspectr', ]:
+		assert np.isnan(tab[col][0])
+
+	for col in ['imgtag', 'isocut', 'minarea', 'onlycenter', 'centerradius']:
+		assert col in tab.colnames

@@ -3,8 +3,10 @@
 __all__ = ['measurer']
 
 import measurer
+import iso
+
+# reload(iso)
+# reload(measurer)
 
 from measurer import Measurer
-
-import iso
 from iso import isoMeasurer

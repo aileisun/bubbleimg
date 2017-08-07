@@ -4,7 +4,6 @@ import os
 import astropy.units as u
 from astropy.io import fits
 import numpy as np
-# import matplotlib.pyplot as plt
 import astropy.table as at
 import pickle
 
@@ -24,19 +23,21 @@ class isoMeasurer(Measurer):
 		self.msrtype = 'iso'
 
 
-	def get_fp_contours(self, imgtag='OIII5008_I', onlycenter=False):
-		""" e.g., contours-{imgtag}.pkl 
-			\or   contours_ctr-{imgtag}.pkl 
+	def get_fp_contours(self, imgtag='OIII5008_I', onlycenter=False, suffix=''):
+		""" e.g., msr_iso-OIII5008_I{suffix}_contours.pkl 
+			\or   msr_iso-OIII5008_I{suffix}_contours-ctr.pkl 
 		"""
 		if onlycenter:
-			ctrtag = '_ctr'
+			ctrtag = '-ctr'
 		else:
 			ctrtag = ''
 
-		return self.dir_obj+'contours{ctrtag}-{imgtag}.pkl'.format(ctrtag=ctrtag, imgtag=imgtag)
+		fn_msr = self.get_fp_msr(imgtag=imgtag, suffix=suffix)
+		fn_noext = os.path.splitext(fn_msr)[0]
+		return fn_noext+'_contours{ctrtag}.pkl'.format(ctrtag=ctrtag)
 
 
-	def make_measurements(self, imgtag='OIII5008_I', isocut=1.e-15*u.Unit('erg / (arcsec2 cm2 s)'), minarea=0, onlycenter=False, centerradius=2.*u.arcsec, overwrite=False, savecontours=False, plotmsr=False):
+	def make_measurements(self, imgtag='OIII5008_I', isocut=1.e-15*u.Unit('erg / (arcsec2 cm2 s)'), minarea=0, onlycenter=False, centerradius=2.*u.arcsec, suffix='', overwrite=False, savecontours=False, plotmsr=False):
 		"""
 		make measurements on a map
 			if imgtag='OIII5008_I' then measure 'stamp-OIII5008_I.fits'
@@ -54,6 +55,8 @@ class isoMeasurer(Measurer):
 		onlycenter=False:
 			whether to consider only the center contours
 		centerradius=2.*u.arcsec
+		suffix = '':
+			suffix label to be attach to the end of hte file names. 
 		overwrite=False
 		savecontours=False
 		plotmsr=False
@@ -66,7 +69,7 @@ class isoMeasurer(Measurer):
 		------------
 		e.g., msr_iso-OIII5008.csv
 		"""
-		fn = self.get_fp_msr(imgtag=imgtag)
+		fn = self.get_fp_msr(imgtag=imgtag, suffix=suffix)
 
 		if not os.path.isfile(fn) or overwrite:
 			print("[isomeasurer] making measurement")
@@ -78,8 +81,13 @@ class isoMeasurer(Measurer):
 			xc, yc = self._get_xc_yc(img)
 
 			# calc
-			contours = self._get_contours_from_img(img=img, isocut=isocut, xc=xc, yc=yc, minarea=minarea, onlycenter=onlycenter, centerradius=centerradius)
-			tab_msr = self._get_tab_measurements_from_contours(contours=contours, xc=xc, yc=yc)
+			if np.all(~np.isnan(img)): 
+				contours = self._get_contours_from_img(img=img, isocut=isocut, xc=xc, yc=yc, minarea=minarea, onlycenter=onlycenter, centerradius=centerradius)
+				tab_msr = self._get_tab_measurements_from_contours(contours=contours, xc=xc, yc=yc)
+			else: 
+				contours = []
+				tab_msr = self._get_tab_measurements_nan()
+
 			tab_params = self._get_tab_params(imgtag=imgtag, isocut=isocut, minarea=minarea, onlycenter=onlycenter, centerradius=centerradius)
 			tabout = at.hstack([tab_params, tab_msr])
 
@@ -88,14 +96,14 @@ class isoMeasurer(Measurer):
 
 			# optional output
 			if savecontours:
-				fn_contours = self.get_fp_contours(imgtag=imgtag, onlycenter=onlycenter)
-				write_pickle(contours, fn_contours)
+				fn_contours = self.get_fp_contours(imgtag=imgtag, onlycenter=onlycenter, suffix=suffix)
+				write_pickle(contours, fn_contours, overwrite=overwrite)
 
 			if plotmsr:
-				fn = self.get_fp_msrplot(imgtag=imgtag)
+				fn_plot = self.get_fp_msrplot(imgtag=imgtag, suffix=suffix)
 				fig, ax = plottools.plot_img(img, colorlabel=img.unit.to_string())
 				plottools.overplot_contours(ax, contours)
-				fig.savefig(fn)
+				fig.savefig(fn_plot)
 
 		else:
 			print("[isomeasurer] skip making measurement as files exist")
@@ -140,6 +148,18 @@ class isoMeasurer(Measurer):
 		return tabout
 
 
+	def _get_tab_measurements_nan(self):
+		""" 
+		return a tab measurement just like _get_tab_measurements_from_contours() but with entries all nan. 
+		"""
+		names = ['area_kpc', 'dmax_kpc', 'rmax_kpc', 'dper_kpc', 'area_ars', 'dmax_ars', 'rmax_ars', 'dper_ars', 'area_pix', 'dmax_pix', 'rmax_pix', 'dper_pix', 'theta_dmax', 'theta_rmax', 'theta_dper', 'aspectr']
+
+		tabout = at.Table(names=names)
+		tabout.add_row([np.nan for i in range(len(names))])
+
+		return tabout
+
+
 	def _get_contours_from_img(self, img, isocut, xc, yc, minarea=0., onlycenter=False, centerradius=2.*u.arcsec):
 		"""
 		make contour at isocut of image as python pickle file (fn_contours)
@@ -161,7 +181,12 @@ class isoMeasurer(Measurer):
 		"""
 
 		# prep
-		img_nparr = np.array((img/isocut).to(u.dimensionless_unscaled))
+		try: 
+			img.unit
+		except:
+			img_nparr = img/isocut
+		else:
+			img_nparr = np.array((img/isocut).to(u.dimensionless_unscaled))
 
 		# find contours -- satisfy minarea
 		contours = polytools.find_largecontours(img=img_nparr, threshold=1., minarea=minarea)
@@ -175,12 +200,14 @@ class isoMeasurer(Measurer):
 
 
 def read_pickle(fn):
-    with open(fn, 'rb') as handle:
-        result = pickle.load(handle)
-    return result
+	with open(fn, 'rb') as handle:
+		result = pickle.load(handle)
+	return result
 
 
-def write_pickle(result, fn):
-    with open(fn, 'wb') as handle:
-        pickle.dump(result, handle)
+def write_pickle(result, fn, overwrite=False):
+
+	if not os.path.isfile(fn) or overwrite:
+		with open(fn, 'wb') as handle:
+			pickle.dump(result, handle)
 

@@ -117,13 +117,15 @@ class Measurer(Operator):
 		return self.dir_obj+'stamp-{imgtag}.fits'.format(imgtag=imgtag)
 
 
-	def get_fp_msr(self, imgtag='OIII5008_I'):
-		return self.dir_obj+'msr_{msrtype}-{imgtag}.csv'.format(msrtype=self.msrtype, imgtag=imgtag)
+	def get_fp_msr(self, imgtag='OIII5008_I', suffix=''):
+		""" return the path to the measurement results .csv file, e.g., msr_iso-OIII5008_I{suffix}.csv """
+		return self.dir_obj+'msr_{msrtype}-{imgtag}{suffix}.csv'.format(msrtype=self.msrtype, imgtag=imgtag, suffix=suffix)
+		
 
-
-	def get_fp_msrplot(self, imgtag='OIII5008_I'):
-		fn_msr = self.get_fp_msr(imgtag=imgtag)
-		return os.path.splitext(fn_msr)[0]+'.pdf'
+	def get_fp_msrplot(self, imgtag='OIII5008_I', suffix=''):
+		fn_msr = self.get_fp_msr(imgtag=imgtag, suffix=suffix)
+		fn_noext = os.path.splitext(fn_msr)[0]
+		return fn_noext+'.pdf'
 
 
 	def make_measurements_line_I(self, line='OIII5008', overwrite=False, **kwargs):

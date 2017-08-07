@@ -49,35 +49,37 @@ class plainObj(object):
 		if isinstance(ra, float):
 			self.ra = ra
 		else: 
-			raise TypeError('ra should be float')
+			raise TypeError('[plainobj] ra should be float')
 
 		if isinstance(dec, float):
 			self.dec = dec
 		else: 
-			raise TypeError('dec should be float')
+			raise TypeError('[plainobj] dec should be float')
 
 		self.obj_naming_sys = obj_naming_sys
 
+		obj_name = get_obj_name(self.ra, self.dec, obj_naming_sys=self.obj_naming_sys)
 
 		if 'dir_obj' in kwargs:
 			self.dir_obj = kwargs.pop('dir_obj', None)
 			self.name = self.dir_obj.split('/')[-2]
 
 			# sanity check: dir_obj naming consistent with ra, dec
-			if (self.name[:4]=='SDSS' and self.name != get_obj_name(self.ra, self.dec, obj_naming_sys=self.obj_naming_sys)):
-				raise Exception('dir_obj SDSS name inconsistent with ra dec')
+			if (self.name[:4]=='SDSS' and self.name != obj_name):
+				raise Exception('[plainobj] dir_obj SDSS name inconsistent with ra dec. {} != {}'.format
+					(self.name, obj_name))
 		elif 'dir_parent' in kwargs:
 			dir_parent = kwargs.pop('dir_parent', None)
-			self.name = get_obj_name(self.ra, self.dec, obj_naming_sys=self.obj_naming_sys)
+			self.name = obj_name
 			self.dir_obj = dir_parent+self.name+'/'
 			self.dir_parent = dir_parent
 		else:
-			raise Exception('dir_obj or dir_parent not specified')
+			raise Exception('[plainobj] dir_obj or dir_parent not specified')
 
 
 		# sanity check: dir_obj is like a directory
 		if self.dir_obj[-1] != '/':
-			raise Exception('dir_obj not a directory path')
+			raise Exception('[plainobj] dir_obj not a directory path')
 
 
 

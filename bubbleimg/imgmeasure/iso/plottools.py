@@ -17,7 +17,7 @@ from astropy.table import Table
 # from .. import standards
 
 
-def plot_img(img, vmin=None, vmax=None, origin='lower', tocolorbar=True, tosetlim=True, figsize=(6, 4.5), colorlabel='$I\/[10^{-15}\/\mathrm{erg\/\/s^{-1}\/cm^{-2}\/arcsec^{-2}}]$'):
+def plot_img(img, vmin=-1, vmax=10, origin='lower', tocolorbar=True, tosetlim=True, figsize=(6, 4.5), colorlabel='$I\/[10^{-15}\/\mathrm{erg\/\/s^{-1}\/cm^{-2}\/arcsec^{-2}}]$'):
     """
     Plot an image with colorbar. No saving is done. The fig and ax is 
     returned to make more modifications to the image. 
@@ -27,7 +27,6 @@ def plot_img(img, vmin=None, vmax=None, origin='lower', tocolorbar=True, tosetli
     OUTPUT: 
         fig, ax
     """
-
     plt.close('all')
     fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot(111, aspect='equal')
