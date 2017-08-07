@@ -2,7 +2,7 @@
 Batch
 *****
 
-``batch`` takes care of operations done to a sample of objects. It has three basic functions: ``build()``, ``iterlist()``, and ``compile_table()``. The batch class is still under construction. Please use ``hscBatch`` for now. 
+``batch`` takes care of operations done to a sample of objects. It has three basic functions: ``build()``, ``iterlist()``, and ``compile_table()``. The batch class is still under construction. Please use ``hscBatch`` for now. The computationally intensive parts (``build()``, ``iterlist()``) are run in parallel using multiprocessing by default. 
 
 
 Batch
@@ -61,18 +61,48 @@ One can check the list of objects of batch.
 	29.748938 -6.4643413 SDSSJ0158-0627
 	30.410525 -6.3772438 SDSSJ0201-0622
 
+
+obj_naming_sys
+--------------
+
 By default the naming of the objects is SDSSJ plus the hhmmsddmm of the coordinates (sdss). The naming system can be changed using the argument ``obj_naming_sys``. 
 
 	>>> b = Batch(dir_batch=dir_batch, fn_cat=fn_cat, survey=survey, obj_naming_sys='sdss')
 
-Currently supporting:
-	``obj_naming_sys = ``
+Currently supported ``obj_naming_sys``: 
 		- 'sdss'			: 'SDSSJ1000+1242'
 		- 'sdss_precise'	: 'SDSSJ100013+124226'
 		- 'j'				: 'J1000+1242'
 		- 'j_precise'		: 'J100013+124226'
 
 If the sample is too large such that there might be duplicated object names, consider using more precise naming systems. 
+
+
+args_to_list
+------------
+
+One can have additional columns from the catalog to be included in list.csv by using ``args_to_list``.
+
+	>>> lines = [
+				'    ra       dec        z  ', 
+				'--------- ---------- ------', 
+				'29.748938 -6.4643413 0.4178', 
+				'32.258361 -6.410809  0.4248', 
+				'33.480903 -5.8281496 0.4434', 
+				]
+
+	>>> catalog = ascii.read(lines)
+	>>> b = Batch(dir_batch=dir_batch, catalog=catalog, survey=survey, args_to_list=['z'])
+	>>> b.list
+	<Table length=3>
+	    ra       dec        obj_name       z   
+	 float64   float64       str64      float64
+	--------- ---------- -------------- -------
+	29.748938 -6.4643413 SDSSJ0158-0627  0.4178
+	32.258361  -6.410809 SDSSJ0209-0624  0.4248
+	33.480903 -5.8281496 SDSSJ0213-0549  0.4434
+
+
 
 hscBatch
 ========
@@ -303,4 +333,43 @@ To compile the results table that resides in each of the object directories, one
 This will create ``dir_batch/spec_mag.csv`` that contains the ``spec_mag.csv`` for all of the objects in the list, including the ``exclude`` objects. Just that the content of the ``exclude`` object will be empty. 
 
 
+
+steal_columns
+-------------
+
+If after building a batch you realized that there are columns in the catalog that you wanted to include as 'args_to_list' in list.csv (and all the compiled tables), you can make it up by using ``steal_columns()``. 
+
+	>>> import astropy.table as at
+	>>> cat = at.Table.read('catalog.fits')
+	>>> b.steal_columns(tab=cat, colnames=['z'])
+
+The list.csv, list_good.csv, and list_except.csv files will be overwrite and the new columns (in this example 'z') will appear. 
+
+To have it in the compiled tables you will need to run ``compile_table`` again. 
+	>>> status = b.compile_table('spec_mag.csv', overwrite=True)
+
+If you want to undo ``steal_columns()``, use ``remove_columns()``
+
+	>>> b.remove_columns(colnames=['z'])
+
+
+
+Multiprocessin
+==============
+
+By the fault the computations in ``build()`` and ``iterlist()`` is run in parallel using multiprocessing, see <https://docs.python.org/2/library/multiprocessing.html>. More specifically, we uses the ``map`` function of ``multiprocessing.Pool``. The default number of processes is determined by the default of the map function. To change the number of processes, do: 
+
+	>>> status = b.build(func_build, processes=2)
+
+	or
+
+	>>> statuss = b.iterlist(func_iterlist, processes=2)
+
+To not use multiprocessing at all and run through the list using python for loop (!!!), set ``processes`` to -1. 
+
+	>>> status = b.build(func_build, processes=-1)
+
+	or
+
+	>>> statuss = b.iterlist(func_iterlist, processes=-1)
 

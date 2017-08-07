@@ -440,15 +440,12 @@ class Batch(object):
 				with open(self.fp_list_good, "a") as f:
 					ascii.write(row, output=f, format='no_header', delimiter=',')
 
-				# self.list_good = at.vstack([self.list_good, row])
-				# self._write_a_list(listname='good')
 			else: 
 				print("[batch] Failed, moving to except/. ")
 				shutil.move(dir_obj_good, dir_obj_except)
 				with open(self.fp_list_except, "a") as f:
 					ascii.write(row, output=f, format='no_header', delimiter=',')
-				# self.list_except = at.vstack([self.list_except, row])
-				# self._write_a_list(listname='except')
+
 		else: 
 			print("[batch] {obj_name} skipped".format(obj_name=obj_name))
 
@@ -488,17 +485,19 @@ class Batch(object):
 
 
 	def _set_attr_list_good(self):
-		self.list_good = self._read_a_list(listname='good')
-		self.list_good.sort('ra')
+		""" read sorted list_good from file and set it to attribute """
+		self.list_good = self._read_a_list_sorted(listname='good')
 
 
 	def _set_attr_list_except(self):
-		self.list_except = self._read_a_list(listname='except')
-		self.list_except.sort('ra')
+		""" read sorted list_except from file and set it to attribute """
+		self.list_except = self._read_a_list_sorted(listname='except')
 
 
 	def _create_empty_list_table(self):
-
+		"""
+		Return an empty table with columns ra, dec, obj_name and those in args_to_list 
+		"""
 		d = np.dtype([('ra', 'float64'), ('dec', 'float64'), ('obj_name', 'S64')])
 		tab0 = at.Table(dtype=d)
 
@@ -511,7 +510,15 @@ class Batch(object):
 		return tab
 
 
-	def _read_a_list(self, listname='good'):
+	def _read_a_list_sorted(self, listname=''):
+		""" 
+		Read and return a list. the list is sorted by ra before returning
+
+		Params
+		------
+		listname (str):
+			'' for list, 'good' for list_good, and 'except' for list_except
+		"""
 		fn = self._get_fp_of_listname(listname=listname)
 		if os.path.isfile(fn):
 			lst = at.Table.read(fn)
@@ -519,10 +526,19 @@ class Batch(object):
 				lst = self._create_empty_list_table()
 		else:
 			lst = self._create_empty_list_table()
+		lst.sort('ra')
 		return lst
 
 
-	def _write_a_list(self, listname='good'):
+	def _write_a_list(self, listname=''):
+		""" 
+		write a list from attribute to file
+
+		Params
+		------
+		listname (str):
+			'' for list, 'good' for list_good, and 'except' for list_except
+		"""
 		fn = self._get_fp_of_listname(listname=listname)
 		lst = self._get_list_of_listname(listname=listname)
 		self.mkdir_batch()
@@ -530,6 +546,7 @@ class Batch(object):
 
 
 	def _write_all_lists(self):
+		""" write all the lists from attributes to file """
 		for listname in ['', 'good', 'except']:
 			self._write_a_list(listname=listname)
 

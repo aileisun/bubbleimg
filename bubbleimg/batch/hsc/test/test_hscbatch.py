@@ -13,12 +13,6 @@ from .... import obsobj
 
 from setpaths import *
 
-
-# dir_parent = 'testing/'
-# dir_batch = 'testing/batch_ri/'
-# name = 'batch_ri'
-# fn_cat = 'test_verification_data/catalog_good.fits'
-# survey ='hsc'
 obj_naming_sys = 'sdss'
 catalog = at.Table.read(fn_cat, format='fits')
 
@@ -83,7 +77,7 @@ def test_batch_init_with_fn_cat():
 def test_batch_write_list(batch_good):
 	b = batch_good
 
-	b._write_list()
+	b._write_a_list(listname='')
 
 	lst = at.Table.read(b.dir_batch+'list.csv')
 	assert len(lst) > 0
@@ -95,7 +89,7 @@ def test_batch_args_to_list():
 
 	b = hscBatch(dir_batch=dir_batch, fn_cat=fn_cat, survey=survey, args_to_list=args_to_list)
 
-	b._write_list()
+	b._write_a_list(listname='')
 	lst = at.Table.read(b.dir_batch+'list.csv')
 
 	for arg in args_to_list:
