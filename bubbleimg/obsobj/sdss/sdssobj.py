@@ -40,6 +40,9 @@ class sdssObj(plainObj):
 
 		search_radius = 2.* u.arcsec
 
+		science_primary=True (bool)
+			If true, then only sciencePrimary object is taken
+
 		overwrite=False (bool): 
 			If true, load xid remotely and rewrite local xid.csv. If false, ready local sdss_xid.csv whenever it eixsts, if not, then load remotely and save to local xid.csv. 
 
@@ -50,6 +53,7 @@ class sdssObj(plainObj):
 		dir_obj (string)
 		data_release (int)
 		search_radius (angle quantity object)
+		science_primary=True (bool)
 		sdssname (string)
 		status (whether the xid and photoboj query were successful)
 
@@ -61,6 +65,7 @@ class sdssObj(plainObj):
 		super(self.__class__, self).__init__(**kwargs)
 		self.data_release = kwargs.pop('data_release', 12)
 		self.search_radius = kwargs.pop('search_radius', 2.*u.arcsec)
+		self.science_primary = kwargs.pop('science_primary', True)
 
 		self.fp_photoobj = self.dir_obj+'sdss_photoobj.csv'
 		self.fn_spec = self.dir_obj+'spec.fits'
@@ -103,7 +108,6 @@ class sdssObj(plainObj):
 		return xid. 
 		If overwrite == true then always load xid remotely and rewrites local file "sdss_xid.csv". Otherwise, read locally whenever file exists or load remotely and write file if not. 
 
-
 		Parameters
 		------
 		self: obj
@@ -130,27 +134,32 @@ class sdssObj(plainObj):
 			# download xid from sdss
 			print "[sdssobj] querying xid from SDSS"
 			c = ac.SkyCoord(self.ra, self.dec, 'icrs', unit='deg')
-			# result = astroquery.sdss.SDSS.query_region(c, spectro=True, photoobj_fields=photoobj_defs, specobj_fields=specobj_defs, data_release=self.data_release, radius=self.search_radius)
 
 			func_query = astroquery.sdss.SDSS.query_region
 			kwargs_query = dict(coordinates=c, spectro=True, photoobj_fields=photoobj_defs, specobj_fields=specobj_defs, data_release=self.data_release, radius=self.search_radius)
 			result = _retry_sdss_query(func_query, n_trials=5, **kwargs_query)
 
-
 			# Retrieving  sdss ids of the spec sciencePrimary 
 			if result is not None:
-				xid = result[result['sciencePrimary'] == 1]
-				if len(xid) == 1:
-					print "[sdssobj] science primary object found"
-				elif len(xid) > 1:
-					print "[sdssobj] multiple science primary object found, choose the closest one"
-					cspecs = [ac.SkyCoord(row['ra'], row['dec'], 'icrs', unit='deg') for row in xid]
-					print "[sdssobj] science primary object found"
-					a = np.array([c.separation(cspec).value for cspec in cspecs])
-					xid = at.Table(xid[np.argmin(a)])
+				if self.science_primary:
+					xid = result[result['sciencePrimary'] == 1]
+				else: 
+					xid = result
+
+				if xid is not None:
+					if len(xid) == 1:
+						print "[sdssobj] science primary object found"
+					elif len(xid) > 1:
+						print "[sdssobj] multiple science primary object found, choose the closest one"
+						cspecs = [ac.SkyCoord(row['ra'], row['dec'], 'icrs', unit='deg') for row in xid]
+						print "[sdssobj] science primary object found"
+						a = np.array([c.separation(cspec).value for cspec in cspecs])
+						xid = at.Table(xid[np.argmin(a)])
+					else:
+						print "[sdssobj] no science primary found or duplicate"
+						xid = None
 				else:
-					print "[sdssobj] no science primary found or duplicate"
-					xid = None
+					pass
 			else:
 				print "[sdssobj] no object found"
 				xid = None
@@ -161,8 +170,6 @@ class sdssObj(plainObj):
 				self.make_dir_obj()
 				xid.write(fn, format='ascii.csv', comment='#', overwrite=overwrite)
 
-			return xid
-
 		else: 
 			# retrieve xid locally
 			print "[sdssobj] reading xid locally"
@@ -171,7 +178,7 @@ class sdssObj(plainObj):
 			if (xid is not None):
 				self._xid_sanity_check(xid)
 
-			return xid
+		return xid
 
 
 	def _xid_sanity_check(self, xid):
@@ -253,11 +260,12 @@ class sdssObj(plainObj):
 			kwargs_query = dict(sql_query=sql_query, data_release=self.data_release)
 			photoobj = _retry_sdss_query(func_query, n_trials=5, **kwargs_query)
 
-			if len(photoobj) > 0 :
-				self.make_dir_obj()
-				photoobj.write(fn, format='ascii.csv', comment='#', overwrite=overwrite)
-			else:
-				photoobj = None
+			if photoobj is not None:
+				if len(photoobj) > 0 :
+					self.make_dir_obj()
+					photoobj.write(fn, format='ascii.csv', comment='#', overwrite=overwrite)
+				else:
+					photoobj = None
 
 		else: 
 			print "[sdssobj] reading photoobj locally"
@@ -335,19 +343,24 @@ class sdssObj(plainObj):
 				kwargs_query = dict(matches=self.xid, data_release=self.data_release)
 				sp = _retry_sdss_query(func_query, n_trials=5, **kwargs_query)
 
-				if len(sp) == 1: 
-					sp=sp[0]
-					self.make_dir_obj()
-					sp.writeto(fn, overwrite=overwrite)
-					return True
-				else: 
-					raise ValueError("SDSS spec obj not uniquely identified. ")
-					return False
+				if sp is not None:
+					if len(sp) == 1: 
+						sp=sp[0]
+						self.make_dir_obj()
+						sp.writeto(fn, overwrite=overwrite)
+						status = True
+					else: 
+						raise ValueError("SDSS spec obj not uniquely identified. ")
+						status = False
+				else:
+					status = False
 			else: 
 				print "[sdssObj] skip download spec as file exists"
-				return True
+				status = True
 		else: 
-			return False
+			status = False
+
+		return status
 
 
 	def get_speclcoord(self, wunit=False):
