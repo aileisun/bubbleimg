@@ -41,7 +41,7 @@ class sdssObj(plainObj):
 		search_radius = 2.* u.arcsec
 
 		science_primary=True (bool)
-			If true, then only sciencePrimary object is taken
+			If true, then only sciencePrimary spectrum is taken
 
 		overwrite=False (bool): 
 			If true, load xid remotely and rewrite local xid.csv. If false, ready local sdss_xid.csv whenever it eixsts, if not, then load remotely and save to local xid.csv. 

@@ -442,6 +442,8 @@ class Batch(object):
 
 			else: 
 				print("[batch] Failed, moving to except/. ")
+				if os.path.isdir(dir_obj_except):
+					shutil.rmtree(dir_obj_except)
 				shutil.move(dir_obj_good, dir_obj_except)
 				with open(self.fp_list_except, "a") as f:
 					ascii.write(row, output=f, format='no_header', delimiter=',')
