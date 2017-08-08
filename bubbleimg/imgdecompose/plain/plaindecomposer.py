@@ -316,7 +316,7 @@ class plainDecomposer(Decomposer):
 			hduout.writeto(fnout, overwrite=overwrite)
 
 
-	def _band_has_smaller_psf(self, band, bandto, fracdiff_threshold=0.1):
+	def _band_has_smaller_psf(self, band, bandto, fracdiff_threshold=0.05):
 		"""
 		whether band has smaller psf than bandto by a margin of "diffpsf_threshold" in arcsec. 
 		get psf size from hsc_xid if the survey = 'hsc'. 
@@ -325,7 +325,7 @@ class plainDecomposer(Decomposer):
 		------
 		band (str)
 		bandto (str)
-		fracdiff_threshold=0.1:
+		fracdiff_threshold=0.05:
 			the threshold of psf difference in arcsec. If the diff is larger than return True. 
 
 		Return
@@ -339,7 +339,7 @@ class plainDecomposer(Decomposer):
 		return self._stamp_has_smaller_psf(fp_stp, fp_stpto, fracdiff_threshold=fracdiff_threshold)
 
 
-	def _stamp_has_smaller_psf(self, fp_stp, fp_stpto, fracdiff_threshold=0.1):
+	def _stamp_has_smaller_psf(self, fp_stp, fp_stpto, fracdiff_threshold=0.05):
 		"""
 		whether fp_stp has smaller psf than fp_stpto by a margin of "diffpsf_threshold" in arcsec. 
 		get psf size from hsc_xid if the survey = 'hsc'. 
@@ -350,7 +350,7 @@ class plainDecomposer(Decomposer):
 			file path to stamp
 		fp_stpto (str)
 			file path to stamp to compare to 
-		fracdiff_threshold=0.1:
+		fracdiff_threshold=0.05:
 			the threshold of psf difference in arcsec. If the diff is larger than return True. 
 
 		Return

@@ -198,7 +198,7 @@ class sdssObj(plainObj):
 		cxid = ac.SkyCoord(xid['ra'], xid['dec'], 'icrs', unit='deg')
 		sep = cself.separation(cxid)
 		if sep > self.search_radius:
-			raise Exception("[sdssObj] xid coordinate inconsistent with object")
+			raise Exception("[sdssObj] xid coordinate inconsistent with object {}".format(self.name))
 
 
 	def load_photoobj(self, overwrite=False):
