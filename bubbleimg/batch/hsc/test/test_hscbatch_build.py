@@ -138,6 +138,25 @@ def test_batch_build_other_batches_default_processes():
 		check_lst_in_order(b.list_except)
 
 
+def test_batch_build_except_twice():
+	b = hscBatch(dir_batch=dir_batch_wexcept, fn_cat=fn_cat_wexcept)
+
+	status = b.build(func_build_hsc_sdss, overwrite=True)
+	assert status
+	assert os.path.isdir(b.dir_batch+'except/SDSSJ0000-8900/')
+	assert not os.path.isdir(b.dir_batch+'except/SDSSJ0000-8900/SDSSJ0000-8900/')
+
+	status = b.build(func_build_hsc_sdss, overwrite=False)
+	assert status
+	assert os.path.isdir(b.dir_batch+'except/SDSSJ0000-8900/')
+	assert not os.path.isdir(b.dir_batch+'except/SDSSJ0000-8900/SDSSJ0000-8900/')
+
+	status = b.build(func_build_hsc_sdss, overwrite=True)
+	assert status
+	assert os.path.isdir(b.dir_batch+'except/SDSSJ0000-8900/')
+	assert not os.path.isdir(b.dir_batch+'except/SDSSJ0000-8900/SDSSJ0000-8900/')
+
+
 def check_lst_in_order(lst):
 
 	lst_sort = copy.deepcopy(lst)
