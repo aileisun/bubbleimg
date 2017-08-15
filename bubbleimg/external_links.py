@@ -20,8 +20,8 @@ Store all the external links required by sdssdisp, including data and code acces
 
 # pack_catalogue = '/Users/aisun/Documents/astro/projects/feedback/sample/mullaney/catalogue/'
 
-file_humvi_compose = '/Users/aisun/Documents/astro/projects/feedback/bbselection/algorithm/display/HumVI/HumVI-master/compose.py'
+file_humvi_compose = '/Users/aisun/Documents/astro/projects/feedback/algorithm/display/HumVI/HumVI-master/compose.py'
 
-dir_readatlas = '/Users/aisun/Documents/astro/projects/feedback/bbselection/algorithm/readAtlas/readAtlasImages-v5_4_11/'
+dir_readatlas = '/Users/aisun/Documents/astro/projects/feedback/algorithm/readAtlas/readAtlasImages-v5_4_11/'
 
 # file_mullaney_extended = '/Users/aisun/Documents/astro/projects/feedback/sample/mullaney/catalogue/ALPAKA_extended.fits'

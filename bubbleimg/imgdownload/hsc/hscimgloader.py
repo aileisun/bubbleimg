@@ -142,7 +142,7 @@ class hscimgLoader(imgLoader):
 		return self._imgLoader__make_files_core(func_download_file=self._download_stamp, func_naming_file=self.get_fn_stamp, overwrite=overwrite, **kwargs)
 
 
-	def _download_stamp(self, band, imgtype='coadd', tract='', rerun='', tokeepraw=False, n_trials=5):
+	def _download_stamp(self, band, imgtype='coadd', tract='', tokeepraw=False, n_trials=5):
 		"""
 		download hsc cutout img using HSC DAS Querry. Provides only ra, dec to DAS Querry and download the default coadd. always overwrite. 
 
@@ -158,7 +158,6 @@ class hscimgLoader(imgLoader):
 		band
 		imgtype='coadd'
 		tract=''
-		rerun = self.rerun
 		tokeepraw = False (bool): 
 			whether to keep the downloaded raw HSC image, which has four extensions. 
 		n_trials=5
@@ -169,8 +168,7 @@ class hscimgLoader(imgLoader):
 		----------
 		status: True if downloaded, False if download fails
 		"""
-		if rerun == '':
-			rerun = self.rerun
+		rerun = self.rerun
 
 		# setting 
 		fp_out = self.get_fp_stamp(band)

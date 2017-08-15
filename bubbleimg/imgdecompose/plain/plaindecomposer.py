@@ -4,10 +4,13 @@ import os
 from shutil import copyfile
 from astropy.io import fits
 import astropy.units as u
+import astropy.table as at
+import numpy as np
 
 from ..decomposer import Decomposer
-import matchpsf
 
+import matchpsf
+import plotpsf_tools
 
 class plainDecomposer(Decomposer):
 
@@ -19,6 +22,7 @@ class plainDecomposer(Decomposer):
 		"""
 		
 		super(plainDecomposer, self).__init__(**kwargs)
+		self.fp_psf_tab = self.dir_obj + 'psf.csv'
 
 
 	def get_fp_psf(self, fp_stamp):
@@ -45,6 +49,14 @@ class plainDecomposer(Decomposer):
 		return fp_psk
 
 
+	def get_fp_contsubtab(self, band, bandconti):
+		return self.dir_obj + 'contsub-{}-{}.csv'.format(band, bandconti)
+
+
+	def get_fp_contsubplot(self, band, bandconti):
+		return self.dir_obj + 'contsub_psf-{}-{}.pdf'.format(band, bandconti)
+
+
 	def make_stamp_linemap_I(self, bandline, bandconti, line='OIII5008', overwrite=False):
 		""" 
 		make stamp of line map in rest frame intensity in units of [erg s-1 cm-2 arcsec-2]
@@ -67,7 +79,8 @@ class plainDecomposer(Decomposer):
 		else:
 			print("[decomposer] skip making stamp_linemap_I as files exist")
 
-		return os.path.isfile(fn_out)
+		status = os.path.isfile(fn_out)
+		return status
 
 
 	def make_stamp_linemap(self, bandline, bandconti, line='OIII5008', overwrite=False):
@@ -106,10 +119,11 @@ class plainDecomposer(Decomposer):
 		else:
 			print("[decomposer] skip making stamp_linemap as files exist")
 
-		return os.path.isfile(fn_out)
+		status = os.path.isfile(fn_out)
+		return status
 
 
-	def make_stamp_contsub(self, band, bandconti, overwrite=False):
+	def make_stamp_contsub(self, band, bandconti, fwhm_fracdiff_threshold=0.00, toplot_psf=False, towrite_tab=False, overwrite=False):
 		"""
 		make stamp that is continuum subtracted
 
@@ -118,6 +132,12 @@ class plainDecomposer(Decomposer):
 		self
 		band (str)
 		bandconti (str)
+		fwhm_fracdiff_threshold = 0.00
+			the psf fwhm fractional difference above which psf matching will be performed
+		toplot_psf=False
+			whether to make plots psf-*_psfmt-*.pdf showing the psf matching performance
+		towrite_tab = False
+			whether to make tab contsub-{}-{}.csv which summarizes which band is psf matched to which band
 		overwrite=False
 
 		Return
@@ -136,37 +156,74 @@ class plainDecomposer(Decomposer):
 			ratioconti = self._get_conti_fnu_ratio_from_spector(band, bandconti)
 
 			# psf matching accorindg to which psf is larger
-			if self._band_has_smaller_psf(band, bandconti):
+			if self._band_has_smaller_psf(band, bandconti, fracdiff_threshold=fwhm_fracdiff_threshold):
 				print("[decomposer] matching psf of {}-band to conti {}-band".format(band, bandconti))
+				bandfrom = band
+				bandto = bandconti
+				fn_band = self.get_fp_stamp_psfmatched(band=bandfrom, bandto=bandto)
+				fn_cont = self.get_fp_stamp(bandto)
 
-				self.make_stamp_psfmatch(band=band, bandto=bandconti, overwrite=overwrite)
-				fn_band = self.get_fp_stamp_psfmatched(band=band, bandto=bandconti)
-				fn_cont = self.get_fp_stamp(bandconti)
-
-			elif self._band_has_smaller_psf(bandconti, band):
+			elif self._band_has_smaller_psf(bandconti, band, fracdiff_threshold=fwhm_fracdiff_threshold):
 				print("[decomposer] matching psf of conti {}-band to {}-band".format(bandconti, band))
-
-				self.make_stamp_psfmatch(band=bandconti, bandto=band, overwrite=overwrite)
-				fn_band = self.get_fp_stamp(band)
-				fn_cont = self.get_fp_stamp_psfmatched(band=bandconti, bandto=band)
+				bandfrom = bandconti
+				bandto = band
+				fn_band = self.get_fp_stamp(bandto)
+				fn_cont = self.get_fp_stamp_psfmatched(band=bandfrom, bandto=bandto)
 
 			else: 
 				print("[decomposer] skip matching psf as they are similar")
+				bandfrom = None
+				bandto = None
 				fn_band = self.get_fp_stamp(band)
 				fn_cont = self.get_fp_stamp(bandconti)
 
-			# write subtract continuum
+			# operation
+			self.make_stamp_psfmatch(band=bandfrom, bandto=bandto, overwrite=overwrite)
 			self._subtract_img_w_ratio(fn1=fn_band, fn2=fn_cont, fnout=fn_out, a1=1., a2=ratioconti, overwrite=overwrite)
+
+
 
 			# copy psf
 			fn_psf_in = self.get_fp_psf(fn_band)
 			fn_psf_out = self.get_fp_psf(fn_out)
 			copyfile(fn_psf_in, fn_psf_out)
 
+			if toplot_psf:
+				fn_plot = self.get_fp_contsubplot(band, bandconti)
+				if (bandfrom is None) or (bandto is None):
+					self.plot_psfmatch(band=band, bandto=bandconti, fn=fn_plot, matching=False, overwrite=overwrite)
+				else: 
+					self.plot_psfmatch(band=bandfrom, bandto=bandto, fn=fn_plot, matching=True, overwrite=overwrite)
+
+			if towrite_tab:
+				fn_tab = self.get_fp_contsubtab(band, bandconti)
+				tab = self._get_contsub_tab_content(band, bandconti, bandfrom, bandto, fwhm_fracdiff_threshold)
+				tab.write(fn_tab, overwrite=True)
+
 		else:
 			print("[decomposer] skip making stamp_contsub as files exist")
 
 		return os.path.isfile(fn_out)
+
+
+	def make_psf_tab(self, mode='moffat', overwrite=False):
+		fn = self.fp_psf_tab
+
+		if not os.path.isfile(fn) or overwrite:
+			print("[plaindecomposer] making psf.csv")
+			tab = at.Table([[mode]]+[[np.nan] for band in self.bands], names=['mode']+['psf_fwhm_{}'.format(band) for band in self.bands])
+
+			for band in self.bands: 
+
+				fwhm = self._get_psf_fwhm(band=band, mode=mode)
+				tab['psf_fwhm_{}'.format(band)] = fwhm
+
+			tab.write(fn, format='ascii.csv', overwrite=overwrite)
+		else:
+			print("[plaindecomposer] skip making psf.csv as file exists")
+
+		status = os.path.isfile(fn)
+		return status
 
 
 	def make_stamp_psfmatch(self, band, bandto, overwrite=False, towrite_psk=False):
@@ -194,25 +251,102 @@ class plainDecomposer(Decomposer):
 		psk-i_psfmt-z.fits
 		"""
 
-		# define file names
-		fp_img = self.get_fp_stamp(band)  # input stamp
-		fp_psf = self.get_fp_psf(fp_img)  # input psf
-		fp_psfto = self.get_fp_psf(self.get_fp_stamp(bandto))  # psf to match to
+		if (band is not None) and (bandto is not None):
+			# define file names
+			fp_img = self.get_fp_stamp(band)  # input stamp
+			fp_psf = self.get_fp_psf(fp_img)  # input psf
+			fp_psfto = self.get_fp_psf(self.get_fp_stamp(bandto))  # psf to match to
 
-		fp_img_out = self.get_fp_stamp_psfmatched(band, bandto)
-		fp_psf_out = self.get_fp_psf(fp_img_out)
-		fp_psk_out = self.get_fp_psk(fp_img_out)
+			fp_img_out = self.get_fp_stamp_psfmatched(band, bandto)
+			fp_psf_out = self.get_fp_psf(fp_img_out)
+			fp_psk_out = self.get_fp_psk(fp_img_out)
 
+			# operation
+			if not os.path.isfile(fp_img_out) or overwrite:
+				matchpsf.match_psf_fits(fp_img, fp_psf, fp_psfto, fp_img_out, fp_psf_out, fp_psk_out, overwrite=overwrite, towrite_psk=towrite_psk)
+			else:
+				print("[decomposer] skip making stamp_psfmatch as files exist")
 
-		# operation
-		if not os.path.isfile(fp_img_out) or overwrite:
-
-			matchpsf.match_psf_fits(fp_img, fp_psf, fp_psfto, fp_img_out, fp_psf_out, fp_psk_out, overwrite=overwrite, towrite_psk=towrite_psk)
+			status = all([os.path.isfile(fn) for fn in [fp_img_out, fp_psf_out]])
 		else:
-			print("[decomposer] skip making stamp_psfmatch as files exist")
+			print("[decomposer] skip make_stamp_psfmatch as input bands is None")
+			status = True
 
-		status = all([os.path.isfile(fn) for fn in [fp_img_out, fp_psf_out]])
 		return status
+
+
+	def plot_psfmatch(self, band, bandto, fn, matching, overwrite=False):
+		""" make plot to visualize psf matching """
+		if not os.path.isfile(fn) or overwrite:
+			psfs = self._get_normalized_trimmed_psfs_for_plot(band=band, bandto=bandto, matching=matching)
+
+			if psfs == None:
+				print("[decomposer] plotting psf failed as files do not exist")
+				status = False
+
+			else: 
+				print("[decomposer] plotting psf")
+				(psf0, psf1, psfmt) = psfs
+
+				plotpsf_tools._plot_psfmatch_kernel(band, bandto, psf0, psf1, psfmt, fn)
+				status = os.path.isfile(fn)
+		else:
+			print("[decomposer] skip plotting psf as files exist")
+			status = True
+
+		return status
+
+
+	def _get_contsub_tab_content(self, band, bandconti, bandfrom, bandto, fwhm_fracdiff_threshold, mode='moffat'):
+		"""
+		return the table that contains info about the contsub prosedure 
+		"""
+		psf_fwhm = self._get_psf_fwhm(band=band, mode=mode)
+		psf_fwhm_conti = self._get_psf_fwhm(band=bandconti, mode=mode)
+
+		fwhm_fracdiff = np.absolute(psf_fwhm - psf_fwhm_conti)/max(psf_fwhm, psf_fwhm_conti)
+
+		if (bandfrom is not None) and (bandto is not None):
+
+			psf_matching_err = self._calc_psf_matching_err(bandfrom=bandfrom, bandto=bandto, matching=True)
+			tab = at.Table([[mode], [fwhm_fracdiff_threshold], [band], [bandconti], [psf_fwhm], [psf_fwhm_conti], [fwhm_fracdiff], [bandfrom], [bandto], [psf_matching_err]], names=['mode', 'fwhm_fracdiff_threshold', 'band', 'bandconti', 'psf_fwhm', 'psf_fwhm_conti', 'fwhm_fracdiff', 'band_psfm_from', 'band_psfm_to', 'psf_matching_err'])
+		else:
+			psf_matching_err = self._calc_psf_matching_err(bandfrom=band, bandto=bandconti, matching=False)
+			tab = at.Table([[mode], [fwhm_fracdiff_threshold], [band], [bandconti], [psf_fwhm], [psf_fwhm_conti], [fwhm_fracdiff], ['None'], ['None'], [psf_matching_err]], names=['mode', 'fwhm_fracdiff_threshold', 'band', 'bandconti', 'psf_fwhm', 'psf_fwhm_conti', 'fwhm_fracdiff', 'band_psfm_from', 'band_psfm_to', 'psf_matching_err'])
+
+		return tab
+
+
+	def _calc_psf_matching_err(self, bandfrom, bandto, matching=True):
+		"""
+		calculate the maximum difference between the original psf and the one matched to it (psfmt) shown as a fraction of the maximum of the normalized psfs
+		"""
+		if matching:
+			fp_psf_from = self.get_fp_psf(self.get_fp_stamp_psfmatched(bandfrom, bandto))
+		else: 
+			fp_psf_from = self.get_fp_psf(self.get_fp_stamp(bandfrom))
+
+		fp_psf_to = self.get_fp_psf(self.get_fp_stamp(bandto))
+
+		frac_diff = matchpsf.calc_max_frac_diff_between_two_psf(fp_psf_from, fp_psf_to)
+		return frac_diff
+
+
+	def _get_normalized_trimmed_psfs_for_plot(self, band, bandto, matching=True):
+		try:
+			psf0 = fits.getdata(self.get_fp_psf(self.get_fp_stamp(band=band)))
+			psf1 = fits.getdata(self.get_fp_psf(self.get_fp_stamp(band=bandto)))
+			if matching:
+				psfmt = fits.getdata(self.get_fp_psf(self.get_fp_stamp_psfmatched(band, bandto)))
+			else:
+				psfmt = psf0
+
+		except IOError:
+			return None
+
+		else: 
+			psf0, psf1, psfmt = plotpsf_tools._normalize_trim_psf(psf0, psf1, psfmt)
+			return (psf0, psf1, psfmt)
 
 
 	def _convert_linemap_to_linemapI(self, fn_in, fn_out, mapUnit=u.Unit('1e-15 erg s-1 cm-2 arcsec-2')):
@@ -298,7 +432,6 @@ class plainDecomposer(Decomposer):
 		hdus.writeto(fn_out, overwrite=True)
 
 
-
 	def _subtract_img_w_ratio(self, fn1, fn2, fnout, a1=1., a2=1., overwrite=False):
  
 		if not os.path.isfile(fnout) or overwrite:
@@ -316,7 +449,7 @@ class plainDecomposer(Decomposer):
 			hduout.writeto(fnout, overwrite=overwrite)
 
 
-	def _band_has_smaller_psf(self, band, bandto, fracdiff_threshold=0.05):
+	def _band_has_smaller_psf(self, band, bandto, fracdiff_threshold=0.00):
 		"""
 		whether band has smaller psf than bandto by a margin of "diffpsf_threshold" in arcsec. 
 		get psf size from hsc_xid if the survey = 'hsc'. 
@@ -325,7 +458,7 @@ class plainDecomposer(Decomposer):
 		------
 		band (str)
 		bandto (str)
-		fracdiff_threshold=0.05:
+		fracdiff_threshold=0.00:
 			the threshold of psf difference in arcsec. If the diff is larger than return True. 
 
 		Return
@@ -339,7 +472,7 @@ class plainDecomposer(Decomposer):
 		return self._stamp_has_smaller_psf(fp_stp, fp_stpto, fracdiff_threshold=fracdiff_threshold)
 
 
-	def _stamp_has_smaller_psf(self, fp_stp, fp_stpto, fracdiff_threshold=0.05):
+	def _stamp_has_smaller_psf(self, fp_stp, fp_stpto, fracdiff_threshold=0.00, mode='moffat'):
 		"""
 		whether fp_stp has smaller psf than fp_stpto by a margin of "diffpsf_threshold" in arcsec. 
 		get psf size from hsc_xid if the survey = 'hsc'. 
@@ -350,7 +483,7 @@ class plainDecomposer(Decomposer):
 			file path to stamp
 		fp_stpto (str)
 			file path to stamp to compare to 
-		fracdiff_threshold=0.05:
+		fracdiff_threshold=0.00:
 			the threshold of psf difference in arcsec. If the diff is larger than return True. 
 
 		Return
@@ -361,9 +494,27 @@ class plainDecomposer(Decomposer):
 		fp_psf = self.get_fp_psf(fp_stp)
 		fp_psfto = self.get_fp_psf(fp_stpto)
 
-		result = matchpsf.has_smaller_psf_fits(fp_psf, fp_psfto, mode='quick', fracdiff_threshold=fracdiff_threshold)
+		result = matchpsf.has_smaller_psf_fits(fp_psf, fp_psfto, mode=mode, fracdiff_threshold=fracdiff_threshold)
 
 		return result
+
+
+	def _get_psf_fwhm_pix(self, band, mode='moffat'):
+		""" return the moffat fwhm of the psf of the band in pix"""
+		fp_psf = self.get_fp_psf(self.get_fp_stamp(band=band))
+		try:
+			psf = fits.getdata(fp_psf)
+			fwhm_pix = matchpsf.calc_psf_fwhm(psf, mode=mode)
+		except:
+			fwhm_pix = np.nan
+		return fwhm_pix
+
+
+	def _get_psf_fwhm(self, band, mode='moffat'):
+		""" return the moffat fwhm of the psf of the band in arcsec"""
+		fwhm_pix = self._get_psf_fwhm_pix(band=band, mode=mode)
+		fwhm_arcs = fwhm_pix * np.array(self.pixsize.to(u.arcsec))
+		return fwhm_arcs
 
 
 	def _copy_psf(self, fn_in, fn_out):
@@ -371,4 +522,5 @@ class plainDecomposer(Decomposer):
 		fn_psf_in = self.get_fp_psf(fn_in)
 		fn_psf_out = self.get_fp_psf(fn_out)
 		copyfile(fn_psf_in, fn_psf_out)
+
 

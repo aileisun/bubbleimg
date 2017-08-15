@@ -3,6 +3,8 @@ import pytest
 import shutil
 import os
 import numpy as np
+import astropy.table as at
+
 
 from astropy.io import fits
 import astropy.convolution as ac
@@ -70,10 +72,10 @@ def test_decomposer_init_getsurvey_fromobj(obj_dirobj):
 	""" complain when the survey_spec is set to a wrong value"""
 	obj = obj_dirobj
 	obj.z = z
-	obj.survey = 'cfht'
+	obj.survey = 'sdss'
 
 	d = plainDecomposer(obj=obj)
-	assert d.survey == 'cfht'
+	assert d.survey == 'sdss'
 
 	d = plainDecomposer(obj=obj, survey='hsc')
 	assert d.survey == 'hsc'
@@ -210,3 +212,63 @@ def test_decomposer_make_linemap_I(decomposer1):
 		assert os.path.isfile(d.dir_obj+'stamp-OIII5008_I.fits')
 		assert os.path.isfile(d.dir_obj+'psf-OIII5008_I.fits')
 
+
+
+def test_decomposer_plot_psfmatch(decomposer1):
+	d = decomposer1
+
+	band = bandline
+	bandto = bandconti
+
+	fn = d.dir_obj+'psf_testing.pdf'
+
+	status = d.make_stamp_psfmatch(band, bandto, overwrite=True)
+	assert status
+
+	status = d.plot_psfmatch(band, bandto, fn=fn, matching=True, overwrite=True)
+	assert status
+
+	assert os.path.isfile(fn)
+
+	status = d.plot_psfmatch(band='y', bandto='z', fn=fn, matching=True, overwrite=True)
+	assert status == False
+
+
+
+def test_decomposer_make_stamp_contsub_writetab(decomposer1):
+
+	d = decomposer1
+
+	for bandconti in ['r', 'y']:
+
+		status = d.make_stamp_contsub(bandline, bandconti, overwrite=True, towrite_tab=True, toplot_psf=True)
+
+		fn = d.get_fp_stamp_contsub(bandline, bandconti)
+		fn_tab = d.get_fp_contsubtab(bandline, bandconti)
+
+		assert status
+		assert os.path.isfile(fn)
+		assert os.path.isfile(fn_tab)
+
+		tab = at.Table.read(fn_tab, format='ascii.csv')
+		assert tab['band_psfm_from'][0] == bandline
+		assert tab['band_psfm_to'][0] == bandconti
+		assert tab['psf_fwhm'][0] < tab['psf_fwhm_conti'][0]
+
+		assert os.path.isfile(d.dir_obj + 'contsub_psf-{}-{}.pdf'.format(bandline, bandconti))
+
+
+def test_decomposer_make_psf_tab(decomposer1):
+
+	d = decomposer1
+	status = d.make_psf_tab(overwrite=True)
+
+	assert status
+	assert os.path.isfile(d.fp_psf_tab)
+
+	tab = at.Table.read(d.fp_psf_tab, format='ascii.csv')
+
+	assert tab['psf_fwhm_i'][0] < tab['psf_fwhm_y'][0]
+
+	for band in d.bands:
+		assert 'psf_fwhm_'+band in tab.colnames

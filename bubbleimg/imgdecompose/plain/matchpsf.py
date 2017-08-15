@@ -197,6 +197,28 @@ def pad_edge_to_shape(arr, nx, ny):
 	return arr
 
 
+def calc_max_frac_diff_between_two_psf(fp_psf1, fp_psf2):
+	"""
+	calculate the maximum difference between the two psfs.
+	The difference is shown as a fraction of the maximum of the maximum of the two normalized psfs.
+	"""
+	nx, ny = 43, 43
+	psf1 = fits.getdata(fp_psf1) 
+	psf2 = fits.getdata(fp_psf2)
+
+	psf1 = normalize_kernel(psf1)
+	psf2 = normalize_kernel(psf2)
+
+	psf1 = pad_edge_to_shape(psf1, nx=nx, ny=ny)
+	psf2 = pad_edge_to_shape(psf2, nx=nx, ny=ny)
+
+	max_orig = max([psf1.max(), psf2.max()])
+	max_diff = np.max(np.absolute(psf1-psf2))
+
+	frac_diff = max_diff/max_orig
+	return frac_diff
+
+
 def normalize_kernel(kernel):
 	return kernel/np.sum(kernel)
 

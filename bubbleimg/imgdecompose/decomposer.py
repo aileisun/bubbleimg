@@ -77,7 +77,6 @@ class Decomposer(Operator):
 		else: 
 			self.z = kwargs.pop('z') 
 
-
 		# set other attributes
 		self.pixsize = surveysetup.pixsize[self.survey]
 		self.bands = surveysetup.surveybands[self.survey]

@@ -405,8 +405,3 @@ def _retry_sdss_query(func_query, n_trials=5, **kwargs_query):
 		except Exception as e:
 			print("[sdssobj] retrying as error detected: "+str(e))
 
-
-		# except requests.exceptions.RequestException as e:
-		# 	print("[sdssobj] retrying as error detected: "+str(e))
-
-
