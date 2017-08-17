@@ -245,7 +245,7 @@ class Batch(object):
 				obj1 = self.get_ith_obj_from_list(iobj=0, listname='good')
 				header = _extract_line_from_file(obj1.dir_obj+fn_tab, iline=0)
 
-				lines_data = self.iterlist(func=self._iterfunc_extract_line_from_file, listargs=[], listname='good', overwrite=False, **{'fn': fn_tab})
+				lines_data = self.iterlist(func=self._iterfunc_extract_line_from_file, listargs=[], listname='good', processes=-1, overwrite=False, **{'fn': fn_tab})
 				tab_data = ascii.read([header]+lines_data)
 
 				self._rename_list_args(tab_data)
