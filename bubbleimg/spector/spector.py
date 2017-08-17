@@ -75,13 +75,13 @@ class Spector(Operator):
 		self.survey_spec = kwargs.pop('survey_spec', 'auto')
 
 		if self.survey_spec in ['sdss', 'boss', 'eboss', 'auto']:
-			self.obj.add_sdss(toload_photoobj=False)
 			if self.survey_spec == 'auto':
+				self.obj.add_sdss(toload_photoobj=False)
 				self.survey_spec = self.obj.sdss.instrument.lower()
 
-			# sanity check - spec name consistent
-			if (self.survey_spec != self.obj.sdss.instrument.lower()):
-				raise Exception("[spector] survey_spec inconsistent with sdss_xid.csv:instrument")
+			# # sanity check - spec name consistent
+			# if (self.survey_spec != self.obj.sdss.instrument.lower()):
+			# 	raise Exception("[spector] survey_spec inconsistent with sdss_xid.csv:instrument")
 
 		# set z
 		if hasattr(self.obj, 'z'):
