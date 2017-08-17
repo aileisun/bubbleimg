@@ -56,19 +56,19 @@ def _plot_psfmatch_kernel(band, bandto, psf0, psf1, psfmt, fn):
 	cx4 = plt.subplot(gs[1, 3])
 
 	im = ax1.imshow(psf0, vmin=vmin, vmax=vmax)
-	ax1.set_title('(a) {}-band'.format(band), fontsize=18)
+	ax1.set_title('(a.) {}-band PSF'.format(band), fontsize=18)
 	# f.colorbar(im, cax=cx1, orientation='horizontal')
 
 	im = ax2.imshow(psf1, vmin=vmin, vmax=vmax)
-	ax2.set_title('(b) {}-band'.format(bandto), fontsize=18)
+	ax2.set_title('(b.) {}-band PSF'.format(bandto), fontsize=18)
 	# f.colorbar(im, cax=cx2, orientation='horizontal')
 
 	im = ax3.imshow(psfmt, vmin=vmin, vmax=vmax)
-	ax3.set_title('(c) {}-band matched to {}-band'.format(band, bandto), fontsize=18)
+	ax3.set_title('(c.) a. matched to b.', fontsize=18)
 	f.colorbar(im, cax=cx3, orientation='horizontal')
 
 	im = ax4.imshow(psfmt-psf1)
-	ax4.set_title('(d) difference between (c) and (b)', fontsize=18)
+	ax4.set_title('(d.) Residual', fontsize=18)
 	cb = f.colorbar(im, cax=cx4, orientation='horizontal')
 
 	cb.formatter.set_powerlimits((0, 0))

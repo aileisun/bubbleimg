@@ -620,7 +620,6 @@ class Batch(object):
 		lfolder_excp = [obj_name for obj_name in os.listdir(dp_excp) if os.path.isdir(os.path.join(dp_excp, obj_name))]
 		lfolder = lfolder_good + lfolder_excp
 
-		# lfolder = lfolder[:-1]
 		for name, thelist, thefolders in (('list', self.list, lfolder), ('good', self.list_good, lfolder_good), ('except', self.list_except, lfolder_excp)):
 
 			arr_list = np.array(thelist['obj_name'])
@@ -629,9 +628,12 @@ class Batch(object):
 			arr_list.sort()
 			arr_fold.sort()
 
-			if any([len(arr_list)>0, len(arr_fold)>0]):
-				if len(arr_list) != len(arr_fold):
-					raise Exception("[batch] number of object folders inconsistent with the list in the batch")
+			n_list = len(arr_list)
+			n_fold = len(arr_fold)
+
+			if any([n_list>0, n_fold>0]):
+				if n_list != n_fold:
+					raise Exception("[batch] number of object folders {n_fold} inconsistent with the list ({name}, {n_list}) in the batch".format(n_fold=n_fold, name=name, n_list=n_list))
 
 				if not all(arr_list == arr_fold): 
 					raise Exception("[batch] list of object folders inconsistent with the list in the batch")

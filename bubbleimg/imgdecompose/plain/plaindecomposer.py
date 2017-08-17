@@ -50,11 +50,11 @@ class plainDecomposer(Decomposer):
 
 
 	def get_fp_contsubtab(self, band, bandconti):
-		return self.dir_obj + 'contsub-{}-{}.csv'.format(band, bandconti)
+		return self.dir_obj + 'contsub_{}{}.csv'.format(band, bandconti)
 
 
 	def get_fp_contsubplot(self, band, bandconti):
-		return self.dir_obj + 'contsub_psf-{}-{}.pdf'.format(band, bandconti)
+		return self.dir_obj + 'contsub_psf_{}{}.pdf'.format(band, bandconti)
 
 
 	def make_stamp_linemap_I(self, bandline, bandconti, line='OIII5008', overwrite=False):
