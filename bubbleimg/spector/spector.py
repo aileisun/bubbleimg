@@ -84,13 +84,15 @@ class Spector(Operator):
 			# 	raise Exception("[spector] survey_spec inconsistent with sdss_xid.csv:instrument")
 
 		# set z
-		if hasattr(self.obj, 'z'):
-			self.z = kwargs.pop('z', self.obj.z)
+		if 'z' in kwargs:
+			self.z = kwargs.pop('z')
+
+		elif hasattr(self.obj, 'z'):
+			self.z = self.obj.z
+			
 		elif self.survey_spec in ['sdss', 'boss', 'boss', 'auto']:
 			self.obj.add_sdss(toload_photoobj=False)
 			self.z = kwargs.pop('z', self.obj.sdss.z) 
-		else: 
-			self.z = kwargs.pop('z') 
 
 		# set others
 		self.bands = filters.filtertools.surveybands[self.survey]
