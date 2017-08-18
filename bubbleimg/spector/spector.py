@@ -5,6 +5,7 @@ import numpy as np
 import astropy.table as at
 import matplotlib.pyplot as plt
 import astropy.units as u
+from astropy.io import fits
 
 import os
 
@@ -89,8 +90,8 @@ class Spector(Operator):
 
 		elif hasattr(self.obj, 'z'):
 			self.z = self.obj.z
-			
-		elif self.survey_spec in ['sdss', 'boss', 'boss', 'auto']:
+
+		elif self.survey_spec in ['sdss', 'boss', 'eboss', 'auto']:
 			self.obj.add_sdss(toload_photoobj=False)
 			self.z = kwargs.pop('z', self.obj.sdss.z) 
 
@@ -99,6 +100,7 @@ class Spector(Operator):
 		self.waverange = filters.filtertools.waverange[self.survey]
 
 		# define paths
+		self.fp_spec = self.dir_obj+'spec.fits'
 		self.fp_spec_decomposed = self.dir_obj+'spec_decomposed.ecsv'
 		self.fp_spec_contextrp = self.dir_obj+'spec_contextrp.ecsv'
 		self.fp_spec_mag = self.dir_obj+'spec_mag.csv'
@@ -121,7 +123,7 @@ class Spector(Operator):
 		Default units
 		-------------
 		u_spec = 1.e-17*u.Unit('erg / (Angstrom cm2 s)')
-		u_lcoord = u.AA
+		u_ws = u.AA
 		"""
 
 		fn = self.fp_spec_decomposed
@@ -155,7 +157,7 @@ class Spector(Operator):
 		Default units
 		-------------
 		u_spec = 1.e-17*u.Unit('erg / (Angstrom cm2 s)')
-		u_lcoord = u.AA
+		u_ws = u.AA
 		"""
 		if fn == None:
 			if component in ['all', 'cont', 'line']:
@@ -214,11 +216,11 @@ class Spector(Operator):
 
 			l0, l1 = self.waverange
 			
-			speccon_ext, lcoord_ext = extrap.extrap_to_end(ys=speccon, xs=ws, x_end=l0, polydeg=1, extbase_length=2000.)
-			speccon_ext, lcoord_ext = extrap.extrap_to_end(ys=speccon_ext, xs=lcoord_ext, x_end=l1, polydeg=1, extbase_length=2000.)
+			speccon_ext, ws_ext = extrap.extrap_to_end(ys=speccon, xs=ws, x_end=l0, polydeg=1, extbase_length=2000.)
+			speccon_ext, ws_ext = extrap.extrap_to_end(ys=speccon_ext, xs=ws_ext, x_end=l1, polydeg=1, extbase_length=2000.)
 
 			col = self.__get_spectab_colname('contextrp')
-			tab = at.Table([lcoord_ext, speccon_ext], names=['ws', col])
+			tab = at.Table([ws_ext, speccon_ext], names=['ws', col])
 			tab.write(fn, format='ascii.ecsv', overwrite=overwrite)
 
 		status = os.path.isfile(fn)
@@ -514,7 +516,7 @@ class Spector(Operator):
 		return llist
 
 
-	def __read_spec_ws_from_fits(self):
+	def __read_spec_ws_from_fits(self, wunit=True):
 		"""
 		Return
 		------
@@ -524,10 +526,29 @@ class Spector(Operator):
 		Default units
 		-------------
 		u_spec = 1.e-17*u.Unit('erg / (Angstrom cm2 s)')
-		u_lcoord = u.AA
+		u_ws = u.AA
 		"""
+		fn = self.fp_spec
 		if self.survey_spec in ['sdss', 'boss', 'boss']:
-			spec, ws = self.obj.sdss.get_speclcoord(wunit=True)
+			if os.path.isfile(fn):
+				hdus = fits.open(fn)
+			else: 
+				return IOError("[Spector] spec fits file does not exist")
+
+			spectable = hdus[1].data
+			spec, ws = spectable['flux'], 10.**spectable['loglam']
+
+			if wunit:
+				u_spec = 1.e-17*u.Unit('erg / (Angstrom cm2 s)')
+				u_ws = u.AA
+				spec = spec*u_spec
+				ws = ws*u_ws
+
+			instrument_header = at.Table(hdus[2].data)['INSTRUMENT'][0].lower()
+			if self.survey_spec != instrument_header:
+				self.survey_spec = instrument_header
+				print("[Spector] updating survey_spec to reflect instrument in spec.fits header -- {}".format(instrument_header))
+				
 			return at.Column(spec, name=['spec']), at.Column(ws, name=['ws'])
 		else: 
 			raise NameError("[Spector] survey_spec not recognized")
