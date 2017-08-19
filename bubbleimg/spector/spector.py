@@ -544,10 +544,10 @@ class Spector(Operator):
 				spec = spec*u_spec
 				ws = ws*u_ws
 
-			instrument_header = at.Table(hdus[2].data)['INSTRUMENT'][0].lower()
-			if self.survey_spec != instrument_header:
-				self.survey_spec = instrument_header
-				print("[Spector] updating survey_spec to reflect instrument in spec.fits header -- {}".format(instrument_header))
+			# instrument_header = at.Table(hdus[2].data)['INSTRUMENT'][0].lower()
+			# if self.survey_spec != instrument_header:
+			# 	self.survey_spec = instrument_header
+			# 	print("[Spector] updating survey_spec to reflect instrument in spec.fits header -- {}".format(instrument_header))
 				
 			return at.Column(spec, name=['spec']), at.Column(ws, name=['ws'])
 		else: 
