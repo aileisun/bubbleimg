@@ -12,12 +12,13 @@ import astropy.table as at
 from astropy.io import fits
 import astropy.io.ascii
 import astropy.units as u
+import ntpath
 
 import hscsspquery
 from ..plainobj import plainObj
 
 fn_table_template_sql = 'table_template.sql'
-fn_photoobj_template_sql = 'photoobj_template.sql'
+# fn_photoobj_template_sql = 'photoobj_template.sql'
 fn_xid_template_sql = 'xid_template.sql'
 
 class hscObj(plainObj):
@@ -81,6 +82,10 @@ class hscObj(plainObj):
 
 		overwrite = kwargs.pop('overwrite', False)
 		self.load_xid(overwrite=overwrite)
+
+
+	def get_fp_table(self, tab_name):
+		return self.dir_obj + 'hsc_{}.csv'.format(tab_name)
 
 
 	def load_xid(self, overwrite=False):
@@ -225,7 +230,7 @@ class hscObj(plainObj):
 		return xid
 
 
-	def load_photoobj(self, columns=[], bands=[], catalog='forced', all_columns=False, fn=None, overwrite=False):
+	def load_photoobj(self, band_columns=[], bands=[], tab_name='forced', all_columns=False, overwrite=False):
 		"""
 		load hsc photometry table either locally or remotely, depending on whether local file exists and if overwrite=True, and add it as attribute self.photoobj. 
 
@@ -233,22 +238,14 @@ class hscObj(plainObj):
 		------
 
 		self 
-
-		columns: Either contains the columns when called upon or has a default choice of columns if found NULL
-			Enter the required columns:
+		band_columns: Either contains the band_columns when called upon or has a default choice of band_columns if found NULL
+			Enter the required band_columns:
 			Refer Schema Browser -> "https://hscdata.mtk.nao.ac.jp/schema_browser2/"
 			Note: STARs account required
-	
 		bands: Either contains the bands req. when called upon or has a default choice of bands if found NULL
 			Available bands: g, r, i, z and y
-	
-		catalog='forced': which catalog to load from remote hsc database
-
+		tab_name='forced': which tab_name to load from remote hsc database
 		all_columns=True: Generates SQL code such that all the fields from the table are included
-
-		fn=None:
-			set it to a file name, e.g., hsc_photoz.csv, to save the file to, otherwise the default is hsc_photoobj.csv. 
-
 		overwrite=False (bool)
 
 		Return
@@ -260,9 +257,10 @@ class hscObj(plainObj):
 			self.load_xid()
 
 		if self.status: 
-			photoobj = self._get_photoobj(columns=columns, bands=bands, catalog=catalog, all_columns=all_columns, rerun=self.rerun, data_release=self.data_release, fn=fn, overwrite=overwrite)
+			status = self._download_photoobj(band_columns=band_columns, bands=bands, tab_name=tab_name, all_columns=all_columns, overwrite=overwrite)
 
-			if photoobj is not None:
+			if status:
+				photoobj = at.Table.read(self.fp_photoobj, format='ascii.csv', comment='#')
 				self.photoobj = photoobj
 				return True
 			else:
@@ -273,65 +271,45 @@ class hscObj(plainObj):
 			return False
 
 
-	def _get_photoobj(self, columns=[], bands=[], all_columns=False, catalog='forced', rerun='s16a_wide2', data_release='dr1', fn=None, overwrite=False):
+	def _download_photoobj(self, band_columns=[], bands=[], all_columns=False, tab_name='forced', overwrite=False):
 		"""
 		return photoobj.
 		Read photoobj locally if self.dir_obj+'hsc_xid.csv' exist. Otherwise query. 
 
 		Params
 		------
-		columns=[]
+		band_columns=[]
 		bands=[]
 		all_columns=False
-		catalog='forced'
-		rerun='s16a_wide2'
-		data_release='dr1'
-		fn=None:
-			set it to a file name, e.g., hsc_photoz.csv, to save the file to, otherwise the default is hsc_photoobj.csv. 
+		tab_name='forced'
 		overwrite=False (bool)
 
 		Returns:
 		------
-		photobj: table, or None if failed
+		status
 
 		Write Output: (optional)
 		------
 		self.dir_obj+'xid.csv'
 		"""
-		if fn == None:
-			fp = self.fp_photoobj
-		else: 
-			fp = self.dir_obj + fn
+		fp = self.fp_photoobj
 
-		if not os.path.isfile(fp) or overwrite:
-			print "[hscobj] querying photoobj from HSC"
-			object_id = self.xid['object_id'][0]
-			sql = _get_photoobj_sql(object_id=object_id, columns=columns, bands=bands, all_columns=all_columns, rerun=rerun, catalog=catalog)
+		object_id = self.xid['object_id'][0]
+		sql = _get_photoobj_sql(object_id=object_id, band_columns=band_columns, bands=bands, all_columns=all_columns, rerun=self.rerun, tab_name=tab_name)
 
-			hscsspquery.hscSspQuery_retry(n_trials=20, sql=sql, filename_out=fp, release_version=data_release)
+		header = {'tab_name': tab_name}
+		status = self._download_table_kernel(sql, fp, header=header, overwrite=overwrite)
 
-			if os.path.isfile(fp) and (os.stat(fp).st_size > 0):
-				photoobj = at.Table.read(fp, format='ascii.csv', comment='#')
-				photoobj = at.hstack([at.Table([[catalog]], names=['catalog']), photoobj])
-				photoobj.write(fp, format='ascii.csv', overwrite=True)
-				return photoobj
-			else: 
-				print("[hscobj] querying photoobj from HSC failed")
-				return None
-		else:
-			print "[hscobj] reading hsc_photoobj locally"
-			photoobj = at.Table.read(fp, format='ascii.csv', comment='#')
-			return photoobj
+		return status
 
 
-
-	def download_table(self, table_name='photoz_demp', columns=[], overwrite=False):
+	def download_table(self, tab_name='photoz_demp', columns=[], overwrite=False):
 		""" 
-		download table for the obj from the hsc catalog to file (hsc_{table_name}.csv) and return status. 
+		download table for the obj given 'object_id' from the hsc catalog to file (hsc_{tab_name}.csv) and return status. 
 
 		Params
 		------
-		table_name = 'photoz_demp'
+		tab_name = 'photoz_demp'
 		columns=[]
 			by default downloading all columns if nothing is specified. 
 		overwrite=False
@@ -340,47 +318,112 @@ class hscObj(plainObj):
 		------
 		status (bool)
 		"""
-		fp = self.get_fp_table(table_name=table_name)
+		fp = self.get_fp_table(tab_name=tab_name)
+
+		object_id = self.xid['object_id'][0]
+		sql = _get_table_sql(object_id=object_id, tab_name=tab_name, columns=columns, rerun=self.rerun)
+
+		status = self._download_table_kernel(sql, fp, overwrite=overwrite)
+
+		return status
+
+
+	def _download_table_kernel(self, sql, fp, header={}, overwrite=False):
+		""" 
+		the working kernel to download hsc table
+
+		Params
+		------
+		self
+		sql (str)
+			sql code to query
+		fp (str)
+			full file path to be saved to
+		header = {} (dictionary)
+			set to {'header_name': 'header_content'}
+			to be added to the first columns of the downloaded table
+		overwrite=False (bool)
+
+		Return
+		------
+		status
+		"""
+		fn = ntpath.basename(fp)
 
 		if not os.path.isfile(fp) or overwrite:
-			print("[hscobj] querying table {} from HSC".format(table_name))
-			object_id = self.xid['object_id'][0]
-			sql = _get_table_sql(object_id=object_id, table_name=table_name, columns=columns, rerun=self.rerun)
+			print("[hscobj] querying table {} from HSC".format(fn))
 
 			hscsspquery.hscSspQuery_retry(n_trials=20, sql=sql, filename_out=fp, release_version=self.data_release)
 
 			if os.path.isfile(fp) and (os.stat(fp).st_size > 0):
-				hsctable = at.Table.read(fp, format='ascii.csv', comment='#')
-				hsctable = at.hstack([at.Table([[table_name]], names=['table_name']), hsctable])
-				hsctable.write(fp, format='ascii.csv', overwrite=True)
-				status = os.path.isfile(fp)
+				print("[hscobj] successful")
+
+				if len(header) > 0:
+					_add_header_columns_to_table(fp, header)
+
+				status = True
 
 			else: 
-				print("[hscobj] querying table {} from HSC failed".format(table_name))
-
+				print("[hscobj] querying table {} from HSC failed".format(fn))
 				if os.path.isfile(fp):
 					os.remove(fp)
-
 				status = False
+
 		else:
-			print("[hscobj] skip querying table {} from HSC as file exists".format(table_name))
+			print("[hscobj] skip querying table {} from HSC as file exists".format(fn))
 			status = True
 
 		return status
 
 
-	def get_fp_table(self, table_name):
-		return self.dir_obj + 'hsc_{}.csv'.format(table_name)
-
-
-def _get_table_sql(object_id, table_name, columns=[], rerun='s16a_wide2', save_sql=False, fn_sql='hsc_sql.txt', ):
+def _get_xid_sql(ra, dec, search_radius=2 * u.arcsec, rerun='s16a_wide2'):
 	"""
-	return sql code to query a table {table_name} given object_id
+	construct sql query 
+
+	Params
+	------
+	ra (float): ra in deg decimal
+	dec (float): dec in deg decimal
+	search_radius (float): search radius in arcsec
+	rerun (string): which rerun to use
+
+	"""
+	localpath = _get_local_path()
+
+	fn = localpath+fn_xid_template_sql
+
+	radius_str = str(float(np.array(search_radius.to(u.arcsec))))
+
+	with open(fn, 'r') as f:
+		sql_template=f.read()
+	sql = sql_template.format(rerun=rerun, ra=str(ra), dec=str(dec), radius=radius_str)
+
+	return sql
+
+
+def _add_header_columns_to_table(fp, header):
+	table = at.Table.read(fp, format='ascii.csv', comment='#')
+	for col in header:
+		table = at.hstack([at.Table([[header[col]]], names=[col]), table])
+	table.write(fp, format='ascii.csv', overwrite=True)
+
+
+def _get_local_path():
+	path = os.path.dirname(sys.modules[__name__].__file__)
+	if path == '': 
+		path = '.'
+	localpath = path+'/'
+	return localpath
+
+
+def _get_table_sql(object_id, tab_name, columns=[], rerun='s16a_wide2', save_sql=False, fn_sql='hsc_sql.txt', ):
+	"""
+	return sql code to query a table {tab_name} given object_id
 
 	Params
 	------
 	object_id (int)
-	table_name (str)
+	tab_name (str)
 	columns = [] (list)
 		by default downloading all columns if nothing is specified. 
 	rerun = 's16a_wide2'
@@ -391,18 +434,14 @@ def _get_table_sql(object_id, table_name, columns=[], rerun='s16a_wide2', save_s
 	------
 	sql (str)
 	"""
+	localpath = _get_local_path()
 
-	path = os.path.dirname(sys.modules[__name__].__file__)
-	if path == '': 
-		path = '.'
-	localpath = path+'/'
-
-	fn = localpath+fn_table_template_sql
+	fn = localpath + fn_table_template_sql
 	sql_columns = _get_table_sql_columns(columns=columns)
 
 	with open(fn, 'r') as f:
 		sql_template = f.read()
-	sql = sql_template.format(object_id=object_id, table_name=table_name, sql_columns=sql_columns, rerun=rerun, )
+	sql = sql_template.format(object_id=object_id, tab_name=tab_name, sql_columns=sql_columns, rerun=rerun, )
 
 	if save_sql:
 		with open(fn_sql, "w") as text_file:
@@ -433,45 +472,15 @@ def _get_table_sql_columns(columns=[]):
 	return sql_columns
 
 
-def _get_xid_sql(ra, dec, search_radius=2 * u.arcsec, rerun='s16a_wide2'):
-	"""
-	construct sql query 
-
-	Params
-	------
-	ra (float): ra in deg decimal
-	dec (float): dec in deg decimal
-	search_radius (float): search radius in arcsec
-	rerun (string): which rerun to use
-
-	"""
-
-	path=os.path.dirname(sys.modules[__name__].__file__)
-	if path == '': 
-		path ='.'
-	localpath = path+'/'
-
-	fn = localpath+fn_xid_template_sql
-
-	radius_str = str(float(np.array(search_radius.to(u.arcsec))))
-
-	with open(fn, 'r') as f:
-		sql_template=f.read()
-	sql = sql_template.format(rerun=rerun, ra=str(ra), dec=str(dec), radius=radius_str)
-
-	return sql
-
-
-def _get_photoobj_sql(object_id, columns=[], bands=[], all_columns=False, rerun='s16a_wide2', catalog='forced', save_sql=False, fn_sql='hsc_sql.txt'):
+def _get_photoobj_sql(object_id, band_columns=[], bands=[], all_columns=False, rerun='s16a_wide2', tab_name='forced', save_sql=False, fn_sql='hsc_sql.txt'):
 	"""
 	construct sql query 
 
 	Params
 	------
 	object_id
-	columns=[]
+	band_columns=[]
 	bands=[]
-	tabname='main'
 	all_columns=False
 	rerun='s16a_wide2'
 	save_sql=False
@@ -483,18 +492,15 @@ def _get_photoobj_sql(object_id, columns=[], bands=[], all_columns=False, rerun=
 	sql (str)
 	"""
 
-	path = os.path.dirname(sys.modules[__name__].__file__)
-	if path == '': 
-		path ='.'
-	localpath = path+'/'
+	localpath = _get_local_path()
 
-	fn = localpath+fn_photoobj_template_sql
-	sql_columns = _get_photoobj_sql_columns(columns=columns, bands=bands, all_columns=all_columns)
+	fn = localpath+fn_table_template_sql
+	sql_columns = _get_photoobj_sql_columns(band_columns=band_columns, bands=bands, all_columns=all_columns)
 
 	with open(fn, 'r') as f:
 		sql_template=f.read()
-	sql = sql_template.format(object_id=object_id, sql_columns=sql_columns, rerun=rerun, catalog=catalog)
-
+	sql = sql_template.format(object_id=object_id, tab_name=tab_name, sql_columns=sql_columns, rerun=rerun, )
+	
 	if save_sql:
 		with open(fn_sql, "w") as text_file:
 			text_file.write(sql)
@@ -502,49 +508,45 @@ def _get_photoobj_sql(object_id, columns=[], bands=[], all_columns=False, rerun=
 	return sql
 
 
-def _get_photoobj_sql_columns(columns=[], bands=[], tabname='main', all_columns=False):
+def _get_photoobj_sql_columns(band_columns=[], bands=[], all_columns=False):
 	
 	"""
-	Creates SQL commands for required columns in the form of a single string array
+	Creates SQL commands for required band_columns in the form of a single string array
 	
 	Params
 	------
-	columns=[]
+	band_columns=[]
 	bands=[]
-	tabname='main'
 	all_columns=False
 
 
 	Return
 	------
 	Returns a string containing the SQL commands for data acquisition
-	
 	"""
 
-	default = 'main.object_id,main.ra, main.dec,main.patch_id,main.tract,main.patch,main.patch_s,\
-				main.parent_id,main.deblend_nchild,main.detect_is_patch_inner,main.detect_is_tract_inner,\
-				main.detect_is_primary,'
+	default = 'object_id, ra, dec, patch_id, tract, patch, patch_s, parent_id, deblend_nchild, detect_is_patch_inner, detect_is_tract_inner, detect_is_primary, '
 
 	if all_columns:
-		return '*'
+		sql_columns = '*'
 
 	else:
 		sql_columns = ""
-		if len(columns) == 0:
-			columns = ['mag_kron', 'mag_kron_err', 'flux_kron_flags', 'flux_kron_radius', 'mag_aperture10', 'mag_aperture15']
+		if len(band_columns) == 0:
+			band_columns = ['mag_kron', 'mag_kron_err', 'flux_kron_flags', 'flux_kron_radius', 'mag_aperture10', 'mag_aperture15']
 
 		if len(bands) == 0:
 			bands = ['g', 'r', 'i', 'z', 'y'] 
 
 		count = 0
 		for x in bands:
-			for y in columns:
+			for y in band_columns:
 				count+=1
-				if count!=len(bands)*len(columns):
-					sql_columns+=tabname+"."+x+y+","
+				if count!=len(bands)*len(band_columns):
+					sql_columns += x + y + ","
 				else:
-					sql_columns+=tabname+"."+x+y
-		default+=sql_columns
+					sql_columns += x + y
+		sql_columns = default + sql_columns
 
-		return sql_columns
+	return sql_columns
 

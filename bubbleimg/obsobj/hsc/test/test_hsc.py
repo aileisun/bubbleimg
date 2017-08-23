@@ -158,52 +158,55 @@ def test_hscObj_identical_w_verification(obj_dirobj):
 	assert filecmp.cmp(file_totest, file_verification)
 
 
-def test_hscObj_get_photoobj(obj_dirobj):
+def test_hscObj_download_photoobj(obj_dirobj):
 	obj = obj_dirobj
 	assert obj.status
 
-	columns = ['mag_kron', 'mag_kron_err', 'flux_kron_flags', 'flux_kron_radius', 'mag_aperture10', 'mag_aperture15']
+	band_columns = ['mag_kron', 'mag_kron_err', 'flux_kron_flags', 'flux_kron_radius', 'mag_aperture10', 'mag_aperture15']
 	bands = ['g', 'r', 'i', 'z', 'y'] 
 
-	photoobj = obj._get_photoobj(columns=columns, bands=bands, all_columns=False, catalog='forced', rerun='s16a_wide', data_release='dr1', overwrite=True)
+	status = obj._download_photoobj(band_columns=band_columns, bands=bands, all_columns=False, tab_name='forced', overwrite=True)
+
+	assert status
+	photoobj = at.Table.read(obj.dir_obj+'hsc_photoobj.csv')
 
 	assert len(photoobj) == 1
 	assert len(photoobj.colnames) > 1
 
 	for x in bands:
-		for y in columns:
+		for y in band_columns:
 			assert x+y in photoobj.colnames
 	
 
 def test_hscObj_loadphotoobj(obj_dirobj):
 
-	columns = ['mag_kron', 'mag_kron_err', 'flux_kron_flags', 'flux_kron_radius', 'mag_aperture10', 'mag_aperture15']
+	band_columns = ['mag_kron', 'mag_kron_err', 'flux_kron_flags', 'flux_kron_radius', 'mag_aperture10', 'mag_aperture15']
 	bands = ['g', 'r', 'i', 'z', 'y'] 
 
 
 	obj = obj_dirobj
 	assert obj.status
 
-	status = obj.load_photoobj(columns=[], bands=[], catalog='forced', all_columns=False, overwrite=True)
+	status = obj.load_photoobj(band_columns=[], bands=[], tab_name='forced', all_columns=False, overwrite=True)
 
 	assert status
 	assert os.path.isfile(obj.fp_photoobj)
 	assert len(obj.photoobj) == 1
 	assert len(obj.photoobj.colnames) > 1
 
-	for col in columns:
+	for col in band_columns:
 		for b in bands:
 			assert b+col in obj.photoobj.colnames
 
-	columns = ['mag_kron', 'mag_kron_err']
-	status = obj.load_photoobj(columns=columns, bands=[], catalog='forced', all_columns=False, overwrite=True)
+	band_columns = ['mag_kron', 'mag_kron_err']
+	status = obj.load_photoobj(band_columns=band_columns, bands=[], tab_name='forced', all_columns=False, overwrite=True)
 
 	assert status
 	assert os.path.isfile(obj.fp_photoobj)
 	assert len(obj.photoobj) == 1
 	assert len(obj.photoobj.colnames) > 1
 
-	for col in columns:
+	for col in band_columns:
 		for b in bands:
 			assert b+col in obj.photoobj.colnames
 
@@ -211,12 +214,12 @@ def test_hscObj_loadphotoobj(obj_dirobj):
 def test_hscObj_loadphotoobj_catalog(obj_dirobj):
 	obj = obj_dirobj
 	assert obj.status
-	status = obj.load_photoobj(columns=[], bands=[], catalog='forced', all_columns=False, overwrite=True)
+	status = obj.load_photoobj(band_columns=[], bands=[], tab_name='forced', all_columns=False, overwrite=True)
 	assert status
-	assert obj.photoobj['catalog'] == 'forced'
+	assert obj.photoobj['tab_name'] == 'forced'
 
 
-	status = obj.load_photoobj(columns=[], bands=[], catalog='testing', all_columns=False, overwrite=True)
+	status = obj.load_photoobj(band_columns=[], bands=[], tab_name='testing', all_columns=False, overwrite=True)
 	assert status == False
 
 
@@ -284,7 +287,7 @@ def test_hscObj_download_table(obj_dirobj):
 	obj = obj_dirobj
 	fn = obj.dir_obj+'hsc_photoz_demp.csv'
 
-	status = obj.download_table(table_name='photoz_demp', columns=[], overwrite=True)
+	status = obj.download_table(tab_name='photoz_demp', columns=[], overwrite=True)
 	assert status
 
 	assert os.path.isfile(fn)
