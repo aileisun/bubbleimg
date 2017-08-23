@@ -168,3 +168,25 @@ def test_isomeasurer_nan_image(measurer_nanimg):
 
 	for col in ['imgtag', 'isocut', 'minarea', 'onlycenter', 'centerradius']:
 		assert col in tab.colnames
+
+
+def test_isomeasurer_make_colorimg(measurer1):
+	m = measurer1
+
+	status = m.make_colorimg(bands ='gri', img_type='stamp', overwrite=False)
+
+	assert status
+	assert os.path.isfile(m.dir_obj+'color_stamp-gri.png')
+
+
+def test_isomeasurer_make_visualpanel(measurer1):
+	m = measurer1
+
+	isocut = 3.e-15*u.Unit('erg / (arcsec2 cm2 s)')
+
+	status = m.make_visualpanel(bands ='gri', isocut=isocut, overwrite=False)
+
+	assert status
+	assert os.path.isfile(m.dir_obj+'msr_panel-gri_iso-OIII5008_I_3e-15.pdf')
+
+

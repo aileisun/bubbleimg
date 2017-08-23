@@ -10,7 +10,7 @@ SELECT
   main.detect_is_patch_inner,
   main.detect_is_tract_inner,
   main.detect_is_primary,
-  {sqlcolumns}
+  {sql_columns}
 
 FROM
   {rerun}.{catalog} AS main

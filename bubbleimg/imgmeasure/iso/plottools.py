@@ -14,7 +14,15 @@ import matplotlib.pyplot as plt
 import astropy.units as u
 from astropy.table import Table
 
-# from .. import standards
+
+def make_plot_img_w_contours(fn_plot, img, contours):
+    """ 
+    making a pdf plot at path fn_plot that have img in color and contours and color bar labeled by colorlabel 
+    """
+    fig, ax = plot_img(img, colorlabel=img.unit.to_string())
+    overplot_contours(ax, contours)
+    fig.savefig(fn_plot)
+
 
 
 def plot_img(img, vmin=-1, vmax=10, origin='lower', tocolorbar=True, tosetlim=True, figsize=(6, 4.5), colorlabel='$I\/[10^{-15}\/\mathrm{erg\/\/s^{-1}\/cm^{-2}\/arcsec^{-2}}]$'):
@@ -54,7 +62,7 @@ def ax_imshow(fig, ax, img, vmin=None, vmax=None, origin='lower', tocolorbar=Tru
     return im
 
 
-def overplot_contour(ax, contour, color='black', ls='-',lw=3, alpha=1., label='__nolabel__'):
+def overplot_contour(ax, contour, color='white', ls='-',lw=3, alpha=1., label='__nolabel__'):
     """ 
     overplot a contour on subplot ax. no units interpretation. 
 
@@ -72,7 +80,7 @@ def overplot_contour(ax, contour, color='black', ls='-',lw=3, alpha=1., label='_
 
 
 
-def overplot_contours(ax, contours, color='black', lw=3, alpha=1., label='__nolabel__'):
+def overplot_contours(ax, contours, color='white', lw=3, alpha=1., label='__nolabel__'):
     """ 
     overplot a set of contours on subplot ax. no units interpretation. 
     counter-clock wise contours will be solid lines while clock-wise contours 
@@ -96,116 +104,116 @@ def overplot_contours(ax, contours, color='black', lw=3, alpha=1., label='__nola
             overplot_contour(ax, contour, color=color, ls='--', lw=lw-1, alpha=alpha)
 
 
-def overplot_ellipse(ax, ellipse_params, color='black', label=None, lw=3):
-    """ overplot a ellipse on subplot ax. no units interpretation. 
+# def overplot_ellipse(ax, ellipse_params, color='black', label=None, lw=3):
+#     """ overplot a ellipse on subplot ax. no units interpretation. 
 
-    Parameters
-    ----------
-    ax: matplotlib AxesSubplot object
-        to specify where to plot on
+#     Parameters
+#     ----------
+#     ax: matplotlib AxesSubplot object
+#         to specify where to plot on
 
-    ellipse_params: list [xc, yc, a, b, theta]
-        xc: centroid x position
-        yc: centroid y position
-        a:  semi-major axis
-        b:  semi-minor axis  (all in pix)
-        theta: orientation of semi-major axis y of x in degrees
+#     ellipse_params: list [xc, yc, a, b, theta]
+#         xc: centroid x position
+#         yc: centroid y position
+#         a:  semi-major axis
+#         b:  semi-minor axis  (all in pix)
+#         theta: orientation of semi-major axis y of x in degrees
 
-    color: string 
-    """
-    from matplotlib.patches import Ellipse    
+#     color: string 
+#     """
+#     from matplotlib.patches import Ellipse    
 
-    [xc, yc, a, b, theta]=ellipse_params
+#     [xc, yc, a, b, theta]=ellipse_params
 
-    # define ellipse
-    kwrg = {'facecolor':'none', 'edgecolor':color, 'alpha':1, 'linewidth':lw}
-    ellip = Ellipse(xy=[xc,yc], width=2.*a, height=2.*b, angle=theta, **kwrg)
+#     # define ellipse
+#     kwrg = {'facecolor':'none', 'edgecolor':color, 'alpha':1, 'linewidth':lw}
+#     ellip = Ellipse(xy=[xc,yc], width=2.*a, height=2.*b, angle=theta, **kwrg)
     
-    # overplotting and ellipse
-    ax.plot(xc, yc, marker='x', ms=5, mew=2, color=color)
-    ax.plot(0, 0, marker='', lw=lw, color=color, label=label)
-    ax.add_artist(ellip)
+#     # overplotting and ellipse
+#     ax.plot(xc, yc, marker='x', ms=5, mew=2, color=color)
+#     ax.plot(0, 0, marker='', lw=lw, color=color, label=label)
+#     ax.add_artist(ellip)
 
 
 
 
-def overplot_ellipse_fromtab(ax, img, tab_ellipse, color='black', pixelsize=0.396, useunits=True, label=None, lw=3):
-    """
-    PURPOSE: 
-        plot the corresponding ellipse on top of the image given ellipse 
-        measurements. a and b are treated as semi_major 
-        and semi_minor.  (diameter = 2.*a)
+# def overplot_ellipse_fromtab(ax, img, tab_ellipse, color='black', pixelsize=0.396, useunits=True, label=None, lw=3):
+#     """
+#     PURPOSE: 
+#         plot the corresponding ellipse on top of the image given ellipse 
+#         measurements. a and b are treated as semi_major 
+#         and semi_minor.  (diameter = 2.*a)
 
-    Parameters
-    ----------
-    ax: obj
-        the matplotlib subplot to overplot on
+#     Parameters
+#     ----------
+#     ax: obj
+#         the matplotlib subplot to overplot on
 
-    img: 2d np array 
+#     img: 2d np array 
 
-    tab_ellipse: astropy Table
-        table containing momoent measurements with columns including: 
-        'xc','yc','a','b','theta'
-        the quantities can have units. theta is in degrees. 
+#     tab_ellipse: astropy Table
+#         table containing momoent measurements with columns including: 
+#         'xc','yc','a','b','theta'
+#         the quantities can have units. theta is in degrees. 
 
-    color='black': string
+#     color='black': string
 
-    pixelsize=0.396: float
-        the pixelsize in arcsec if useunits is set to True
+#     pixelsize=0.396: float
+#         the pixelsize in arcsec if useunits is set to True
 
-    useunits=True: bool
-        If true, it assuems 'xc','yc','a','b' are in 
-        units of arcsec, and use pixelsize as specified. 
-    """
+#     useunits=True: bool
+#         If true, it assuems 'xc','yc','a','b' are in 
+#         units of arcsec, and use pixelsize as specified. 
+#     """
 
-    # unit conversion from arcsec to pix
-    if useunits:
-        for col in ['xc','yc','a','b']: # sanity check
-            if tab_ellipse[col].unit != u.Unit('arcsec'): 
-                raise NameError('check unit')
-    else:
-        pixelsize=1.
-    xc = tab_ellipse['xc'][0]/pixelsize
-    yc = tab_ellipse['yc'][0]/pixelsize
-    a = tab_ellipse['a'][0]/pixelsize
-    b = tab_ellipse['b'][0]/pixelsize
-    theta = tab_ellipse['theta'][0]
+#     # unit conversion from arcsec to pix
+#     if useunits:
+#         for col in ['xc','yc','a','b']: # sanity check
+#             if tab_ellipse[col].unit != u.Unit('arcsec'): 
+#                 raise NameError('check unit')
+#     else:
+#         pixelsize=1.
+#     xc = tab_ellipse['xc'][0]/pixelsize
+#     yc = tab_ellipse['yc'][0]/pixelsize
+#     a = tab_ellipse['a'][0]/pixelsize
+#     b = tab_ellipse['b'][0]/pixelsize
+#     theta = tab_ellipse['theta'][0]
 
-    ellipse_params=[xc, yc, a, b, theta]
-    overplot_ellipse(ax, ellipse_params, color=color, label=label, lw=lw)
-
-
-
-def overplot_axes(ax, params, color='black'):
-    """ overplot the two crossing perpendicular axes
-
-    Parameters
-    ----------
-    ax: matplotlib AxesSubplot object
-        to specify where to plot on
-
-    params: list [xc, yc, a, b, theta]
-        xc: centroid x position
-        yc: centroid y position
-        a:  major axis
-        b:  minor axis  (all in pix)
-        theta: orientation of major axis y of x in degrees
-
-    color: string 
-    """
-    from matplotlib.patches import Ellipse    
-
-    [xc, yc, a, b, theta]=params
-
-    va=0.5*a*np.array([np.cos(np.radians(theta)),np.sin(np.radians(theta))])
-    vb=0.5*b*np.array([-np.sin(np.radians(theta)),np.cos(np.radians(theta))])
+#     ellipse_params=[xc, yc, a, b, theta]
+#     overplot_ellipse(ax, ellipse_params, color=color, label=label, lw=lw)
 
 
-    # kwrg = {'color':color, 'lw':2}
 
-    ax.plot([xc-va[0],xc+va[0]],[yc-va[1],yc+va[1]],linewidth=2.0,color=color)#,*kwrg)
-    ax.plot([xc-vb[0],xc+vb[0]],[yc-vb[1],yc+vb[1]],linewidth=2.0,color=color)#,*kwrg)
-    ax.plot(xc,yc,marker='x',ms=5,mew=2,color=color)
+# def overplot_axes(ax, params, color='black'):
+#     """ overplot the two crossing perpendicular axes
+
+#     Parameters
+#     ----------
+#     ax: matplotlib AxesSubplot object
+#         to specify where to plot on
+
+#     params: list [xc, yc, a, b, theta]
+#         xc: centroid x position
+#         yc: centroid y position
+#         a:  major axis
+#         b:  minor axis  (all in pix)
+#         theta: orientation of major axis y of x in degrees
+
+#     color: string 
+#     """
+#     from matplotlib.patches import Ellipse    
+
+#     [xc, yc, a, b, theta]=params
+
+#     va=0.5*a*np.array([np.cos(np.radians(theta)),np.sin(np.radians(theta))])
+#     vb=0.5*b*np.array([-np.sin(np.radians(theta)),np.cos(np.radians(theta))])
+
+
+#     # kwrg = {'color':color, 'lw':2}
+
+#     ax.plot([xc-va[0],xc+va[0]],[yc-va[1],yc+va[1]],linewidth=2.0,color=color)#,*kwrg)
+#     ax.plot([xc-vb[0],xc+vb[0]],[yc-vb[1],yc+vb[1]],linewidth=2.0,color=color)#,*kwrg)
+#     ax.plot(xc,yc,marker='x',ms=5,mew=2,color=color)
 
 
 

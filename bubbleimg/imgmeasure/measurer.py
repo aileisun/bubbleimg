@@ -11,6 +11,7 @@ from ..obsobj import Operator
 from .. import imgdecompose
 from .. import standards
 from ..filters import surveysetup
+from ..imgdownload.loader import imgLoader
 
 
 class Measurer(Operator):
@@ -157,6 +158,27 @@ class Measurer(Operator):
 		e.g., msr_iso-OIII5008.csv
 		"""
 		raise NotImplementedError("Subclass must implement abstract method")
+
+
+	def make_colorimg(self, bands ='riz', img_type='stamp', overwrite=False):
+		"""
+		make color composit image using external package HumVI. Example file name: 'color_stamp-riz.png'.
+		Uses class method of loader. 
+
+		Params
+		------
+		bands ='riz'
+		img_type='stamp'
+		overwrite=False
+
+		Return
+		------
+		status (bool)
+		"""
+		l = imgLoader(obj=self.obj)
+		status = l.plot_colorimg(bands=bands, img_type=img_type, overwrite=overwrite)
+
+		return status
 
 
 	def _get_decomposer(self):

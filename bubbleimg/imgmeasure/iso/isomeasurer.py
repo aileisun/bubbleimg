@@ -101,9 +101,7 @@ class isoMeasurer(Measurer):
 
 			if plotmsr:
 				fn_plot = self.get_fp_msrplot(imgtag=imgtag, suffix=suffix)
-				fig, ax = plottools.plot_img(img, colorlabel=img.unit.to_string())
-				plottools.overplot_contours(ax, contours)
-				fig.savefig(fn_plot)
+				plottools.make_plot_img_w_contours(fn_plot=fn_plot, img=img, contours=contours)
 
 		else:
 			print("[isomeasurer] skip making measurement as files exist")

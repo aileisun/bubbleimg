@@ -22,25 +22,27 @@ def setUp_tearDown():
 	if os.path.isdir(dir_parent):
 		shutil.rmtree(dir_parent)
 
-	yield
-	# tear down
-	if os.path.isdir(dir_parent):
-		shutil.rmtree(dir_parent)
+	# yield
+	# # tear down
+	# if os.path.isdir(dir_parent):
+	# 	shutil.rmtree(dir_parent)
 
 
 @pytest.fixture
 def obj_dirobj():
-	return hscObj(ra=ra, dec=dec, dir_obj=dir_obj)
+	if os.path.isdir(dir_obj):
+		shutil.rmtree(dir_obj)
+	return hscObj(ra=ra, dec=dec, dir_obj=dir_obj, rerun='s16a_wide2')
 
 
 @pytest.fixture
 def obj_dirobj_twohscsource():
 	ra = 18.3349643407323022
 	dec = 2.85719938197981449
-	return hscObj(ra=ra, dec=dec, dir_parent=dir_parent)
+	return hscObj(ra=ra, dec=dec, dir_parent=dir_parent, rerun='s16a_wide2')
 
 
-def test_HSCObj_init_dir_obj(obj_dirobj):
+def test_hscObj_init_dir_obj(obj_dirobj):
 
 	obj = obj_dirobj
 
@@ -48,7 +50,7 @@ def test_HSCObj_init_dir_obj(obj_dirobj):
 	assert obj.dir_obj == dir_obj
 
 
-def test_HSCObj_init_dir_parent():
+def test_hscObj_init_dir_parent():
 
 	obj = hscObj(ra=ra, dec=dec, dir_parent=dir_parent)
 
@@ -56,7 +58,7 @@ def test_HSCObj_init_dir_parent():
 	assert obj.dir_obj == dir_obj
 
 
-def test_HSCObj_xid(obj_dirobj):
+def test_hscObj_xid(obj_dirobj):
 
 	obj = obj_dirobj
 	status = obj.load_xid()
@@ -77,7 +79,7 @@ def test_HSCObj_xid(obj_dirobj):
 	assert fxid['tract'][0] == 9564
 
 
-def test_HSCObj_xid_overwrite(obj_dirobj):
+def test_hscObj_xid_overwrite(obj_dirobj):
 
 	obj = obj_dirobj
 	fn = obj.dir_obj+'hsc_xid.csv'
@@ -96,7 +98,8 @@ def test_HSCObj_xid_overwrite(obj_dirobj):
 	open(fn, 'w').close()
 	assert os.stat(fn).st_size == 0
 
-	status = obj.load_xid(overwrite=False)
+	with pytest.raises(Exception):
+		status = obj.load_xid(overwrite=False)
 	assert os.stat(fn).st_size == 0
 
 	status = obj.load_xid(overwrite=True)
@@ -104,7 +107,7 @@ def test_HSCObj_xid_overwrite(obj_dirobj):
 	assert os.stat(fn).st_size > 0
 
 
-def test_HSCObj_xid_fails():
+def test_hscObj_xid_fails():
 	ra = 0.
 	dec = -89.
 	obj = hscObj(ra=ra, dec=dec, dir_obj = './testing/badobject/')
@@ -117,7 +120,7 @@ def test_HSCObj_xid_fails():
 	assert not os.path.isfile(fn)
 
 
-def test_HSCObj_xid_conflicting_dir_obj():
+def test_hscObj_xid_conflicting_dir_obj():
 	# use a dir_obj that is occupied by another different obj
 	ra = 140.099341430207
 	dec = 0.580162492432517
@@ -146,7 +149,7 @@ def test_only_one_row_twohscsource(obj_dirobj_twohscsource):
 	assert len(tab) == 1
 
 
-def test_HSCObj_identical_w_verification(obj_dirobj):
+def test_hscObj_identical_w_verification(obj_dirobj):
 
 	f = 'hsc_xid.csv'
 	file_totest = './testing/SDSSJ0920+0034/'+f
@@ -155,7 +158,7 @@ def test_HSCObj_identical_w_verification(obj_dirobj):
 	assert filecmp.cmp(file_totest, file_verification)
 
 
-def test_HSCObj_get_photoobj(obj_dirobj):
+def test_hscObj_get_photoobj(obj_dirobj):
 	obj = obj_dirobj
 	assert obj.status
 
@@ -172,7 +175,7 @@ def test_HSCObj_get_photoobj(obj_dirobj):
 			assert x+y in photoobj.colnames
 	
 
-def test_HSCObj_loadphotoobj(obj_dirobj):
+def test_hscObj_loadphotoobj(obj_dirobj):
 
 	columns = ['mag_kron', 'mag_kron_err', 'flux_kron_flags', 'flux_kron_radius', 'mag_aperture10', 'mag_aperture15']
 	bands = ['g', 'r', 'i', 'z', 'y'] 
@@ -205,7 +208,7 @@ def test_HSCObj_loadphotoobj(obj_dirobj):
 			assert b+col in obj.photoobj.colnames
 
 
-def test_HSCObj_loadphotoobj_catalog(obj_dirobj):
+def test_hscObj_loadphotoobj_catalog(obj_dirobj):
 	obj = obj_dirobj
 	assert obj.status
 	status = obj.load_photoobj(columns=[], bands=[], catalog='forced', all_columns=False, overwrite=True)
@@ -217,7 +220,7 @@ def test_HSCObj_loadphotoobj_catalog(obj_dirobj):
 	assert status == False
 
 
-def test_HSCObj_xid_sanity_check(obj_dirobj_twohscsource):
+def test_hscObj_xid_sanity_check(obj_dirobj_twohscsource):
 	obj = obj_dirobj_twohscsource
 
 	tabstr = ['object_id,ra,dec,patch_id,tract,patch,patch_s,parent_id,deblend_nchild,detect_is_patch_inner,detect_is_tract_inner,detect_is_primary', '42766771777714198,18.3349643407323022,2.85719938197981449,97240107,9724,107,"1,7",42766771777704241,0,t,t,t', '42766771777714199,18.3353134708619052,2.85678842440856107,97240107,9724,107,"1,7",42766771777704241,0,t,t,t',]
@@ -248,7 +251,7 @@ def test_HSCObj_xid_sanity_check(obj_dirobj_twohscsource):
 		obj._xid_sanity_check(xid)
 
 
-def test_HSCObj_photoobj_overwrite(obj_dirobj):
+def test_hscObj_photoobj_overwrite(obj_dirobj):
 
 	obj = obj_dirobj
 	fn = obj.dir_obj+'hsc_photoobj.csv'
@@ -275,3 +278,19 @@ def test_HSCObj_photoobj_overwrite(obj_dirobj):
 	assert obj.photoobj['object_id'][0] == 42063891789801134
 	tab = at.Table.read(fn)
 	assert tab['object_id'][0] == 42063891789801134
+
+
+def test_hscObj_download_table(obj_dirobj):
+	obj = obj_dirobj
+	fn = obj.dir_obj+'hsc_photoz_demp.csv'
+
+	status = obj.download_table(table_name='photoz_demp', columns=[], overwrite=True)
+	assert status
+
+	assert os.path.isfile(fn)
+
+	tab = at.Table.read(fn, format='ascii.csv')
+
+	assert 'photoz_best' in tab.colnames
+	assert len(tab) == 1
+

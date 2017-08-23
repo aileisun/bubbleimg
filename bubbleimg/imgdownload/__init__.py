@@ -5,9 +5,9 @@ __all__ = ['loader']
 
 import loader, sdss, hsc
 
-reload(loader)
-reload(sdss)
-reload(hsc)
+# reload(loader)
+# reload(sdss)
+# reload(hsc)
 
 from loader import imgLoader
 from sdss.sdssimgloader import sdssimgLoader
