@@ -1,11 +1,10 @@
 # __init__.py
 # ALS 2016/04/22
 
-__all__ = ['filters', 'denoiseimg', 'external_links', 'standards', 'imgdownload', 'obsobj', 'batch', 'spector']
+__all__ = ['filters', 'external_links', 'standards', 'imgdownload', 'obsobj', 'batch', 'spector']
 
-import filters, denoiseimg, external_links, fitpsf, contaminants, standards, imgdownload, obsobj, batch, spector, imgdecompose, imgmeasure
+import filters, external_links, fitpsf, contaminants, standards, imgdownload, obsobj, batch, spector, imgdecompose, imgmeasure
 
-reload(denoiseimg)
 reload(filters)
 reload(fitpsf)
 reload(contaminants)

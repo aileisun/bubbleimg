@@ -11,7 +11,9 @@ broadline = ['Ha', 'Hb', 'Hg', 'Hd']
 
 #======== for inferring line flux =============
 # strongline as defined by lines that are brighter than 1/50 of OIII 5008
-strongline = ['MgII2800', 'OII3726', 'OII3730', 'NeIII3870', 'NeIII3969', 'Hg', 'OIII4364', 'Hb', 'OIII4960', 'OIII5008', 'OI6302', 'NII6550', 'Ha', 'NII6585', 'SII6718', 'SII6733', ]
+strongline = ['MgII2800', 'OII3730', 'NeIII3870', 'NeIII3969', 'Hg', 'Hb', 'OIII4960', 'OIII5008', 'OI6302', 'NII6550', 'Ha', 'NII6585', 'SII6718', 'SII6733', ]
+# 'OII3726', excluded as it is very close to OII3730
+# 'OIII4364' marginal. almost fainter than 2% of [OIII]
 # Caveat: NeV 3427 is not a very faint line but is not measured by SDSS
 
 

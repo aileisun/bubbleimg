@@ -218,20 +218,6 @@ def test_spector_get_fnu_ratio_band1_over_band2(spector1):
 	assert round(x, 3) == round(0.7281524829527901, 3)
 
 
-def test_spector_get_line_flux(spector1):
-	s = spector1
-
-	f, ferr = s._get_line_flux(line='OIII5008', wunit=False)
-	assert round(f, 3) == round(499.73093, 3)
-	assert round(ferr, 3) == round(3.2179329, 3)
-	assert round(w, 3) == round(7068.724090912, 3)
-
-	f, ferr = s._get_line_flux(line='OIII5008', wunit=True)
-	assert f.unit == u.Unit("1E-17 erg cm-2 s-1")
-	assert ferr.unit == u.Unit("1E-17 erg cm-2 s-1")
-	assert w.unit == u.Unit("AA")
-
-
 def test_spector_get_line_obs_wave(spector1):
 	s = spector1
 
@@ -240,7 +226,6 @@ def test_spector_get_line_obs_wave(spector1):
 
 	w = s._get_line_obs_wave(line='OIII5008', wunit=True)
 	assert w.unit == u.Unit("AA")
-
 
 
 def test_spector_calc_fline_over_fnuband(spector1):
@@ -278,9 +263,60 @@ def test_spector_list_lines_in_band(spector1):
 	
 	band = 'r'
 	l = s._list_stronglines_in_band(band=band, threshold=0.2)
-	assert set(l) == set(['NeIII3870', 'NeIII3969', 'Hg', 'OIII4364', 'Hb', 'OIII4960'])
+	assert set(l) == set(['NeIII3870', 'NeIII3969', 'Hg', 'Hb', 'OIII4960']) # , 'OIII4364' was exluded
 	
 	band = 'y'
 	l = s._list_stronglines_in_band(band=band, threshold=0.2)
 	assert set(l) == set(['NII6585', 'SII6718', 'SII6733'])
 	
+
+def test_spector_make_lineflux(spector1):
+	s = spector1
+
+	fn = s.dir_obj + 'spec_lineflux.csv'
+	status = s.make_lineflux(lines=['Hb', 'OIII4960', 'OIII5008'], overwrite=False)
+
+	assert status
+	assert os.path.isfile(fn)
+
+	tab = at.Table.read(fn, format='ascii.csv', comment='#')
+
+	assert tab['f_OIII5008'][0] > tab['f_OIII4960'][0]
+
+	f, ferr = s._get_line_flux_sdss(line='OIII5008', wunit=False)
+
+	print f
+
+	assert np.absolute(f-tab['f_OIII5008'][0]) / f < 0.05
+
+
+	# currently lines other than hb, OIII, are not supported
+	with pytest.raises(Exception):
+		status = s.make_lineflux(lines=['Ha', 'Hb', 'OIII4960', 'OIII5008'], overwrite=True)
+
+
+def test_spector_get_line_flux(spector1):
+	s = spector1
+
+	f_sdss, __ = s._get_line_flux_sdss(line='OIII5008', wunit=True)
+	assert f_sdss.unit == u.Unit("1E-17 erg cm-2 s-1")
+
+
+	f_sdss, __ = s._get_line_flux_sdss(line='OIII5008', wunit=False)
+	assert round(f_sdss, 3) == round(499.73093, 3)
+
+
+	for line in ['NeIII3870', 'NeIII3969', 'Hg', 'Hb', 'OIII4960', 'OIII5008']:
+		f_sdss, f_sdss_err = s._get_line_flux_sdss(line=line, wunit=False)
+		f = s._get_line_flux(line=line, wunit=False)
+
+		print line, f, f_sdss
+		assert np.absolute(f-f_sdss)/f < 0.50
+
+
+	# NeIII3870 48.5579160008  44.1533
+	# NeIII3969  7.99740186133 11.0574
+	# Hg        22.6594839448  19.1681
+	# Hb        43.0401951516  49.7836
+	# OIII4960 174.641157774  164.983
+	# OIII5008 512.138100415  499.731

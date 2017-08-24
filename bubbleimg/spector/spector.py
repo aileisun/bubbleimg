@@ -6,6 +6,7 @@ import astropy.table as at
 import matplotlib.pyplot as plt
 import astropy.units as u
 from astropy.io import fits
+import astropy.constants as const
 
 import os
 
@@ -104,6 +105,7 @@ class Spector(Operator):
 		self.fp_spec_decomposed = self.dir_obj+'spec_decomposed.ecsv'
 		self.fp_spec_contextrp = self.dir_obj+'spec_contextrp.ecsv'
 		self.fp_spec_mag = self.dir_obj+'spec_mag.csv'
+		self.fp_spec_lineflux = self.dir_obj+'spec_lineflux.csv'
 
 
 	def get_spec_ws(self, forceload_from_fits=False):
@@ -247,6 +249,7 @@ class Spector(Operator):
 		self.make_spec_decomposed_ecsv(overwrite=False)
 
 		if not os.path.isfile(fn) or overwrite:
+			print("[spector] making spec_mag")
 			tabmag = at.Table()
 			tabfnu = at.Table()
 
@@ -256,6 +259,8 @@ class Spector(Operator):
 					colmag = self.__get_specmag_colname(band, component=component, fluxquantity='mag')
 					try:
 						fnu = self._calc_Fnu_in_band(band=band, component=component)
+					except KeyboardInterrupt:
+						sys.exit(0) 
 					except:
 						print("[spector] skip calculating fnu of {} in band {}".format(component, band))
 					else: 
@@ -274,6 +279,8 @@ class Spector(Operator):
 									]
 
 			tab.write(fn, comment='#', format='ascii.csv', overwrite=overwrite)
+		else:
+			print("[spector] skip making spec_mag as file exists")
 
 		status = os.path.isfile(fn)
 		return status 
@@ -405,9 +412,7 @@ class Spector(Operator):
 		------
 		ratio (quantity in unit of Hz)
 		"""
-		print("WARNING: to write error propogation as well.......")
-
-		fl, flerr = self._get_line_flux(line=line, wunit=False)
+		fl = self._get_line_flux(line=line, wunit=False)
 		wl = self._get_line_obs_wave(line=line, wunit=False)
 		Tl = self._get_norm_trans(wavelength=wl, band=band, bounds_error=True)
 
@@ -417,7 +422,7 @@ class Spector(Operator):
 		ws = np.ndarray(len(lines))
 		Ts = np.ndarray(len(lines))
 		for i, l in enumerate(lines):
-			f, ferr = self._get_line_flux(line=l, wunit=False)
+			f = self._get_line_flux(line=l, wunit=False)
 			w = self._get_line_obs_wave(line=l, wunit=False)
 			T = self._get_norm_trans(wavelength=w, band=band, bounds_error=True)
 			fs[i] = f
@@ -431,7 +436,135 @@ class Spector(Operator):
 		return ratio
 
 
-	def _get_line_flux(self, line='OIII5008', wunit=False): 
+	def make_lineflux(self, lines=['NeIII3870', 'NeIII3969', 'Hg', 'Hb', 'OIII4960', 'OIII5008'], u_out=u.Unit("1E-17 erg cm-2 s-1"), overwrite=False):
+		""" 
+		make file spec_lineflux.csv that contains the flux of the specified lines. The fluxes are calculated by integrating the line component of the spectrum over a window of +/- 1400 km/s. 
+
+		WARNING: currently only Hb, and OIII lines are supported. For lines that are overlapped, e.g., Ha and NII, the current implemenation will double count the flux. 
+
+		Params
+		------
+		lines=['Hb', 'OIII4960', 'OIII5008']
+		u_out=u.Unit("1E-17 erg cm-2 s-1")
+			the unit of the output
+		overwrite=False
+
+		Return
+		------
+		status (bool)
+		"""
+		fn = self.fp_spec_lineflux
+
+		self.make_spec_decomposed_ecsv(overwrite=False)
+
+		if not os.path.isfile(fn) or overwrite:
+			print("[spector] making spec_lineflux")
+			tab = at.Table()
+
+			for line in lines:
+				f_line = self._calc_line_flux(line=line, u_out=u_out, wunit=False)
+
+				col_new = at.Table([[f_line]], names=['f_{}'.format(line)])
+				tab = at.hstack([tab, col_new])
+
+			tab.meta['comments'] = ["unit_flux: {}".format(u_out.to_string()),]
+
+			tab.write(fn, comment='#', format='ascii.csv', overwrite=overwrite)
+
+		else:
+			print("[spector] skip making spec_mag as file exists")
+
+		status = os.path.isfile(fn)
+		return status 
+
+
+	def _calc_line_flux(self, line='OIII5008', dv=1400*u.km/u.s, u_out=u.Unit("1E-17 erg cm-2 s-1"), wunit=False):
+		"""
+		calculate the flux of the line by trpz integrating the decomposed emission line component of the spectrum over a range of +/- dv 
+
+		WARNING: currently only Hb, and OIII lines are supported. For lines that are overlapped, e.g., Ha and NII, the current implemenation will double count the flux. 
+
+		Params
+		------
+		line='OIII5008' (str)
+
+		dv=1400*u.km/u.s (quantity)
+			half of the width over which the spectrum is integrated to calculate flux
+
+		u_out=u.Unit("1E-17 erg cm-2 s-1")
+			the unit of the output
+
+		wunit=False
+			whether the output to come with unit or not
+
+		Return
+		------
+		f_line (float to quantity)
+			unit is in the dimension of erg cm-2 s-1
+		"""
+
+		# sanity check
+		if line not in ['NeIII3870', 'NeIII3969', 'Hg', 'Hb', 'OIII4960', 'OIII5008']:
+			raise Exception("[spector] _calc_line_flux does not support lines other than Hb and OIII as those are not tested. ")
+
+		# get w range
+		beta = (dv/const.c).to_value(u.dimensionless_unscaled)
+		w = self._get_line_obs_wave(line=line, wunit=False)
+		w0 = w*(1-beta)
+		w1 = w*(1+beta)
+
+		# get spectrum
+		spec, ws = self.get_spec_ws_from_spectab(component='line')
+		u_spec = spec.unit
+		u_ws = ws.unit
+		spec_uless = np.array(spec)
+		ws_uless = np.array(ws)
+
+		# select region to integrate
+		select_ws = (ws_uless > w0) & (ws_uless < w1)
+		ws_sel = ws_uless[select_ws]
+		spec_sel = spec_uless[select_ws]
+
+		# integrate
+		f_line = (np.trapz(spec_sel, x=ws_sel)*u_spec*u_ws).to(u_out)
+
+		if wunit:
+			return f_line
+		else: 
+			return f_line.to_value(u_out)
+
+
+	def _get_line_flux(self, line='OIII5008', wunit=False):
+		""" 
+		read line flux from file spec_lineflux.csv. For details, see make_spec_lineflux(). 
+
+		Params
+		------
+		line='OIII5008', wunit=False
+
+		Return
+		------
+		status
+		"""
+		fn = self.fp_spec_lineflux
+
+		if not os.path.isfile(fn):
+			self.make_lineflux(overwrite=False)
+
+		tab = at.Table.read(fn, format='ascii.csv', comment='#')
+
+		linetag = 'f_{}'.format(line)
+		f_line = tab[linetag][0]
+
+		if not wunit:
+			return f_line
+
+		else:
+			u_flux = u.Quantity(tab.meta['comments'][0].split(': ')[1])
+			return f_line*u_flux
+
+
+	def _get_line_flux_sdss(self, line='OIII5008', wunit=False): 
 		""" 
 		Flux of line from SDSS spec.fits higher extensions 
 		It is measured by Gaussian fit, for details, see:
