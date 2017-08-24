@@ -182,11 +182,11 @@ def test_isomeasurer_make_colorimg(measurer1):
 def test_isomeasurer_make_visualpanel(measurer1):
 	m = measurer1
 
-	isocut = 3.e-15*u.Unit('erg / (arcsec2 cm2 s)')
+	# isocut = 3.e-15*u.Unit('erg / (arcsec2 cm2 s)')
 
-	status = m.make_visualpanel(bands ='gri', isocut=isocut, overwrite=False)
+	status = m.make_visualpanel(compo_bands ='riz', imgtag='OIII5008_I', overwrite=False)
 
 	assert status
-	assert os.path.isfile(m.dir_obj+'msr_panel-gri_iso-OIII5008_I_3e-15.pdf')
+	assert os.path.isfile(m.dir_obj+'msr_iso-OIII5008_I_panel.pdf')
 
 

@@ -11,9 +11,12 @@ Contains two functions for plotting: plot_img, overplot_ellipse_fromtab
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+
 import astropy.units as u
 from astropy.table import Table
 
+import polytools
 
 def make_plot_img_w_contours(fn_plot, img, contours):
     """ 
@@ -23,6 +26,53 @@ def make_plot_img_w_contours(fn_plot, img, contours):
     overplot_contours(ax, contours)
     fig.savefig(fn_plot)
 
+
+def make_iso_visual_panel(fn, img_compo, img_map, contours1, contours3, z, pixsize, legend_suffix, name, title_compo, title_map, label_cbar):
+    fig, (ax0, ax1, ax_cb) = get_figure_grids(n_panel=2)
+
+    # plot composit
+    ax_imshow(fig, ax0, img_compo, origin='upper', tocolorbar=False, tosetlim=True)
+
+    nx, ny = img_compo.shape[:2]
+    overplot_ruler(ax0, z, pixsize=pixsize, rlength_arcsec=10., nx=nx, ny=ny)
+
+    ax0.text(5, 12, name, color='white', fontsize=12)
+    ax0.set_title(title_compo)
+    ax0.title.set_position([.5, 1.03])
+
+    # plot line map
+    im = ax_imshow(fig, ax1, img_map, vmin=-1, vmax=8, origin='lower', tocolorbar=False, tosetlim=True)
+    overplot_contours(ax1, contours3, lw=1.)
+    overplot_contours(ax1, contours1, lw=0.2)
+
+    make_legend_isophotes(ax1, lw=2, suffix=legend_suffix)
+
+    ax1.set_title(title_map)
+    ax1.title.set_position([.5, 1.03])
+
+    # plot color bar
+    cbar = fig.colorbar(im, cax=ax_cb, label=label_cbar, format='%i')
+    ax_cb.set_aspect(20)
+
+    # set ticks off
+    for ax in [ax0, ax1]: 
+        ax.axis('off')
+
+    # saving
+    fig.savefig(fn, format='pdf')
+    plt.close()
+
+
+def get_figure_grids(n_panel=3):
+    """ start figure and make subplots, there is one more additional (small) axis for colorbar """
+    plt.close('all')
+    fig=plt.figure(figsize=(2*n_panel+2.5, 3.))
+
+    gs = gridspec.GridSpec(1, n_panel+1, width_ratios=[1 for i in range(n_panel)]+[0.05], wspace=0.1, left=0.05, right=0.90)
+
+    axes = [plt.subplot(gs[i]) for i in range(n_panel+1)]
+
+    return fig, axes
 
 
 def plot_img(img, vmin=-1, vmax=10, origin='lower', tocolorbar=True, tosetlim=True, figsize=(6, 4.5), colorlabel='$I\/[10^{-15}\/\mathrm{erg\/\/s^{-1}\/cm^{-2}\/arcsec^{-2}}]$'):
@@ -76,7 +126,7 @@ def overplot_contour(ax, contour, color='white', ls='-',lw=3, alpha=1., label='_
 
     color: string 
     """
-    ax.plot(contour[:, 1], contour[:, 0], linewidth=2, color=color,lw=lw, alpha=alpha, label=label)
+    ax.plot(contour[:, 1], contour[:, 0], linewidth=lw, color=color,lw=lw, alpha=alpha, label=label)
 
 
 
@@ -96,13 +146,58 @@ def overplot_contours(ax, contours, color='white', lw=3, alpha=1., label='__nola
 
     color: string 
     """
-    from polytools import SignedPolygonArea
     for contour in contours:
-        if SignedPolygonArea(contour)>0:
+        if polytools.SignedPolygonArea(contour)>0:
             overplot_contour(ax, contour, color=color, ls='-', lw=lw, alpha=alpha, label=label)
         else:
             overplot_contour(ax, contour, color=color, ls='--', lw=lw-1, alpha=alpha)
 
+
+
+def overplot_ruler(ax, z, pixsize=0.396, rlength_arcsec=10., nx=64, ny=64):
+    """
+    Params
+    ------
+    ax:
+    kpc_per_arcsec
+    pixsize=0.396
+        in arcsec
+    rulerlength_arcsec=10.
+        in arcsec
+    """
+    # import
+    from astropy.cosmology import FlatLambdaCDM
+    cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
+
+    # set up
+    xmid = 0.5*nx+5 # x ending point of bar
+    y = ny-10. # y loc of bar
+
+    # conversion
+    kpc_per_arcsec = 1./cosmo.arcsec_per_kpc_proper(z)
+    rlength_pix = rlength_arcsec/pixsize
+    rlength_kpc = (rlength_arcsec*kpc_per_arcsec).value
+
+    #===== plotting
+    ax.plot([xmid-rlength_pix, xmid], [y, y], color='white', lw=2)
+    ax.plot([xmid-rlength_pix, xmid-rlength_pix], [y+1., y-1.], color='white', lw=2)
+    ax.plot([xmid, xmid], [y+1., y-1.], color='white', lw=2)
+    ax.text(xmid+4., y+1, '10" ('+'%.0f'%rlength_kpc+' kpc)', color='white', fontsize=12)
+
+
+
+def make_legend_isophotes(ax, lw=2, suffix=''):
+    """ add legend of isophotes """
+    ax.plot(-1, -1, color='white', lw=lw, label='Isophote'+suffix)
+    # ax.plot(-1, -1, color='red', lw=lw, label='Galaxy mask')
+
+    lg = ax.legend(loc='lower right', prop={'size':10})
+
+    frame = lg.get_frame()
+    frame.set_facecolor('#000099')
+    frame.set_edgecolor('None')
+    for tx in lg.get_texts():
+        tx.set_color("white")
 
 # def overplot_ellipse(ax, ellipse_params, color='black', label=None, lw=3):
 #     """ overplot a ellipse on subplot ax. no units interpretation. 

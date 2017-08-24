@@ -6,6 +6,8 @@ from astropy.io import fits
 import numpy as np
 import astropy.table as at
 import pickle
+import scipy.ndimage as simg
+
 
 from ..measurer import Measurer
 import polytools
@@ -74,10 +76,7 @@ class isoMeasurer(Measurer):
 		if not os.path.isfile(fn) or overwrite:
 			print("[isomeasurer] making measurement")
 
-			fn_img = self.get_fp_stamp_img(imgtag=imgtag)
-			# read in
-			hdus = fits.open(fn_img)
-			img = hdus[0].data * u.Unit(hdus[0].header['BUNIT'])
+			img = self.get_stamp_img(imgtag=imgtag, withunit=True)
 			xc, yc = self._get_xc_yc(img)
 
 			# calc
@@ -108,6 +107,65 @@ class isoMeasurer(Measurer):
 
 		return os.path.isfile(fn)
 
+
+	def make_visualpanel(self, compo_bands ='gri', imgtag='OIII5008_I', onlycenter=True, minarea=5, centerradius=5.*u.arcsec, overwrite=False):
+		""" 
+		make panel figure to visualize the composit and the iso measurements
+		saved to e.g., 'msr_iso-OIII5008_I_panel.pdf'
+
+		Params
+		------
+		compo_bands ='gri', imgtag='OIII5008_I', overwrite=False
+
+		Return
+		------
+		status
+		"""
+		fn = self.get_fp_msrplot(imgtag=imgtag, suffix='_panel')
+
+		if not os.path.isfile(fn) or overwrite:
+			print("[isomeasurer] making visual panel")
+
+			# get files ready 
+			self.make_colorimg(bands=compo_bands, img_type='stamp', overwrite=False)
+
+			# access data
+			img_compo = simg.imread(self.dir_obj+'color_stamp-{}.png'.format(compo_bands))
+			img_map = self.get_stamp_img(imgtag=imgtag, withunit=True)
+
+			suffix = '_3e-15'
+			isocut = 3.e-15*u.Unit('erg / (arcsec2 cm2 s)')
+			fn_contours3 = self.get_fp_contours(imgtag=imgtag, onlycenter=onlycenter, suffix=suffix)
+			if not os.path.isfile(fn_contours3):
+				print("[isomeasurer] re-doing measurements to make contours required for visual panel plots")
+				self.make_measurements(imgtag=imgtag, isocut=isocut, suffix=suffix, minarea=minarea, onlycenter=onlycenter, centerradius=centerradius, overwrite=True, savecontours=True, plotmsr=False), 
+
+			contours3 = read_pickle(fn_contours3)
+
+			suffix = '_1e-15'
+			isocut = 1.e-15*u.Unit('erg / (arcsec2 cm2 s)')
+			fn_contours1 = self.get_fp_contours(imgtag=imgtag, onlycenter=onlycenter, suffix=suffix)
+			if not os.path.isfile(fn_contours1):
+				print("[isomeasurer] re-doing measurements to make contours required for visual panel plots")
+				self.make_measurements(imgtag=imgtag, isocut=isocut, suffix=suffix, minarea=minarea, onlycenter=onlycenter, centerradius=centerradius, overwrite=True, savecontours=True, plotmsr=False), 
+
+			contours1 = read_pickle(fn_contours1)
+
+			z = self.z
+			pixsize = self.pixsize.to_value(u.arcsec)
+			legend_suffix = ' at 3'
+			name = self.obj.name[4:]
+
+			title_compo = '${}~{}~{}~$'.format(compo_bands[0], compo_bands[1], compo_bands[2])+'$\mathrm{Composite}$'
+			title_map = '$\mathrm{[OIII]\lambda 5007~Intensity}$'
+			label_cbar = '$I~[10^{-15}~\mathrm{erg~s^{-1}~cm^{-2}~arcsec^{-2}}]$'
+
+			plottools.make_iso_visual_panel(fn, img_compo, img_map, contours1, contours3, z, pixsize, legend_suffix, name, title_compo, title_map, label_cbar)
+
+		else:
+			print("[isomeasurer] skip making visual panel as files exist")
+
+		return os.path.isfile(fn)
 
 		
 	def _get_tab_params(self, imgtag, isocut, minarea, onlycenter, centerradius):

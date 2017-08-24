@@ -3,6 +3,7 @@
 
 import os
 import astropy.units as u
+from astropy.io import fits
 
 from astropy.cosmology import FlatLambdaCDM
 cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
@@ -127,6 +128,18 @@ class Measurer(Operator):
 		fn_msr = self.get_fp_msr(imgtag=imgtag, suffix=suffix)
 		fn_noext = os.path.splitext(fn_msr)[0]
 		return fn_noext+'.pdf'
+
+
+	def get_stamp_img(self, imgtag, withunit=False):
+		""" return the image as numpy array """
+		fn_img = self.get_fp_stamp_img(imgtag=imgtag)
+		hdus = fits.open(fn_img)
+		if withunit:
+			img = hdus[0].data * u.Unit(hdus[0].header['BUNIT'])
+		else: 
+			img = hdus[0].data
+
+		return img
 
 
 	def make_measurements_line_I(self, line='OIII5008', overwrite=False, **kwargs):
