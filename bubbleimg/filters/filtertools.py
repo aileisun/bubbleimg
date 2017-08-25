@@ -443,4 +443,4 @@ def getNormTrans(l, band='r', survey='sdss', bounds_error=False):
 
     f = interp1d(ws, trans, kind='linear', bounds_error=bounds_error, fill_value=0.)
 
-    return f(l)
+    return max(f(l), 0)

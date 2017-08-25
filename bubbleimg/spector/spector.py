@@ -106,6 +106,7 @@ class Spector(Operator):
 		self.fp_spec_contextrp = self.dir_obj+'spec_contextrp.ecsv'
 		self.fp_spec_mag = self.dir_obj+'spec_mag.csv'
 		self.fp_spec_lineflux = self.dir_obj+'spec_lineflux.csv'
+		self.fp_spec_linefrac = self.dir_obj+'spec_linefrac.csv'
 
 
 	def get_spec_ws(self, forceload_from_fits=False):
@@ -398,9 +399,15 @@ class Spector(Operator):
 
 	def calc_fline_over_fnuband(self, band, line):
 		""" 
-		calculate the ratio flux_line / fnu_band, for the conversion between band image and line image. 
+		calculate the conversion ratio r = (flux_line / fnu_band), to convert continuum subtracted image to line intensity map
 
 		by multiplying this ratio to the band image (in fnu [erg/s/cm^2/Hz]) one can obtain the observed flux of the line (in f [erg/s/cm^2]). Notice that this is flux in observed frame, for measurements one still needs to transform it to the rest frame (depending on z). 
+
+		r = (c / (T(w_k) * w_k)) * frac_k  := dnu * frac_k
+
+			where 
+				dnu    =  (c / (T(w_k) * w_k))
+				frac_k = (f_k * T(w_k) * w_k) / sum(f_i * T(w_i) * w_i)
 
 		Params
 		------
@@ -412,28 +419,103 @@ class Spector(Operator):
 		------
 		ratio (quantity in unit of Hz)
 		"""
-		fl = self._get_line_flux(line=line, wunit=False)
-		wl = self._get_line_obs_wave(line=line, wunit=False)
-		Tl = self._get_norm_trans(wavelength=wl, band=band, bounds_error=True)
+		f = self._get_line_flux(line=line, wunit=False)
+		w = self._get_line_obs_wave(line=line, wunit=False)
+		T = self._get_norm_trans(wavelength=w, band=band, bounds_error=True)
 
-		# assemble line list
-		lines = self._list_stronglines_in_band(band=band)
-		fs = np.ndarray(len(lines))
-		ws = np.ndarray(len(lines))
-		Ts = np.ndarray(len(lines))
-		for i, l in enumerate(lines):
-			f = self._get_line_flux(line=l, wunit=False)
-			w = self._get_line_obs_wave(line=l, wunit=False)
-			T = self._get_norm_trans(wavelength=w, band=band, bounds_error=True)
-			fs[i] = f
-			ws[i] = w
-			Ts[i] = T
+		dnu = const.c / (T * w * u.AA)
 
-		ratio = linefrac.fline_over_fnuband(fl, wl, Tl, fs, ws, Ts)
+		frac = self._get_line_frac(band=band, line=line)
 
-		ratio = ratio.to(u.Hz)
+		# sanity check: all strong lines are considered
+		tab_linefrac = at.Table.read(self.fp_spec_linefrac, format='ascii.csv', comment='#')
+		stronglines = self._list_stronglines_in_band(band=band)
+		for line in stronglines:
+			if 'frac_{}'.format(line) not in tab_linefrac.colnames:
+				raise Exception("[spector] strong line in band is not contained in spec_linefrac.csv")
 
-		return ratio
+		r = (dnu * frac).to(u.Hz)
+		return r
+
+
+	def _get_line_frac(self, band, line='OIII5008'):
+		""" 
+		read line flux from file spec_linefrac.csv. 
+
+		Params
+		------
+		band, line='OIII5008', wunit=False
+
+		Return
+		------
+		frac (float)
+		"""
+		fn = self.fp_spec_linefrac
+
+		if not os.path.isfile(fn):
+			self.make_linefrac(band=band, overwrite=False)
+
+		tab = at.Table.read(fn, format='ascii.csv', comment='#')
+
+		if tab['lineband'][0] != band:
+			raise Exception("[spector] _get_line_frac the band required is not provided by the current spec_linefrac.csv")
+
+		linetag = 'frac_{}'.format(line)
+		frac = tab[linetag][0]
+
+		return frac
+
+
+	def make_linefrac(self, band, lines=['NeIII3870', 'NeIII3969', 'Hg', 'Hb', 'OIII4960', 'OIII5008', 'OI6302', 'OI6366'], overwrite=False):
+		"""
+		make file spec_linefrac.csv that contains the fraction each of the strong lines have in a specific band.
+		Columns: f_{band}_{line}, T_{band}_{line}, w_{band}_{line}, frac_{band}_{line}
+
+		The fraction is based on the f*T*w of the line. Only the strong lines are listed. 
+
+		Params
+		------
+		band
+		lines=['NeIII3870', 'NeIII3969', 'Hg', 'Hb', 'OIII4960', 'OIII5008', 'OI6302', 'OI6366']
+		overwrite=False
+
+		Return
+		------
+		status
+		"""
+		fn = self.fp_spec_linefrac
+
+		self.make_lineflux(overwrite=overwrite)
+
+		if not os.path.isfile(fn) or overwrite:
+			print("[spector] making spec_linefrac")
+
+			tab = at.Table([[band]], names=['lineband'])
+
+			fwt_sum = 0.
+			for line in lines:
+				f = self._get_line_flux(line=line, wunit=False)
+				w = self._get_line_obs_wave(line=line, wunit=False)
+				T = self._get_norm_trans(wavelength=w, band=band, bounds_error=False)
+
+				fwt = max(f*w*T, 0)
+				fwt_sum = fwt_sum + fwt
+
+				col_new = at.Table([[f], [w], [T], [fwt]], names=['f_{}'.format(line), 'w_{}'.format(line), 't_{}'.format(line), 'fwt_{}'.format(line)])
+				tab = at.hstack([tab, col_new])
+
+			for line in lines:
+				frac = tab['fwt_{}'.format(line)][0] / fwt_sum
+				col_new = at.Table([[frac]], names=['frac_{}'.format(line)])
+				tab = at.hstack([tab, col_new])
+
+			tab.write(fn, format='ascii.csv', overwrite=overwrite)
+
+		else:
+			print("[spector] skip making spec_linefrac as file exists")
+
+		status = os.path.isfile(fn)
+		return status 
 
 
 	def make_lineflux(self, lines=['NeIII3870', 'NeIII3969', 'Hg', 'Hb', 'OIII4960', 'OIII5008', 'OI6302', 'OI6366'], u_out=u.Unit("1E-17 erg cm-2 s-1"), overwrite=False):
@@ -472,7 +554,7 @@ class Spector(Operator):
 			tab.write(fn, comment='#', format='ascii.csv', overwrite=overwrite)
 
 		else:
-			print("[spector] skip making spec_mag as file exists")
+			print("[spector] skip making spec_lineflux as file exists")
 
 		status = os.path.isfile(fn)
 		return status 
@@ -544,7 +626,7 @@ class Spector(Operator):
 
 		Return
 		------
-		status
+		f_line
 		"""
 		fn = self.fp_spec_lineflux
 
@@ -615,13 +697,22 @@ class Spector(Operator):
 		"""
 		w = filters.getllambda(ion=line, vacuum=True) * (1. + self.z)
 
+		try: len(w)
+		except:
+			pass
+		else:
+			if len(w) == 1:
+				w = w[0]
+			else:
+				raise Exception('got more than one wavelength')
+
 		if not wunit:
 			return w
 		else:
 			return w*u.Unit("AA")
 
 
-	def _list_stronglines_in_band(self, band, threshold=0.01):
+	def _list_stronglines_in_band(self, band, threshold=0.001):
 		""" 
 		return a list of strong lines in band where the filter transmission function is higher than threshold (in fraction) 
 

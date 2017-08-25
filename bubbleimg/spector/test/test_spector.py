@@ -298,6 +298,7 @@ def test_spector_make_lineflux(spector1):
 def test_spector_get_line_flux(spector1):
 	s = spector1
 
+	s.make_lineflux(overwrite=True)
 	f_sdss, __ = s._get_line_flux_sdss(line='OIII5008', wunit=True)
 	assert f_sdss.unit == u.Unit("1E-17 erg cm-2 s-1")
 
@@ -314,9 +315,41 @@ def test_spector_get_line_flux(spector1):
 		assert np.absolute(f-f_sdss)/f < 0.50
 
 
-	# NeIII3870 48.5579160008  44.1533
-	# NeIII3969  7.99740186133 11.0574
-	# Hg        22.6594839448  19.1681
-	# Hb        43.0401951516  49.7836
-	# OIII4960 174.641157774  164.983
-	# OIII5008 512.138100415  499.731
+def test_spector_make_linefrac(spector1):
+	s = spector1
+
+	fn = s.dir_obj + 'spec_linefrac.csv'
+	status = s.make_linefrac(band='i', overwrite=True)
+
+	assert status
+	assert os.path.isfile(fn)
+
+	tab = at.Table.read(fn, format='ascii.csv', comment='#')
+
+	assert tab['lineband'][0] == 'i'
+	assert 'frac_OIII5008' in tab.colnames
+	assert 'frac_OIII4960' in tab.colnames
+
+	assert (tab['frac_OIII5008'] + tab['frac_OIII4960']) > 0.5
+	assert (tab['frac_OIII5008'] + tab['frac_OIII4960']) < 1.
+
+
+
+def test_spector_calc_fline_over_fnuband(spector1):
+	s = spector1
+
+	status = s.make_linefrac(band='i', overwrite=False)
+
+	frac_oiii = s._get_line_frac(band='i', line='OIII5008')
+
+	with pytest.raises(Exception):
+		frac_oiii = s._get_line_frac(band='r', line='OIII5008')
+
+	r = s.calc_fline_over_fnuband(band='i', line='OIII5008')
+
+	assert r.unit == u.Hz
+
+	with pytest.raises(Exception):
+		r = s.calc_fline_over_fnuband(band='i', line='Ha')
+
+
