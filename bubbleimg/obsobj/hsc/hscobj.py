@@ -49,7 +49,7 @@ class hscObj(plainObj):
 
 		data_release = 'dr1' (string): which data base to search for
 
-		search_radius = 2.* u.arcsec
+		search_radius = 5.* u.arcsec
 
 		overwrite=False (bool): 
 			If true, load xid remotely and rewrite local xid.csv. If false, ready local sdss_xid.csv whenever it eixsts, if not, then load remotely and save to local xid.csv. 
@@ -74,7 +74,7 @@ class hscObj(plainObj):
 		super(self.__class__, self).__init__(**kwargs)
 		self.rerun = kwargs.pop('rerun', 's16a_wide2')
 		self.data_release = kwargs.pop('data_release', 'dr1')
-		self.search_radius = kwargs.pop('search_radius', 2.*u.arcsec)
+		self.search_radius = kwargs.pop('search_radius', 5.*u.arcsec)
 
 		self.fp_xid = self.dir_obj+'hsc_xid.csv'
 		self.fp_xid_temp = self.dir_obj+'hsc_xid_temp.csv'
@@ -376,7 +376,7 @@ class hscObj(plainObj):
 		return status
 
 
-def _get_xid_sql(ra, dec, search_radius=2 * u.arcsec, rerun='s16a_wide2'):
+def _get_xid_sql(ra, dec, search_radius=5 * u.arcsec, rerun='s16a_wide2'):
 	"""
 	construct sql query 
 

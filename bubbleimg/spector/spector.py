@@ -436,7 +436,7 @@ class Spector(Operator):
 		return ratio
 
 
-	def make_lineflux(self, lines=['NeIII3870', 'NeIII3969', 'Hg', 'Hb', 'OIII4960', 'OIII5008'], u_out=u.Unit("1E-17 erg cm-2 s-1"), overwrite=False):
+	def make_lineflux(self, lines=['NeIII3870', 'NeIII3969', 'Hg', 'Hb', 'OIII4960', 'OIII5008', 'OI6302', 'OI6366'], u_out=u.Unit("1E-17 erg cm-2 s-1"), overwrite=False):
 		""" 
 		make file spec_lineflux.csv that contains the flux of the specified lines. The fluxes are calculated by integrating the line component of the spectrum over a window of +/- 1400 km/s. 
 
@@ -504,7 +504,7 @@ class Spector(Operator):
 		"""
 
 		# sanity check
-		if line not in ['NeIII3870', 'NeIII3969', 'Hg', 'Hb', 'OIII4960', 'OIII5008']:
+		if line not in ['NeIII3870', 'NeIII3969', 'Hg', 'Hb', 'OIII4960', 'OIII5008', 'OI6302', 'OI6366']:
 			raise Exception("[spector] _calc_line_flux does not support lines other than Hb and OIII as those are not tested. ")
 
 		# get w range
