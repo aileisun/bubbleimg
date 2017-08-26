@@ -639,8 +639,11 @@ class Batch(object):
 					raise Exception("[batch] list of object folders inconsistent with the list in the batch")
 
 
-def _extract_line_from_file(fn, iline=1, comment='#'): 
-	""" return the iline-th line of the file which is non-empty and does not start with the comment # """
+def _extract_line_from_file(fn, iline=1, comment='#', fill_trailing_empty=True): 
+	""" 
+	return the iline-th line of the file which is non-empty and does not start with the comment ('#') 
+	if fill_trailing_emtpy then if iline is larger than the number of lines then return comma seperated empty values with the size the same as the header line. 
+	"""
 
 	with open(fn, 'r') as f:
 		data = f.read()
@@ -652,6 +655,13 @@ def _extract_line_from_file(fn, iline=1, comment='#'):
 			if (line[0] != comment):
 				lines_noncomment += [line]
 
-	return lines_noncomment[iline]
+	if iline < len(lines_noncomment): 
+		return lines_noncomment[iline]
 
+	elif fill_trailing_empty and len(lines_noncomment)>0:
+		n_comma = lines_noncomment[0].count(',') 
+		return "," * n_comma
+
+	else:
+		raise Exception("[batch] _extract_line_from_file iline exceeding the number of lines")
 

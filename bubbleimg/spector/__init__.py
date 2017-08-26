@@ -3,9 +3,9 @@
 __all__ = ['spector']
 
 import spector
-import linefrac
+# import linefrac
 
 reload(spector)
-reload(linefrac)
+# reload(linefrac)
 
 from spector import Spector

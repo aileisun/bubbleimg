@@ -1,0 +1,2 @@
+object_id,ra,dec,patch_id,tract,patch,patch_s,parent_id,deblend_nchild,detect_is_patch_inner,detect_is_tract_inner,detect_is_primary
+42278580025067494,213.91281983205812,0.9936509049626188,96130105,9613,105,"1,5",42278580025041942,0,t,t,t

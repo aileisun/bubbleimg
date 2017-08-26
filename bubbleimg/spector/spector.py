@@ -1,6 +1,7 @@
 # spector.py 
 # ALS 2017/06/01
 
+import sys
 import numpy as np
 import astropy.table as at
 import matplotlib.pyplot as plt
@@ -16,7 +17,7 @@ import getconti
 # import inttools
 import extrap
 import linelist
-import linefrac
+# import linefrac
 
 class Spector(Operator):
 
@@ -432,7 +433,7 @@ class Spector(Operator):
 		stronglines = self._list_stronglines_in_band(band=band)
 		for line in stronglines:
 			if 'frac_{}'.format(line) not in tab_linefrac.colnames:
-				raise Exception("[spector] strong line in band is not contained in spec_linefrac.csv")
+				raise Exception("[spector] strong line {} in band is not contained in spec_linefrac.csv".format(line))
 
 		r = (dnu * frac).to(u.Hz)
 		return r
@@ -712,7 +713,7 @@ class Spector(Operator):
 			return w*u.Unit("AA")
 
 
-	def _list_stronglines_in_band(self, band, threshold=0.001):
+	def _list_stronglines_in_band(self, band, threshold=0.01):
 		""" 
 		return a list of strong lines in band where the filter transmission function is higher than threshold (in fraction) 
 

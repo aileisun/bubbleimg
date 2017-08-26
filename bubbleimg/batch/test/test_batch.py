@@ -7,7 +7,9 @@ import pytest
 import os
 import shutil
 import copy
+from astropy.io import ascii
 
+from .. import batch
 from ..batch import Batch
 from ... import imgdownload
 from ... import obsobj
@@ -15,9 +17,10 @@ from ... import obsobj
 
 dir_parent = 'testing/'
 dir_batch = 'testing/batch_ri/'
+dir_veri = 'test_verification_data/' 
 name = 'batch_ri'
-fn_cat = 'test_verification_data/example_catalog.fits'
-fn_cat_bad = 'test_verification_data/bad_catalog.fits' # the last row of bad cat has bad ra, dec
+fn_cat = dir_veri+'example_catalog.fits'
+fn_cat_bad = dir_veri+'bad_catalog.fits' # the last row of bad cat has bad ra, dec
 catalog = at.Table.read(fn_cat, format='fits')
 survey ='hsc'
 obj_naming_sys = 'sdss'
@@ -88,8 +91,25 @@ def test_batch_init_with_fn_cat():
 def test_batch_write_list(batch1):
 	b = batch1
 
-	b._write_list()
+	b._write_a_list()
 
 	lst = at.Table.read(b.dir_batch+'list.csv')
 	assert len(lst) > 0
 
+
+def test_extract_line_from_file():
+	if not os.path.isdir(dir_parent):
+		os.mkdir(dir_parent)
+
+	fn_out = dir_parent+'hsc_xid_compiled.csv'
+	fn = dir_veri +'hsc_xid.csv'
+	header = batch._extract_line_from_file(fn, iline=0)	
+	l = batch._extract_line_from_file(fn, iline=1, comment='#', fill_trailing_empty=True)
+
+	fn_empty = dir_veri+'hsc_xid_empty.csv'
+	l_empty = batch._extract_line_from_file(fn_empty, iline=1, comment='#', fill_trailing_empty=True)
+
+	tab_data = ascii.read([header, l, l_empty])
+	tab_data.write(fn_out, format='ascii.csv')
+	
+	assert tab_data[1]['object_id'].mask == True

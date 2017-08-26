@@ -364,12 +364,18 @@ def SignedPolygonArea(poly):
         area -= poly[j][0] * poly[i][1]
     area = area / 2.0
 
-    if area > 0:
-        cornercorrection = 0.5
-    elif area < 0:
-        cornercorrection = -0.5
 
-    return area + cornercorrection
+    if np.isfinite(area):
+        if area > 0:
+            cornercorrection = 0.5
+        elif area == 0:
+            cornercorrection = 0.
+        elif area < 0:
+            cornercorrection = -0.5
+        return area + cornercorrection
+    else: 
+        print("[polytools] WARNING nan area encountered")
+        return 0.
 
 
 def FeretDiameter(sth,theta):
