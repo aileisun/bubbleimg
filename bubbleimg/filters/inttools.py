@@ -38,7 +38,7 @@ def calc_Fnu_in_band_from_fl(fl, ws, trans, ws_trans, isnormed=False):
 
     # sanity check: that units are correct
     checks =[
-            (fl/u.Unit("erg cm-2 s-1 AA-1")).unit == u.dimensionless_unscaled, 
+            (fl/u.Unit("erg cm-2 s-1 AA-1")).to(u.dimensionless_unscaled).unit == u.dimensionless_unscaled, 
             (u.Quantity(trans)).unit == u.dimensionless_unscaled, 
             (ws/u.Unit("AA")).unit == u.dimensionless_unscaled, 
             (ws_trans/u.Unit("AA")).unit == u.dimensionless_unscaled, 

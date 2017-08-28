@@ -17,6 +17,7 @@ import getconti
 # import inttools
 import extrap
 import linelist
+import lineflux
 # import linefrac
 
 class Spector(Operator):
@@ -133,7 +134,8 @@ class Spector(Operator):
 		fn = self.fp_spec_decomposed
 
 		if not os.path.isfile(fn) or forceload_from_fits:
-			return self.__read_spec_ws_from_fits()
+			spec, ws, __ = self.__read_spec_ws_ivar_from_fits()
+			return spec, ws
 		else: 
 			tab = at.Table.read(fn, format='ascii.ecsv')
 			return tab['spec'], tab['ws']
@@ -179,13 +181,15 @@ class Spector(Operator):
 		return tab[col], tab['ws']
 
 
-	def make_spec_decomposed_ecsv(self, overwrite=False):
+	def make_spec_decomposed_ecsv(self, u_spec=1.e-17*u.Unit('erg / (Angstrom cm2 s)'), u_ws=u.AA, overwrite=False):
 		""" 
 		saving seperated continuum and line spectrum in csv file 
 
 		Params
 		------
 		self
+		u_spec=1.e-17*u.Unit('erg / (Angstrom cm2 s)')
+		u_ws=u.AA
 		overwrite=False
 
 		Return
@@ -198,6 +202,11 @@ class Spector(Operator):
 		if (not os.path.isfile(fn)) or overwrite:
 			spec, ws = self.get_spec_ws()
 			speccon, specline, ws = getconti.decompose_cont_line_t2AGN(spec, ws, self.z)
+
+			spec = spec.to(u_spec)
+			speccon = speccon.to(u_spec)
+			specline = specline.to(u_spec)
+			ws = ws.to(u_ws)
 
 			tab = at.Table([ws, spec, speccon, specline], names=['ws', 'spec', 'speccont', 'specline'])
 			tab.write(fn, format='ascii.ecsv', overwrite=overwrite)
@@ -261,6 +270,7 @@ class Spector(Operator):
 					colmag = self.__get_specmag_colname(band, component=component, fluxquantity='mag')
 					try:
 						fnu = self._calc_Fnu_in_band(band=band, component=component)
+						print 'fnu', fnu
 					except KeyboardInterrupt:
 						sys.exit(0) 
 					except:
@@ -271,8 +281,10 @@ class Spector(Operator):
 						tabmag[colmag] = [mag.value]
 						tabfnu[colfnu] = [fnu_nm.value]
 
-			tab = at.hstack([tabmag, tabfnu])
+			print 'tabmag', tabmag
+			print 'tabfnu', tabfnu
 
+			tab = at.hstack([tabmag, tabfnu])
 			tab.meta['comments'] = [
 									"survey_photo: {}".format(self.survey),
 									"survey_spec: {}".format(self.survey_spec),
@@ -280,6 +292,7 @@ class Spector(Operator):
 									"unit_fnu: nanomaggy",
 									]
 
+			print 'tab', tab
 			tab.write(fn, comment='#', format='ascii.csv', overwrite=overwrite)
 		else:
 			print("[spector] skip making spec_mag as file exists")
@@ -420,7 +433,7 @@ class Spector(Operator):
 		------
 		ratio (quantity in unit of Hz)
 		"""
-		f = self._get_line_flux(line=line, wunit=False)
+		f, __ = self._get_line_flux(line=line, wunit=False)
 		w = self._get_line_obs_wave(line=line, wunit=False)
 		T = self._get_norm_trans(wavelength=w, band=band, bounds_error=True)
 
@@ -495,7 +508,7 @@ class Spector(Operator):
 
 			fwt_sum = 0.
 			for line in lines:
-				f = self._get_line_flux(line=line, wunit=False)
+				f, __ = self._get_line_flux(line=line, wunit=False)
 				w = self._get_line_obs_wave(line=line, wunit=False)
 				T = self._get_norm_trans(wavelength=w, band=band, bounds_error=False)
 
@@ -519,7 +532,7 @@ class Spector(Operator):
 		return status 
 
 
-	def make_lineflux(self, lines=['NeIII3870', 'NeIII3969', 'Hg', 'Hb', 'OIII4960', 'OIII5008', 'OI6302', 'OI6366'], u_out=u.Unit("1E-17 erg cm-2 s-1"), overwrite=False):
+	def make_lineflux(self, lines=['NeIII3870', 'NeIII3969', 'Hg', 'Hb', 'OIII4960', 'OIII5008', 'OI6302', 'OI6366'], u_flux=u.Unit("1E-17 erg cm-2 s-1"), overwrite=False):
 		""" 
 		make file spec_lineflux.csv that contains the flux of the specified lines. The fluxes are calculated by integrating the line component of the spectrum over a window of +/- 1400 km/s. 
 
@@ -528,7 +541,7 @@ class Spector(Operator):
 		Params
 		------
 		lines=['Hb', 'OIII4960', 'OIII5008']
-		u_out=u.Unit("1E-17 erg cm-2 s-1")
+		u_flux=u.Unit("1E-17 erg cm-2 s-1")
 			the unit of the output
 		overwrite=False
 
@@ -545,12 +558,12 @@ class Spector(Operator):
 			tab = at.Table()
 
 			for line in lines:
-				f_line = self._calc_line_flux(line=line, u_out=u_out, wunit=False)
+				f, ferr = self._calc_line_flux(line=line, u_flux=u_flux, wunit=False)
 
-				col_new = at.Table([[f_line]], names=['f_{}'.format(line)])
+				col_new = at.Table([[f], [ferr]], names=['f_{}'.format(line), 'ferr_{}'.format(line)])
 				tab = at.hstack([tab, col_new])
 
-			tab.meta['comments'] = ["unit_flux: {}".format(u_out.to_string()),]
+			tab.meta['comments'] = ["unit_flux: {}".format(u_flux.to_string()),]
 
 			tab.write(fn, comment='#', format='ascii.csv', overwrite=overwrite)
 
@@ -561,11 +574,14 @@ class Spector(Operator):
 		return status 
 
 
-	def _calc_line_flux(self, line='OIII5008', dv=1400*u.km/u.s, u_out=u.Unit("1E-17 erg cm-2 s-1"), wunit=False):
+	def _calc_line_flux(self, line='OIII5008', dv=1400*u.km/u.s, u_flux=u.Unit("1E-17 erg cm-2 s-1"), wunit=False):
 		"""
 		calculate the flux of the line by trpz integrating the decomposed emission line component of the spectrum over a range of +/- dv 
 
 		WARNING: currently only Hb, and OIII lines are supported. For lines that are overlapped, e.g., Ha and NII, the current implemenation will double count the flux. 
+
+		WARNING: the errors of the flux is propogated from the variance ('ivar' column) of the sdss spectrum. However, sdss's noise could be correlated between neighbors but such a covariance is not quantified, which will result in 10-20% in the error estimates.  We here artifically boost the flux error by 20% to incoporate such uncertainty on the error, see:
+		http://www.sdss.org/dr12/spectro/caveats/
 
 		Params
 		------
@@ -574,7 +590,7 @@ class Spector(Operator):
 		dv=1400*u.km/u.s (quantity)
 			half of the width over which the spectrum is integrated to calculate flux
 
-		u_out=u.Unit("1E-17 erg cm-2 s-1")
+		u_flux=u.Unit("1E-17 erg cm-2 s-1")
 			the unit of the output
 
 		wunit=False
@@ -582,8 +598,10 @@ class Spector(Operator):
 
 		Return
 		------
-		f_line (float to quantity)
+		f (float or quantity)
 			unit is in the dimension of erg cm-2 s-1
+		ferr (float or quantity)
+			same unit as f
 		"""
 
 		# sanity check
@@ -598,23 +616,17 @@ class Spector(Operator):
 
 		# get spectrum
 		spec, ws = self.get_spec_ws_from_spectab(component='line')
-		u_spec = spec.unit
-		u_ws = ws.unit
-		spec_uless = np.array(spec)
-		ws_uless = np.array(ws)
+		__, __, ivar = self.__read_spec_ws_ivar_from_fits()
 
-		# select region to integrate
-		select_ws = (ws_uless > w0) & (ws_uless < w1)
-		ws_sel = ws_uless[select_ws]
-		spec_sel = spec_uless[select_ws]
+		f, ferr = lineflux.calc_line_flux(spec, ws, ivar, w0, w1, u_flux)
 
-		# integrate
-		f_line = (np.trapz(spec_sel, x=ws_sel)*u_spec*u_ws).to(u_out)
+		# artificially boost the error to account for pixel covariance
+		ferr = ferr * 1.2
 
 		if wunit:
-			return f_line
+			return f, ferr
 		else: 
-			return f_line.to_value(u_out)
+			return f.to_value(u_flux), ferr.to_value(u_flux)
 
 
 	def _get_line_flux(self, line='OIII5008', wunit=False):
@@ -627,7 +639,7 @@ class Spector(Operator):
 
 		Return
 		------
-		f_line
+		f, ferr
 		"""
 		fn = self.fp_spec_lineflux
 
@@ -636,15 +648,16 @@ class Spector(Operator):
 
 		tab = at.Table.read(fn, format='ascii.csv', comment='#')
 
-		linetag = 'f_{}'.format(line)
-		f_line = tab[linetag][0]
+		f = tab['f_{}'.format(line)][0]
+
+		ferr = tab['ferr_{}'.format(line)][0]
 
 		if not wunit:
-			return f_line
+			return f, ferr
 
 		else:
 			u_flux = u.Quantity(tab.meta['comments'][0].split(': ')[1])
-			return f_line*u_flux
+			return f*u_flux, ferr*u_flux
 
 
 	def _get_line_flux_sdss(self, line='OIII5008', wunit=False): 
@@ -741,12 +754,20 @@ class Spector(Operator):
 		return llist
 
 
-	def __read_spec_ws_from_fits(self, wunit=True):
+	def __read_spec_ws_ivar_from_fits(self, u_spec=1.e-17*u.Unit('erg / (Angstrom cm2 s)'), u_ws=u.AA, wunit=True):
 		"""
+		Params
+		------
+		self
+		u_spec=1.e-17*u.Unit('erg / (Angstrom cm2 s)')
+		u_ws=u.AA
+		wunit=True
+
 		Return
 		------
 		spec (nparray)
 		ws (nparray)
+		ivar (nparray)
 
 		Default units
 		-------------
@@ -760,21 +781,21 @@ class Spector(Operator):
 			else: 
 				return IOError("[Spector] spec fits file does not exist")
 
+			hdus[0].header
 			spectable = hdus[1].data
-			spec, ws = spectable['flux'], 10.**spectable['loglam']
+			spec, ws, ivar = spectable['flux'], 10.**spectable['loglam'], spectable['ivar']
 
 			if wunit:
-				u_spec = 1.e-17*u.Unit('erg / (Angstrom cm2 s)')
-				u_ws = u.AA
 				spec = spec*u_spec
 				ws = ws*u_ws
+				ivar = ivar / (u_spec**2)
 
 			# instrument_header = at.Table(hdus[2].data)['INSTRUMENT'][0].lower()
 			# if self.survey_spec != instrument_header:
 			# 	self.survey_spec = instrument_header
 			# 	print("[Spector] updating survey_spec to reflect instrument in spec.fits header -- {}".format(instrument_header))
 				
-			return at.Column(spec, name=['spec']), at.Column(ws, name=['ws'])
+			return at.Column(spec, name=['spec']), at.Column(ws, name=['ws']), at.Column(ivar, name=['ivar'])
 		else: 
 			raise NameError("[Spector] survey_spec not recognized")
 
@@ -837,7 +858,6 @@ class Spector(Operator):
 		trans, ws_trans = self._get_norm_trans_func(band=band)
 
 		Fnu = filters.inttools.calc_Fnu_in_band_from_fl(fl=spec, ws=ws, trans=trans, ws_trans=ws_trans, isnormed=True)
-
 		return Fnu
 
 

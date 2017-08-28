@@ -285,10 +285,10 @@ def test_spector_make_lineflux(spector1):
 
 	f, ferr = s._get_line_flux_sdss(line='OIII5008', wunit=False)
 
-	print f
-
 	assert np.absolute(f-tab['f_OIII5008'][0]) / f < 0.05
-
+	print 'sdss ferr', ferr
+	print 'my ferr', tab['ferr_OIII5008'][0]
+	assert np.absolute(ferr-tab['ferr_OIII5008'][0]) / ferr < 0.1
 
 	# currently lines other than hb, OIII, are not supported
 	with pytest.raises(Exception):
@@ -309,10 +309,10 @@ def test_spector_get_line_flux(spector1):
 
 	for line in ['NeIII3870', 'NeIII3969', 'Hg', 'Hb', 'OIII4960', 'OIII5008']:
 		f_sdss, f_sdss_err = s._get_line_flux_sdss(line=line, wunit=False)
-		f = s._get_line_flux(line=line, wunit=False)
+		f, f_err = s._get_line_flux(line=line, wunit=False)
 
-		print line, f, f_sdss
 		assert np.absolute(f-f_sdss)/f < 0.50
+		assert np.absolute(f_err-f_sdss_err)/f < 0.50
 
 
 def test_spector_make_linefrac(spector1):
