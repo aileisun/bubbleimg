@@ -11,9 +11,11 @@ The primary goal is to image emission line regions of type 2 AGN and it is desig
 
 See documentation:
 
-[Start with one object](docs/obsobj.rst)
-[How to download images](docs/imgdownload.rst)
-[Apply it to the entire sample](docs/batch.rst)
+    * [Start with one object](docs/obsobj.rst)
+
+    * [How to download images](docs/imgdownload.rst)
+
+    * [Apply it to the entire sample](docs/batch.rst)
 
 
 ## Downloading
