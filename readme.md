@@ -11,11 +11,11 @@ The primary goal is to image emission line regions of type 2 AGN and it is desig
 
 See documentation:
 
-    * [Start with one object](docs/obsobj.rst)
+* [Start with one object](docs/obsobj.rst)
 
-    * [How to download images](docs/imgdownload.rst)
+* [How to download images](docs/imgdownload.rst)
 
-    * [Apply it to the entire sample](docs/batch.rst)
+* [Apply it to the entire sample](docs/batch.rst)
 
 
 ## Downloading
@@ -25,6 +25,8 @@ Bubbleimg is still in beta version and `python setup.py install` may not work pr
 ~~~~
 export "PYTHONPATH=$PYTHONPATH:/where/you/put/the/code/" 
 ~~~~
+
+There are a number of required packages, as listed in `setup.py`.  
 
 Currently bubbleimg works under [lsst's anaconda environment](https://pipelines.lsst.io/install/conda.html) with Python 2.7.  
 
