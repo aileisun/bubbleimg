@@ -3,18 +3,10 @@
 
 import os
 import astropy.units as u
-# from astropy.io import fits
 import numpy as np
 import astropy.table as at
 
-# from astropy.cosmology import FlatLambdaCDM
-# cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
-
 from ..obsobj import Imager
-# from .. import imgdecompose
-# from .. import standards
-# from ..filters import surveysetup
-# from ..imgdownload.loader import imgLoader
 import noiselevel
 
 class Measurer(Imager):
@@ -71,34 +63,6 @@ class Measurer(Imager):
 		"""
 		
 		super(Measurer, self).__init__(**kwargs)
-
-		# # set survey
-		# if hasattr(self.obj, 'survey'):
-		# 	default_survey = self.obj.survey
-		# 	self.survey = kwargs.pop('survey', default_survey)
-		# else: 
-		# 	self.survey = kwargs.pop('survey')
-
-		# # set up obj.survey
-		# if self.survey == 'hsc':
-		# 	self.obj.add_hsc()
-		# elif self.survey == 'sdss':
-		# 	self.obj.add_sdss()
-
-		# # set z
-		# if hasattr(self.obj, 'z'):
-		# 	self.z = kwargs.pop('z', self.obj.z)
-		# elif hasattr(self.obj, 'sdss'):
-		# 	self.z = kwargs.pop('z', self.obj.sdss.z) 
-		# else: 
-		# 	self.z = kwargs.pop('z') 
-
-		# # set center_mode
-		# self.center_mode = kwargs.pop('center_mode', 'n/2')
-
-		# # set pixsize
-		# self.pixsize = surveysetup.pixsize[self.survey]
-		# self.pixelscale = u.pixel_scale(self.pixsize/u.pixel)
 
 		# subtype attribute (to be overwritten by subtype)
 		self.msrtype = None
@@ -215,93 +179,3 @@ class Measurer(Imager):
 		return n_level
 
 
-	# def _get_decomposer(self):
-	# 	d = imgdecompose.Decomposer(obj=self.obj, survey=self.survey, z=self.z)
-	# 	return d
-
-
-
-	# def get_fp_stamp_line(self, line):
-	# 	""" e.g., stamp-OIII5008.fits, for stamp in observed frame in flux """
-	# 	d = self._get_decomposer()
-	# 	return d.get_fp_stamp_line(line)
-
-
-	# def get_fp_stamp_line_I(self, line):
-	# 	""" e.g., stamp-OIII5008_I.fits for stamp in rest frame in intensity"""
-	# 	d = self._get_decomposer()
-	# 	return d.get_fp_stamp_line_I(line)
-
-
-	# def get_fp_stamp_img(self, imgtag):
-	# 	""" e.g., stamp-{imgtag}.fits"""
-	# 	return self.dir_obj+'stamp-{imgtag}.fits'.format(imgtag=imgtag)
-
-
-	# def get_stamp_img(self, imgtag, wunit=False):
-	# 	""" return the image as numpy array """
-	# 	fn_img = self.get_fp_stamp_img(imgtag=imgtag)
-	# 	hdus = fits.open(fn_img)
-	# 	if wunit:
-	# 		img = hdus[0].data * u.Unit(hdus[0].header['BUNIT'])
-	# 	else: 
-	# 		img = hdus[0].data
-
-	# 	return img
-
-
-
-	# def make_colorimg(self, bands ='riz', img_type='stamp', overwrite=False):
-	# 	"""
-	# 	make color composit image using external package HumVI. Example file name: 'color_stamp-riz.png'.
-	# 	Uses class method of loader. 
-
-	# 	Params
-	# 	------
-	# 	bands ='riz'
-	# 	img_type='stamp'
-	# 	overwrite=False
-
-	# 	Return
-	# 	------
-	# 	status (bool)
-	# 	"""
-	# 	l = imgLoader(obj=self.obj)
-	# 	status = l.plot_colorimg(bands=bands, img_type=img_type, overwrite=overwrite)
-
-	# 	return status
-
-
-
-	# def _theta_to_pix(self, theta):
-	# 	""" convert an angular quantity (*u.arcsec) theta to pixel scale (float) """
-	# 	return (theta.to(u.pix, self.pixelscale)/u.pix).to(u.dimensionless_unscaled)
-
-
-	# def _pix_to_theta(self, pix, wunit=True):
-	# 	""" convert pix (float) to angular quantity (*u.arcsec) """
-	# 	result = (pix*u.pix).to(u.arcsec, self.pixelscale)
-	# 	if wunit:
-	# 		return result
-	# 	else: 	
-	# 		return (result/u.arcsec).to(u.dimensionless_unscaled)
-
-
-	# def _theta_to_kpc(self, theta, wunit=True):
-	# 	result = (theta*self._get_kpc_proper_per_arcsec()).to(u.kpc)
-
-	# 	if wunit:
-	# 		return result
-	# 	else: 	
-	# 		return (result/u.kpc).to(u.dimensionless_unscaled)
-
-
-	# def _get_kpc_proper_per_arcsec(self):
-	# 	return 1./cosmo.arcsec_per_kpc_proper(self.z)
-
-
-	# def _get_xc_yc(self, img):
-	# 	""" return (xc, yc) the coordinate of image center given image, according to self.center_mode """
-
-	# 	xc, yc = standards.get_img_xycenter(img, center_mode=self.center_mode)
-	# 	return xc, yc

@@ -213,7 +213,6 @@ def test_decomposer_make_linemap_I(decomposer1):
 		assert os.path.isfile(d.dir_obj+'psf-OIII5008_I.fits')
 
 
-
 def test_decomposer_plot_psfmatch(decomposer1):
 	d = decomposer1
 
@@ -255,7 +254,7 @@ def test_decomposer_make_stamp_contsub_writetab(decomposer1):
 		assert tab['band_psfm_to'][0] == bandconti
 		assert tab['psf_fwhm'][0] < tab['psf_fwhm_conti'][0]
 
-		assert os.path.isfile(d.dir_obj + 'contsub_psf-{}-{}.pdf'.format(bandline, bandconti))
+		assert os.path.isfile(d.dir_obj + 'contsub_psf_{}{}.pdf'.format(bandline, bandconti))
 
 
 def test_decomposer_make_psf_tab(decomposer1):

@@ -186,37 +186,3 @@ class Imager(Operator):
 
 		return status
 
-
-
-	# -> to move it from loader to here
-	# def make_colorimg(self, bands ='riz', img_type='stamp', overwrite=False):
-	# 	"""
-	# 	make color composit image using external package HumVI. Example file name: 'color_stamp-riz.png'.
-	# 	Uses class method of loader. 
-
-	# 	Params
-	# 	------
-	# 	bands ='riz'
-	# 	img_type='stamp'
-	# 	overwrite=False
-
-	# 	Return
-	# 	------
-	# 	status (bool)
-	# 	"""
-	# 	l = imgLoader(obj=self.obj)
-	# 	status = l.plot_colorimg(bands=bands, img_type=img_type, overwrite=overwrite)
-
-	# 	return status
-
-	# def get_fp_stamp_line(self, line):
-	# 	""" e.g., stamp-OIII5008.fits, for stamp in observed frame in flux """
-	# 	d = self._get_decomposer()
-	# 	return d.get_fp_stamp_line(line)
-
-
-	# def get_fp_stamp_line_I(self, line):
-	# 	""" e.g., stamp-OIII5008_I.fits for stamp in rest frame in intensity"""
-	# 	d = self._get_decomposer()
-	# 	return d.get_fp_stamp_line_I(line)
-

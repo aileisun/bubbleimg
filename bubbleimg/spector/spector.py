@@ -779,7 +779,7 @@ class Spector(Operator):
 			if os.path.isfile(fn):
 				hdus = fits.open(fn)
 			else: 
-				return IOError("[Spector] spec fits file does not exist")
+				raise IOError("[Spector] spec fits file does not exist")
 
 			hdus[0].header
 			spectable = hdus[1].data
