@@ -45,9 +45,12 @@ bubbleimg/spector/test/test_verification_data/
 # deprecated
 bubbleimg/trash_deprecated/
 bubbleimg/spector/fromspec_todeprecate.py
+bubbleimg/imgdownload/hsc/oldpsf/
+bubbleimg/measureimg/
 
 # testing
 bubbleimg/*/testing/
 bubbleimg/*/*/testing/
 bubbleimg/*/*/*/testing/
 bubbleimg/*/*/*/*/testing/
+

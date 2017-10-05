@@ -37,6 +37,7 @@ def make_iso_visual_panel(fn, img_compo, img_map, contours1, contours3, z, pixsi
     overplot_ruler(ax0, z, pixsize=pixsize, rlength_arcsec=10., nx=nx, ny=ny)
 
     ax0.text(5, 12, name, color='white', fontsize=12)
+    ax0.text(nx-35, 12, '$z={}$'.format('%.2f'%z), color='white', fontsize=10)
     ax0.set_title(title_compo)
     ax0.title.set_position([.5, 1.03])
 

@@ -131,7 +131,7 @@ class isoMeasurer(Measurer):
 
 			# access data
 			img_compo = simg.imread(self.dir_obj+'color_stamp-{}.png'.format(compo_bands))
-			img_map = self.get_stamp_img(imgtag=imgtag, withunit=True)
+			img_map = self.get_stamp_img(imgtag=imgtag, wunit=True)
 
 			suffix = '_3e-15'
 			isocut = 3.e-15*u.Unit('erg / (arcsec2 cm2 s)')
@@ -232,7 +232,7 @@ class isoMeasurer(Measurer):
 		onlycenter (bool):
 			whether to take only center patches as patches (they all have to pass minarea test as well)
 		centerradius (angular quantity):
-			if onlycenter = True, then what is the radius of the center area. only patches overlapping with that area will be considered. 
+			if onlycenter = True, then it sets the radius of the center area. only patches overlapping with that area will be considered. 
 
 		"""
 

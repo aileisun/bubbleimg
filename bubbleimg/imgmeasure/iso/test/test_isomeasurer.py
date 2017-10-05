@@ -190,3 +190,18 @@ def test_isomeasurer_make_visualpanel(measurer1):
 	assert os.path.isfile(m.dir_obj+'msr_iso-OIII5008_I_panel.pdf')
 
 
+def test_isomeasurer_make_noiselevel(measurer1):
+	m = measurer1
+
+	# isocut = 3.e-15*u.Unit('erg / (arcsec2 cm2 s)')
+
+	status = m.make_noiselevel(imgtag='OIII5008_I', toplot=True, overwrite=False)
+
+	assert status
+	assert os.path.isfile(m.dir_obj+'noiselevel-OIII5008_I.csv')
+	assert os.path.isfile(m.dir_obj+'noiselevel-OIII5008_I.pdf')
+
+	assert m.get_noiselevel(imgtag='OIII5008_I', wunit=False) > 0.
+	assert m.get_noiselevel(imgtag='OIII5008_I', wunit=True).unit == u.Unit('1e-15 erg / (arcsec2 cm2 s)')
+
+

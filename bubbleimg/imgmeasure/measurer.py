@@ -4,6 +4,8 @@
 import os
 import astropy.units as u
 from astropy.io import fits
+import numpy as np
+import astropy.table as at
 
 from astropy.cosmology import FlatLambdaCDM
 cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
@@ -13,7 +15,7 @@ from .. import imgdecompose
 from .. import standards
 from ..filters import surveysetup
 from ..imgdownload.loader import imgLoader
-
+import noiselevel
 
 class Measurer(Operator):
 
@@ -130,16 +132,20 @@ class Measurer(Operator):
 		return fn_noext+'.pdf'
 
 
-	def get_stamp_img(self, imgtag, withunit=False):
+	def get_stamp_img(self, imgtag, wunit=False):
 		""" return the image as numpy array """
 		fn_img = self.get_fp_stamp_img(imgtag=imgtag)
 		hdus = fits.open(fn_img)
-		if withunit:
+		if wunit:
 			img = hdus[0].data * u.Unit(hdus[0].header['BUNIT'])
 		else: 
 			img = hdus[0].data
 
 		return img
+
+
+	def get_fp_noiselevel(self, imgtag='OIII5008_I'):
+		return self.dir_obj+'noiselevel-{}.csv'.format(imgtag)
 
 
 	def make_measurements_line_I(self, line='OIII5008', overwrite=False, **kwargs):
@@ -192,6 +198,71 @@ class Measurer(Operator):
 		status = l.plot_colorimg(bands=bands, img_type=img_type, overwrite=overwrite)
 
 		return status
+
+
+	def make_noiselevel(self, imgtag='OIII5008_I', toplot=False, overwrite=False):
+		"""
+		Measure the noise level of img with tag 'imgtag' and write to noiselevel_{imgtag}.csv.
+
+		The noise level is determined by fitting a Guassian to the histogram of the pixel values. 
+
+		Params
+		------
+		self
+		imgtag='OIII5008_I'
+		toplot=False
+		overwrite=False
+
+		Return
+		------
+		status
+		"""
+		fn = self.get_fp_noiselevel(imgtag=imgtag)
+		fn_plot = os.path.splitext(fn)[0]+'.pdf'
+
+		if not os.path.isfile(fn) or overwrite:
+			print("[measurer] making noiselevel for {}".format(imgtag))
+			img = self.get_stamp_img(imgtag=imgtag, wunit=True)
+			u_img = img.unit
+			img = np.array(img)
+
+			nlevel = noiselevel.getnoiselevel_gaussfit(data=img, fn_plot=fn_plot, toplot=toplot)
+			tab = at.Table([[imgtag], [nlevel], [u_img.to_string()]], names=['imgtag', 'sigma_img', 'u_img'])
+
+			tab.write(fn, format='ascii.csv', overwrite=overwrite)
+
+		else:
+			print("[measurer] making noiselevel for {} as files exist".format(imgtag))
+
+		return os.path.isfile(fn)
+
+
+	def get_noiselevel(self, imgtag='OIII5008_I', wunit=False):
+		"""
+		Return the measured noise level of the image, see make_noiselevel() for details. 
+
+		Params
+		------
+		self
+		imgtag='OIII5008_I'
+		wunit=False
+
+		Return
+		------
+		n_level (float or quantity)
+		"""
+		fn = self.get_fp_noiselevel(imgtag=imgtag)
+
+		self.make_noiselevel(imgtag=imgtag, toplot=False, overwrite=False)
+
+		tab = at.Table.read(fn, format='ascii.csv')
+		n_level = tab['sigma_img'][0]
+
+		if wunit:
+			u_img = tab['u_img'][0]
+			n_level = n_level * u.Unit(u_img)
+
+		return n_level
 
 
 	def _get_decomposer(self):
