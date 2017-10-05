@@ -9,7 +9,7 @@ import os
 
 from ..filters import surveysetup
 from .. import obsobj
-from ..external_links import file_humvi_compose
+# from ..external_links import file_humvi_compose
 
 
 class imgLoader(obsobj.Operator):
@@ -277,17 +277,34 @@ class imgLoader(obsobj.Operator):
 		------
 		status (bool)
 		"""
-		fn = self.dir_obj+'color_{img_type}-{bands}.png'.format(bands=bands, img_type=img_type)
+		m = objobj.imager.Imager(obj=self.obj)
+		m.make_colorimg(bands=band, img_type=img_type, overwrite=overwrite)
 
-		fns_in = [self.dir_obj+img_type+'-'+band+'.fits' for band in bands[::-1]]
+	# def plot_colorimg(self, bands ='riz', img_type='stamp', overwrite=False):
+	# 	"""
+	# 	make color composit image using external package HumVI. Example file name: 'color_stamp-riz.png'.
 
-		if (not os.path.isfile(fn)) or overwrite:
-			commandfiles = '{0} {1} {2} {3}'.format(fn, fns_in[0], fns_in[1], fns_in[2])
-			commandHumVI = file_humvi_compose+' -s 1.0,1.1,1.0  -p 1.6,1.6  -o '+commandfiles
+	# 	Params
+	# 	------
+	# 	bands ='riz'
+	# 	img_type='stamp'
+	# 	overwrite=False
 
-			os.system(commandHumVI)
+	# 	Return
+	# 	------
+	# 	status (bool)
+	# 	"""
+	# 	fn = self.dir_obj+'color_{img_type}-{bands}.png'.format(bands=bands, img_type=img_type)
 
-		status = os.path.isfile(fn)
+	# 	fns_in = [self.dir_obj+img_type+'-'+band+'.fits' for band in bands[::-1]]
 
-		return status
+	# 	if (not os.path.isfile(fn)) or overwrite:
+	# 		commandfiles = '{0} {1} {2} {3}'.format(fn, fns_in[0], fns_in[1], fns_in[2])
+	# 		commandHumVI = file_humvi_compose+' -s 1.0,1.1,1.0  -p 1.6,1.6  -o '+commandfiles
+
+	# 		os.system(commandHumVI)
+
+	# 	status = os.path.isfile(fn)
+
+	# 	return status
 
