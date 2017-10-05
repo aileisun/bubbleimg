@@ -43,10 +43,12 @@ bubbleimg/imgdecompose/test/test_verification_data/
 bubbleimg/spector/test/test_verification_data/
 
 # deprecated
-bubbleimg/trash_deprecated/
-bubbleimg/spector/fromspec_todeprecate.py
+# bubbleimg/trash_deprecated/
+# bubbleimg/spector/fromspec_todeprecate.py
+# bubbleimg/measureimg/
+
+bubbleimg/deprecated/
 bubbleimg/imgdownload/hsc/oldpsf/
-bubbleimg/measureimg/
 
 # testing
 bubbleimg/*/testing/
