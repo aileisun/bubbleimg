@@ -11,7 +11,10 @@ def get_hsc_cutout_url(ra, dec, band='i', rerun='', tract='', imgtype='coadd', s
 	# public
 	# https://hsc-release.mtk.nao.ac.jp/das_quarry/cgi-bin/quarryImage?ra=-24&dec=0&sw=2asec&sh=2asec&type=coadd&image=on&filter=HSC-G&tract=&rerun=
 
-	url = 'https://hscdata.mtk.nao.ac.jp:4443/das_quarry/cgi-bin/quarryImage?ra={0}&dec={1}&sw={2}&sh={3}&type={4}&image=on&mask={5}&variance={6}&filter=HSC-{7}&tract={8}&rerun={9}'.format(ra, dec, sw, sh, imgtype, mask, variance, band.capitalize(), tract, rerun)
+	# old
+	# url = 'https://hscdata.mtk.nao.ac.jp:4443/das_quarry/cgi-bin/quarryImage?ra={0}&dec={1}&sw={2}&sh={3}&type={4}&image=on&mask={5}&variance={6}&filter=HSC-{7}&tract={8}&rerun={9}'.format(ra, dec, sw, sh, imgtype, mask, variance, band.capitalize(), tract, rerun)
+
+	url = 'https://hscdata.mtk.nao.ac.jp/das_quarry/dr1/cgi-bin/quarryImage?ra={0}&dec={1}&sw={2}&sh={3}&type={4}&image=on&mask={5}&variance={6}&filter=HSC-{7}&tract={8}&rerun={9}'.format(ra, dec, sw, sh, imgtype, mask, variance, band.capitalize(), tract, rerun)
 
 	return url
 

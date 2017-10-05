@@ -76,7 +76,7 @@ class isoMeasurer(Measurer):
 		if not os.path.isfile(fn) or overwrite:
 			print("[isomeasurer] making measurement")
 
-			img = self.get_stamp_img(imgtag=imgtag, withunit=True)
+			img = self.get_stamp_img(imgtag=imgtag, wunit=True)
 			xc, yc = self._get_xc_yc(img)
 
 			# calc
