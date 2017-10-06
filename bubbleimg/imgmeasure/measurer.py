@@ -7,6 +7,7 @@ import numpy as np
 import astropy.table as at
 
 from ..obsobj import Imager
+from .. import tabtools
 import noiselevel
 
 class Measurer(Imager):
@@ -68,19 +69,43 @@ class Measurer(Imager):
 		self.msrtype = None
 
 
-	def get_fp_msr(self, imgtag='OIII5008_I', suffix=''):
-		""" return the path to the measurement results .csv file, e.g., msr_iso-OIII5008_I{suffix}.csv """
-		return self.dir_obj+'msr_{msrtype}-{imgtag}{suffix}.csv'.format(msrtype=self.msrtype, imgtag=imgtag, suffix=suffix)
+	# def get_fp_msr(self, imgtag='OIII5008_I', suffix=''):
+	# 	""" return the path to the measurement results .csv file, e.g., msr_iso-OIII5008_I{suffix}.csv """
+	# 	return self.dir_obj+'msr_{msrtype}-{imgtag}{suffix}.csv'.format(msrtype=self.msrtype, imgtag=imgtag, suffix=suffix)
 		
 
+	def get_fp_msr(self):
+		""" return the path to the measurement results .csv file, e.g., msr_iso.csv """
+		return self.dir_obj+'msr_{msrtype}.csv'.format(msrtype=self.msrtype)
+
+
+	# def get_fp_msrplot(self, imgtag='OIII5008_I', suffix=''):
+	# 	fn_msr = self.get_fp_msr(imgtag=imgtag, suffix=suffix)
+	# 	fn_noext = os.path.splitext(fn_msr)[0]
+	# 	return fn_noext+'.pdf'
+
+
 	def get_fp_msrplot(self, imgtag='OIII5008_I', suffix=''):
-		fn_msr = self.get_fp_msr(imgtag=imgtag, suffix=suffix)
-		fn_noext = os.path.splitext(fn_msr)[0]
-		return fn_noext+'.pdf'
+		fp_root = self.get_fp_msrtagroot(imgtag=imgtag, suffix=suffix)
+		return fp_root+'.pdf'
 
 
-	def get_fp_noiselevel(self, imgtag='OIII5008_I'):
-		return self.dir_obj+'noiselevel-{}.csv'.format(imgtag)
+	def get_fp_msrtagroot(self, imgtag='OIII5008_I', suffix=''):
+		""" return the path to the measurement plots .pdf file, 
+		e.g., msr_iso-OIII5008_I_3e-15.pdf """
+		return self.dir_obj+'msr_{msrtype}-{imgtag}{suffix}'.format(msrtype=self.msrtype, imgtag=imgtag, suffix=suffix)
+
+
+	# def get_fp_noiselevel(self, imgtag='OIII5008_I'):
+	# 	return self.dir_obj+'noiselevel-{}.csv'.format(imgtag)
+
+
+	def get_fp_noiselevel(self):
+		return self.dir_obj+'noiselevel.csv'
+
+
+	def get_fp_noiselevel_tagroot(self, imgtag='OIII5008_I'):
+		return self.dir_obj+'noiselevel-{}'.format(imgtag)
 
 
 	def make_measurements_line_I(self, line='OIII5008', overwrite=False, **kwargs):
@@ -131,10 +156,12 @@ class Measurer(Imager):
 		------
 		status
 		"""
-		fn = self.get_fp_noiselevel(imgtag=imgtag)
-		fn_plot = os.path.splitext(fn)[0]+'.pdf'
+		fn = self.get_fp_noiselevel()
+		fn_plot = self.get_fp_noiselevel_tagroot(imgtag=imgtag)+'.pdf'
 
-		if not os.path.isfile(fn) or overwrite:
+		condi = {'imgtag': imgtag}
+		if not tabtools.fn_has_line(fn, condi) or overwrite:
+
 			print("[measurer] making noiselevel for {}".format(imgtag))
 			img = self.get_stamp_img(imgtag=imgtag, wunit=True)
 			u_img = img.unit
@@ -143,10 +170,10 @@ class Measurer(Imager):
 			nlevel = noiselevel.getnoiselevel_gaussfit(data=img, fn_plot=fn_plot, toplot=toplot)
 			tab = at.Table([[imgtag], [nlevel], [u_img.to_string()]], names=['imgtag', 'img_sigma', 'u_img'])
 
-			tab.write(fn, format='ascii.csv', overwrite=overwrite)
-
+			tabtools.write_line(fn=fn, line=tab, condi=condi, overwrite=overwrite)
+			# tab.write(fn, format='ascii.csv', overwrite=overwrite)
 		else:
-			print("[measurer] making noiselevel for {} as files exist".format(imgtag))
+			print("[measurer] skip making noiselevel for {} as files exist".format(imgtag))
 
 		return os.path.isfile(fn)
 
@@ -165,11 +192,13 @@ class Measurer(Imager):
 		------
 		n_level (float or quantity)
 		"""
-		fn = self.get_fp_noiselevel(imgtag=imgtag)
+		fn = self.get_fp_noiselevel()
 
 		self.make_noiselevel(imgtag=imgtag, toplot=False, overwrite=False)
 
 		tab = at.Table.read(fn, format='ascii.csv')
+		tab[tab['imgtag'] == imgtag]
+
 		n_level = tab['img_sigma'][0]
 
 		if wunit:

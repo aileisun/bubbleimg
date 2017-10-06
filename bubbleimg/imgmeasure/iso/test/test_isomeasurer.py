@@ -75,7 +75,7 @@ def measurer_nanimg():
 def test_isomeasurer_get_fp_msr(measurer1):
 	m = measurer1
 
-	assert m.get_fp_msr(imgtag='OIII5008_I') == m.dir_obj+'msr_iso-OIII5008_I.csv'
+	assert m.get_fp_msr() == m.dir_obj+'msr_iso.csv'
 
 
 def test_isomeasurer_get_fp_contours(measurer1):
@@ -111,10 +111,10 @@ def test_isomeasurer_make_measurements(measurer1):
 	assert status
 
 	assert os.path.isfile(m.dir_obj+'msr_iso-OIII5008_I.pdf')
-	assert os.path.isfile(m.dir_obj+'msr_iso-OIII5008_I.csv')
+	assert os.path.isfile(m.dir_obj+'msr_iso.csv')
 	assert os.path.isfile(m.dir_obj+'msr_iso-OIII5008_I_contours-ctr.pkl')
 
-	tab = at.Table.read(m.dir_obj+'msr_iso-OIII5008_I.csv')
+	tab = at.Table.read(m.dir_obj+'msr_iso.csv')
 
 	assert tab['imgtag'][0] == imgtag
 	assert u.Quantity(tab['isocut'][0]) == isocut
@@ -129,6 +129,8 @@ def test_isomeasurer_make_measurements(measurer1):
 
 def test_isomeasurer_make_measurements_suffix(measurer1):
 	m = measurer1
+	fn = m.dir_obj+'msr_iso.csv'
+
  	imgtag = 'OIII5008_I'
 	minarea = 5
 	isocut1 = 1.e-15*u.Unit('erg / (arcsec2 cm2 s)')
@@ -143,14 +145,11 @@ def test_isomeasurer_make_measurements_suffix(measurer1):
 		assert status
 
 		assert os.path.isfile(m.dir_obj+'msr_iso-OIII5008_I{suffix}.pdf'.format(suffix=suffix))
-		assert os.path.isfile(m.dir_obj+'msr_iso-OIII5008_I{suffix}.csv'.format(suffix=suffix))
+		assert os.path.isfile(m.dir_obj+'msr_iso.csv')
 		assert os.path.isfile(m.dir_obj+'msr_iso-OIII5008_I{suffix}_contours-ctr.pkl'.format(suffix=suffix))
 
-
-	f1 = m.dir_obj+'msr_iso-OIII5008_I{suffix}.csv'.format(suffix=suffix1)
-	f2 = m.dir_obj+'msr_iso-OIII5008_I{suffix}.csv'.format(suffix=suffix2)
-	assert not filecmp.cmp(f1, f2)
-
+	tab = at.Table.read(fn)
+	assert len(tab) == 2
 
 
 def test_isomeasurer_nan_image(measurer_nanimg):
@@ -160,7 +159,7 @@ def test_isomeasurer_nan_image(measurer_nanimg):
 	minarea = 5
 	status = m.make_measurements(imgtag=imgtag, isocut=isocut, minarea=minarea, onlycenter=True, centerradius=5.*u.arcsec, overwrite=False, savecontours=True, plotmsr=True)
 
-	fn = m.get_fp_msr(imgtag=imgtag)
+	fn = m.get_fp_msr()
 	tab = at.Table.read(fn)
 
 	for col in ['area_kpc', 'dmax_kpc', 'rmax_kpc', 'dper_kpc', 'area_ars', 'dmax_ars', 'rmax_ars', 'dper_ars', 'area_pix', 'dmax_pix', 'rmax_pix', 'dper_pix', 'theta_dmax', 'theta_rmax', 'theta_dper', 'aspectr', ]:
@@ -198,10 +197,33 @@ def test_isomeasurer_make_noiselevel(measurer1):
 	status = m.make_noiselevel(imgtag='OIII5008_I', toplot=True, overwrite=False)
 
 	assert status
-	assert os.path.isfile(m.dir_obj+'noiselevel-OIII5008_I.csv')
+	assert os.path.isfile(m.dir_obj+'noiselevel.csv')
 	assert os.path.isfile(m.dir_obj+'noiselevel-OIII5008_I.pdf')
 
 	assert m.get_noiselevel(imgtag='OIII5008_I', wunit=False) > 0.
 	assert m.get_noiselevel(imgtag='OIII5008_I', wunit=True).unit == u.Unit('1e-15 erg / (arcsec2 cm2 s)')
+
+
+
+
+def test_isomeasurer_make_noiselevel_multifiles(measurer1):
+	m = measurer1
+
+	# isocut = 3.e-15*u.Unit('erg / (arcsec2 cm2 s)')
+
+	status = m.make_noiselevel(imgtag='OIII5008_I', toplot=True, overwrite=True)
+	status = m.make_noiselevel(imgtag='OIII5008_I', toplot=True, overwrite=True)
+	status = m.make_noiselevel(imgtag='i', toplot=True, overwrite=True)
+
+	assert status
+	assert os.path.isfile(m.dir_obj+'noiselevel.csv')
+	assert os.path.isfile(m.dir_obj+'noiselevel-OIII5008_I.pdf')
+	assert os.path.isfile(m.dir_obj+'noiselevel-i.pdf')
+
+	tab = at.Table.read(m.dir_obj+'noiselevel.csv')
+	assert len(tab) == 2
+
+	assert m.get_noiselevel(imgtag='OIII5008_I', wunit=False) > 0.
+	assert m.get_noiselevel(imgtag='i', wunit=False) > 0.
 
 

@@ -10,6 +10,7 @@ import scipy.ndimage as simg
 
 
 from ..measurer import Measurer
+from ... import tabtools
 import polytools
 import plottools
 
@@ -34,14 +35,13 @@ class isoMeasurer(Measurer):
 		else:
 			ctrtag = ''
 
-		fn_msr = self.get_fp_msr(imgtag=imgtag, suffix=suffix)
-		fn_noext = os.path.splitext(fn_msr)[0]
-		return fn_noext+'_contours{ctrtag}.pkl'.format(ctrtag=ctrtag)
+		fp_root = self.get_fp_msrtagroot(imgtag=imgtag, suffix=suffix)
+		return fp_root+'_contours{ctrtag}.pkl'.format(ctrtag=ctrtag)
 
 
 	def make_measurements(self, imgtag='OIII5008_I', isocut=1.e-15*u.Unit('erg / (arcsec2 cm2 s)'), minarea=0, onlycenter=False, centerradius=2.*u.arcsec, suffix='', overwrite=False, savecontours=False, plotmsr=False):
 		"""
-		make measurements on a map
+		make measurements on a map and write to msr_iso.csv. 
 			if imgtag='OIII5008_I' then measure 'stamp-OIII5008_I.fits'
 
 		Params
@@ -69,11 +69,13 @@ class isoMeasurer(Measurer):
 
 		Write Output 
 		------------
-		e.g., msr_iso-OIII5008.csv
+		e.g., msr_iso.csv
 		"""
-		fn = self.get_fp_msr(imgtag=imgtag, suffix=suffix)
+		fn = self.get_fp_msr()
 
-		if not os.path.isfile(fn) or overwrite:
+		condi = {'imgtag': imgtag, 'isocut': isocut, 'minarea': minarea, 'onlycenter': onlycenter, 'centerradius': centerradius}
+
+		if not tabtools.fn_has_line(fn, condi) or overwrite:
 			print("[isomeasurer] making measurement")
 
 			img = self.get_stamp_img(imgtag=imgtag, wunit=True)
@@ -91,7 +93,8 @@ class isoMeasurer(Measurer):
 			tabout = at.hstack([tab_params, tab_msr])
 
 			# output
-			tabout.write(fn, overwrite=overwrite)
+			tabtools.write_line(fn=fn, line=tabout, condi=condi, overwrite=overwrite)
+			# tabout.write(fn, overwrite=overwrite)
 
 			# optional output
 			if savecontours:
