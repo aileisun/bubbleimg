@@ -141,7 +141,7 @@ class Measurer(Imager):
 			img = np.array(img)
 
 			nlevel = noiselevel.getnoiselevel_gaussfit(data=img, fn_plot=fn_plot, toplot=toplot)
-			tab = at.Table([[imgtag], [nlevel], [u_img.to_string()]], names=['imgtag', 'sigma_img', 'u_img'])
+			tab = at.Table([[imgtag], [nlevel], [u_img.to_string()]], names=['imgtag', 'img_sigma', 'u_img'])
 
 			tab.write(fn, format='ascii.csv', overwrite=overwrite)
 
@@ -170,7 +170,7 @@ class Measurer(Imager):
 		self.make_noiselevel(imgtag=imgtag, toplot=False, overwrite=False)
 
 		tab = at.Table.read(fn, format='ascii.csv')
-		n_level = tab['sigma_img'][0]
+		n_level = tab['img_sigma'][0]
 
 		if wunit:
 			u_img = tab['u_img'][0]

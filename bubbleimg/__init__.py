@@ -3,14 +3,15 @@
 
 __all__ = ['filters', 'external_links', 'standards', 'imgdownload', 'obsobj', 'batch', 'spector']
 
-import filters, external_links, standards, imgdownload, obsobj, batch, spector, imgdecompose, imgmeasure
+import filters, external_links, standards, imgdownload, obsobj, batch, spector, imgdecompose, imgmeasure, imgsim
 
 reload(filters)
 reload(external_links)
+reload(standards)
 reload(imgdownload)
 reload(obsobj)
 reload(batch)
 reload(spector)
 reload(imgdecompose)
 reload(imgmeasure)
-reload(standards)
+reload(imgsim)

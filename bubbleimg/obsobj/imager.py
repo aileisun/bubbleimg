@@ -87,7 +87,7 @@ class Imager(Operator):
 		elif 'z' in kwargs:
 			self.z = kwargs.pop('z') 
 		else: 
-			print("[imager] not redshift used, assuming 0")
+			print("[imager] not redshift used, assuming -1")
 			self.z = -1
 
 		# set center_mode
