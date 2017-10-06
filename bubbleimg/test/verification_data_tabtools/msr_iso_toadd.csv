@@ -1,0 +1,2 @@
+imgtag,isocut,minarea,onlycenter,centerradius,area_kpc,dmax_kpc,rmax_kpc,dper_kpc,area_ars,dmax_ars,rmax_ars,dper_ars,area_pix,dmax_pix,rmax_pix,dper_pix,theta_dmax,theta_rmax,theta_dper,aspectr
+OIII5008_I,3e-15 erg / (arcsec2 cm2 s),5,True,5.0 arcsec, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
