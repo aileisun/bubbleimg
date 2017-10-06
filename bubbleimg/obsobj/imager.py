@@ -12,6 +12,7 @@ from operator import Operator
 from .. import standards
 from ..filters import surveysetup
 from ..external_links import file_humvi_compose
+from .. import visualtools
 
 
 class Imager(Operator):
@@ -36,7 +37,8 @@ class Imager(Operator):
 		survey (str): 
 			survey of the photometric system
 			if not provided, use self.obj.survey. Raise exception if self.obj.survey does not exist. 
-		z (float):  
+
+		z=-1 (float):  
 			redshift, if not provided, use self.obj.z or self.obj.sdss.z. It does not automatically query sdss to get z. If nothing is pecified then set to -1. 
 
 		center_mode='n/2' (str):
@@ -57,7 +59,6 @@ class Imager(Operator):
 			redshift
 		pixsize (astropy angle quantity):
 			in unit of arcsec
-
 		pixelscale (astropy pixscale quantity):
 			for pixel and arcsec conversion
 
@@ -95,6 +96,22 @@ class Imager(Operator):
 		# set pixsize
 		self.pixsize = surveysetup.pixsize[self.survey]
 		self.pixelscale = u.pixel_scale(self.pixsize/u.pixel)
+
+
+	def get_fp_stamp(self, band):
+		return self.dir_obj + self.get_fn_stamp(band)
+
+
+	def get_fn_stamp(self, band):
+		return 'stamp-{0}.fits'.format(band)
+
+
+	def get_fp_psf(self, band):
+		return self.dir_obj + self.get_fn_psf(band)
+
+
+	def get_fn_psf(self, band):
+		return 'psf-{0}.fits'.format(band)
 
 
 	def get_fp_stamp_line(self, line):
@@ -186,3 +203,28 @@ class Imager(Operator):
 
 		return status
 
+
+	def plot_stamp_linemap_I(self, line='OIII5008', overwrite=False, vmin=None, vmax=10.):
+		""" 
+		plot line map I as png. 
+
+		Params
+		------
+		self
+		line='OIII5008' (str)
+		overwrite=False (bool)
+
+		Return
+		------
+		status (bool)
+		"""
+		fn = self.get_fp_stamp_line_I(line=line)
+		fn_out = os.path.splitext(fn)[0]+'.png'
+
+		if not os.path.isfile(fn_out) or overwrite:
+			print("[decomposer] plotting linemap")
+			visualtools.fits_to_png(fn_in=fn, fn_out=fn_out, vmin=vmin, vmax=vmax, scaling='arcsinh')
+		else: 
+			print("[decomposer] skip plotting linemap as files exist")
+
+		return os.path.isfile(fn_out)

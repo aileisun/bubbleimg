@@ -72,6 +72,41 @@ class imgLoader(obsobj.Operator):
 		self.survey = 'to be overwritten'
 		self.pixsize = -1
 
+	def get_fp_stamp(self, band):
+		m = self.get_imager()
+		return m.get_fp_stamp(band)
+
+
+	def get_fn_stamp(self, band):
+		m = self.get_imager()
+		return m.get_fn_stamp(band)
+
+
+	def get_fp_psf(self, band):
+		m = self.get_imager()
+		return m.get_fp_psf(band)
+
+
+	def get_fn_psf(self, band):
+		m = self.get_imager()
+		return m.get_fn_psf(band)
+
+
+	# def get_fp_stamp(self, band):
+	# 	return self.dir_obj + self.get_fn_stamp(band)
+
+
+	# def get_fn_stamp(self, band):
+	# 	return 'stamp-{0}.fits'.format(band)
+
+
+	# def get_fp_psf(self, band):
+	# 	return self.dir_obj + self.get_fn_psf(band)
+
+
+	# def get_fn_psf(self, band):
+	# 	return 'psf-{0}.fits'.format(band)
+
 
 	# @abc.abstractmethod
 	def make_stamps(self, **kwargs):
@@ -81,22 +116,6 @@ class imgLoader(obsobj.Operator):
 	# @abc.abstractmethod
 	def make_psfs(self, **kwargs):
 		raise NotImplementedError("Subclass must implement abstract method")
-
-
-	def get_fp_stamp(self, band):
-		return self.dir_obj + self.get_fn_stamp(band)
-
-
-	def get_fn_stamp(self, band):
-		return 'stamp-{0}.fits'.format(band)
-
-
-	def get_fp_psf(self, band):
-		return self.dir_obj + self.get_fn_psf(band)
-
-
-	def get_fn_psf(self, band):
-		return 'psf-{0}.fits'.format(band)
 
 
 	def _imgLoader__make_file_core(self, func_download_file, func_naming_file, band='r', overwrite=False, **kwargs):
@@ -277,8 +296,14 @@ class imgLoader(obsobj.Operator):
 		------
 		status (bool)
 		"""
-		m = objobj.imager.Imager(obj=self.obj)
+		m = self.get_imager()
 		m.make_colorimg(bands=band, img_type=img_type, overwrite=overwrite)
+
+
+	def get_imager(self):
+		return objobj.imager.Imager(obj=self.obj, survey=self.survey)
+
+
 
 	# def plot_colorimg(self, bands ='riz', img_type='stamp', overwrite=False):
 	# 	"""

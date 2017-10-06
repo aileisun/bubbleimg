@@ -3,46 +3,46 @@
 
 import os
 
-from ..obsobj import Operator
+from ..obsobj import Imager
 from .. import spector
 from .. import imgdownload
 from ..filters import surveysetup
-from .. import visualtools
 
 
-class Decomposer(Operator):
+class Decomposer(Imager):
 
 	def __init__(self, **kwargs):
 		"""
-		Decomposer, an obj operator to do image decomposition
+		Decomposer, an imager operator to do image decomposition
 
-		Params
-		------
-		Operator params:
+		Imager Params
+		-------------
+		/either
+			obj (object of class obsobj): with attributes ra, dec, dir_obj
+		/or  
+			ra (float)
+			dec (float)
 			/either
-				obj (object of class obsobj): with attributes ra, dec, dir_obj
-			/or  
-				ra (float)
-				dec (float)
-				/either
-					dir_obj (string)
-				/or 
-					dir_parent (string): attr dir_obj is set to dir_parent+'SDSSJXXXX+XXXX/'
+				dir_obj (string)
+			/or 
+				dir_parent (string): attr dir_obj is set to dir_parent+'SDSSJXXXX+XXXX/'
 
 		survey (str): 
 			survey of the photometric system
 			if not provided, use self.obj.survey. Raise exception if self.obj.survey does not exist. 
 		z (float):  
-			redshift, if not provided, use self.obj.z or self.obj.sdss.z. It does not automatically query sdss to get z. 
+			redshift, if not provided, use self.obj.z or self.obj.sdss.z. It does not automatically query sdss to get z. If nothing is pecified then set to -1. 
+
+		center_mode='n/2' (str):
+			how is image center defined in case of even n, 'n/2' or 'n/2-1'. Should be set to n/2-1 if the image is downloaded from HSC quarry. 
 
 
-		Attributes
-		----------
-		Operator Attributes:	
-			obj (instance of objObj)
-			ra (float)
-			dec (float)
-			dir_obj (string)
+		Imager Attributes
+		-----------------
+		obj (instance of objObj)
+		ra (float)
+		dec (float)
+		dir_obj (string)
 
 		survey (str): e.g., 'hsc'
 			survey of the photometric system
@@ -50,42 +50,44 @@ class Decomposer(Operator):
 			redshift
 		pixsize (astropy angle quantity):
 			in unit of arcsec
+
+		pixelscale (astropy pixscale quantity):
+			for pixel and arcsec conversion
+
+
+		Decomposer Attributes
+		---------------------
+
 		bands (list): 
 			e.g., ['g', 'r', 'i', 'z', 'y'] for survey = 'hsc'
 		"""
 		
 		super(Decomposer, self).__init__(**kwargs)
 
-		# set survey
-		if hasattr(self.obj, 'survey'):
-			default_survey = self.obj.survey
-			self.survey = kwargs.pop('survey', default_survey)
-		else: 
-			self.survey = kwargs.pop('survey')
+		# # set survey
+		# if hasattr(self.obj, 'survey'):
+		# 	default_survey = self.obj.survey
+		# 	self.survey = kwargs.pop('survey', default_survey)
+		# else: 
+		# 	self.survey = kwargs.pop('survey')
 
-		# set up obj.survey
-		if self.survey == 'hsc':
-			self.obj.add_hsc()
-		elif self.survey == 'sdss':
-			self.obj.add_sdss()
+		# # set up obj.survey
+		# if self.survey == 'hsc':
+		# 	self.obj.add_hsc()
+		# elif self.survey == 'sdss':
+		# 	self.obj.add_sdss()
 
-		# set z
-		if hasattr(self.obj, 'z'):
-			self.z = kwargs.pop('z', self.obj.z)
-		elif hasattr(self.obj, 'sdss'):
-			self.z = kwargs.pop('z', self.obj.sdss.z) 
-		else: 
-			self.z = kwargs.pop('z') 
+		# # set z
+		# if hasattr(self.obj, 'z'):
+		# 	self.z = kwargs.pop('z', self.obj.z)
+		# elif hasattr(self.obj, 'sdss'):
+		# 	self.z = kwargs.pop('z', self.obj.sdss.z) 
+		# else: 
+		# 	self.z = kwargs.pop('z') 
 
-		# set other attributes
-		self.pixsize = surveysetup.pixsize[self.survey]
+		# # set other attributes
+		# self.pixsize = surveysetup.pixsize[self.survey]
 		self.bands = surveysetup.surveybands[self.survey]
-
-
-
-	def get_fp_stamp(self, band):
-		L = imgdownload.imgLoader(obj=self.obj)
-		return L.get_fp_stamp(band)
 
 
 	def get_fp_stamp_psfmatched(self, band, bandto):
@@ -96,40 +98,14 @@ class Decomposer(Operator):
 		return self.dir_obj+'stamp-{0}_contsub-{1}.fits'.format(band, bandconti)
 
 
-	def get_fp_stamp_line(self, line):
-		""" e.g., stamp-OIII5008.fits, for stamp in observed frame in flux """
-		return self.dir_obj+'stamp-{0}.fits'.format(line)
+	# def get_fp_stamp_line(self, line):
+	# 	""" e.g., stamp-OIII5008.fits, for stamp in observed frame in flux """
+	# 	return self.dir_obj+'stamp-{0}.fits'.format(line)
 
 
-	def get_fp_stamp_line_I(self, line):
-		""" e.g., stamp-OIII5008_I.fits for stamp in rest frame in intensity"""
-		return self.dir_obj+'stamp-{0}_I.fits'.format(line)
-
-
-	def plot_stamp_linemap_I(self, line='OIII5008', overwrite=False, vmin=None, vmax=10.):
-		""" 
-		plot line map I as png. 
-
-		Params
-		------
-		self
-		line='OIII5008' (str)
-		overwrite=False (bool)
-
-		Return
-		------
-		status (bool)
-		"""
-		fn = self.get_fp_stamp_line_I(line=line)
-		fn_out = os.path.splitext(fn)[0]+'.png'
-
-		if not os.path.isfile(fn_out) or overwrite:
-			print("[decomposer] plotting linemap")
-			visualtools.fits_to_png(fn_in=fn, fn_out=fn_out, vmin=vmin, vmax=vmax, scaling='arcsinh')
-		else: 
-			print("[decomposer] skip plotting linemap as files exist")
-
-		return os.path.isfile(fn_out)
+	# def get_fp_stamp_line_I(self, line):
+	# 	""" e.g., stamp-OIII5008_I.fits for stamp in rest frame in intensity"""
+	# 	return self.dir_obj+'stamp-{0}_I.fits'.format(line)
 
 
 	def make_stamp_linemap_I(self, bandline, bandconti, line='OIII5008', overwrite=False):

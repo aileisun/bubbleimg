@@ -13,7 +13,7 @@ class Measurer(Imager):
 
 	def __init__(self, **kwargs):
 		"""
-		Measurer, an obj operator to do image measurement
+		Measurer, an imager operator to do image measurement
 
 		Imager Params
 		-------------

@@ -143,6 +143,7 @@ class hscObj(plainObj):
 			os.remove(fn_temp)
 
 		if not os.path.isfile(fn) or overwrite: # download xid from sdss
+			print 'fn', fn
 			print "[hscObj] querying xid from server"
 			self.make_dir_obj()	
 			sql = _get_xid_sql(ra=self.ra, dec=self.dec, rerun=self.rerun, search_radius=self.search_radius)
