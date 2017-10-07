@@ -1,7 +1,8 @@
 import pytest
 import shutil
 import os
-# import astropy.units as u
+import astropy.table as at
+import astropy.units as u
 
 from ...obsobj import obsObj
 
@@ -19,7 +20,7 @@ dir_verif = 'verification_data/SDSSJ0920+0034/'
 # survey = 'hsc'
 # z = 0.4114188
 
-@pytest.fixture(scope="module", autouse=True)
+@pytest.fixture(scope="function", autouse=True)
 def setUp_tearDown():
 	""" rm ./testing/ and ./test2/ before and after testing"""
 
@@ -66,7 +67,7 @@ def test_simulator_init_getsurvey_fromobj(obj_dirobj):
 	assert s.survey == 'hsc'
 
 
-def test_simulator_add_noise(simulator1):
+def test_simulator_make_noised(simulator1):
 	s = simulator1
 	imgtag = 'OIII5008_I'
 	img_sigma=1
@@ -76,3 +77,73 @@ def test_simulator_add_noise(simulator1):
 
 	assert os.path.isfile(fp)
 
+
+def test_simulator_get_measurer(simulator1):
+	s = simulator1
+	m = s.get_measurer()
+
+	assert m.z == s.z
+
+
+def test_simulator_sim_noised_keep_img(simulator1):
+	s = simulator1
+
+	imgtag = 'OIII5008_I'
+	img_sigma=1
+	niter = 5
+	s.sim_noised(imgtag=imgtag, img_sigma=img_sigma, niter=niter, msrtype='iso', running_indx=True, keep_img=True, overwrite=True)
+
+	noisedtag = s.get_tag_noised(img_sigma)
+	fn = s.dir_obj+'msr_iso{}.csv'.format(noisedtag)
+
+	assert os.path.isfile(s.get_fp_stamp_img(imgtag=imgtag+noisedtag+'_1'))
+
+	assert os.path.isfile(fn)
+	tab = at.Table.read(fn)
+
+	assert len(tab) == niter
+
+
+def test_simulator_sim_noised(simulator1):
+	s = simulator1
+
+	imgtag = 'OIII5008_I'
+	img_sigma=1
+	niter = 20
+	s.sim_noised(imgtag=imgtag, img_sigma=img_sigma, niter=niter, msrtype='iso', running_indx=False, keep_img=False, overwrite=True)
+
+	noisedtag = s.get_tag_noised(img_sigma)
+	fn = s.dir_obj+'msr_iso{}.csv'.format(noisedtag)
+
+	assert not os.path.isfile(s.get_fp_stamp_img(imgtag=imgtag+noisedtag+'_1'))
+
+	assert os.path.isfile(fn)
+	tab = at.Table.read(fn)
+
+	assert len(tab) == niter
+
+
+
+def test_simulator_sim_noised_customized_msr(simulator1):
+	s = simulator1
+
+	imgtag = 'OIII5008_I'
+	img_sigma=1
+	niter = 5
+
+	msrkwargs = dict(isocut=1.e-15*u.Unit('erg / (arcsec2 cm2 s)'), minarea=20, onlycenter=True, centerradius=5.*u.arcsec)
+	
+	s.sim_noised(imgtag=imgtag, img_sigma=img_sigma, niter=niter, msrtype='iso', running_indx=False, keep_img=False, overwrite=True, **msrkwargs)
+
+	noisedtag = s.get_tag_noised(img_sigma)
+	fn = s.dir_obj+'msr_iso{}.csv'.format(noisedtag)
+
+	assert not os.path.isfile(s.get_fp_stamp_img(imgtag=imgtag+noisedtag+'_1'))
+
+	assert os.path.isfile(fn)
+	tab = at.Table.read(fn)
+
+	assert len(tab) == niter
+
+	for key in msrkwargs:
+		assert str(tab[key][0]) == str(msrkwargs[key])

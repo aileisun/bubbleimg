@@ -74,9 +74,9 @@ class Measurer(Imager):
 	# 	return self.dir_obj+'msr_{msrtype}-{imgtag}{suffix}.csv'.format(msrtype=self.msrtype, imgtag=imgtag, suffix=suffix)
 		
 
-	def get_fp_msr(self):
+	def get_fp_msr(self, msrsuffix=''):
 		""" return the path to the measurement results .csv file, e.g., msr_iso.csv """
-		return self.dir_obj+'msr_{msrtype}.csv'.format(msrtype=self.msrtype)
+		return self.dir_obj+'msr_{msrtype}{msrsuffix}.csv'.format(msrtype=self.msrtype, msrsuffix=msrsuffix)
 
 
 	# def get_fp_msrplot(self, imgtag='OIII5008_I', suffix=''):
@@ -100,8 +100,8 @@ class Measurer(Imager):
 	# 	return self.dir_obj+'noiselevel-{}.csv'.format(imgtag)
 
 
-	def get_fp_noiselevel(self):
-		return self.dir_obj+'noiselevel.csv'
+	def get_fp_noiselevel(self, msrsuffix=''):
+		return self.dir_obj+'noiselevel{msrsuffix}.csv'.format(msrsuffix=msrsuffix)
 
 
 	def get_fp_noiselevel_tagroot(self, imgtag='OIII5008_I'):
@@ -139,7 +139,7 @@ class Measurer(Imager):
 		raise NotImplementedError("Subclass must implement abstract method")
 
 
-	def make_noiselevel(self, imgtag='OIII5008_I', toplot=False, overwrite=False):
+	def make_noiselevel(self, imgtag='OIII5008_I', toplot=False, msrsuffix='', overwrite=False, append=False):
 		"""
 		Measure the noise level of img with tag 'imgtag' and write to noiselevel_{imgtag}.csv.
 
@@ -150,17 +150,22 @@ class Measurer(Imager):
 		self
 		imgtag='OIII5008_I'
 		toplot=False
+		msrsuffix=''
+			suffix label in the end of the measurement csv file: msr_iso_{msrsuffix}.csv.
+
 		overwrite=False
+		append=False
 
 		Return
 		------
 		status
 		"""
-		fn = self.get_fp_noiselevel()
+		fn = self.get_fp_noiselevel(msrsuffix=msrsuffix)
 		fn_plot = self.get_fp_noiselevel_tagroot(imgtag=imgtag)+'.pdf'
 
 		condi = {'imgtag': imgtag}
-		if not tabtools.fn_has_line(fn, condi) or overwrite:
+
+		if append or overwrite or (not tabtools.fn_has_row(fn, condi)):
 
 			print("[measurer] making noiselevel for {}".format(imgtag))
 			img = self.get_stamp_img(imgtag=imgtag, wunit=True)
@@ -170,7 +175,7 @@ class Measurer(Imager):
 			nlevel = noiselevel.getnoiselevel_gaussfit(data=img, fn_plot=fn_plot, toplot=toplot)
 			tab = at.Table([[imgtag], [nlevel], [u_img.to_string()]], names=['imgtag', 'img_sigma', 'u_img'])
 
-			tabtools.write_line(fn=fn, line=tab, condi=condi, overwrite=overwrite)
+			tabtools.write_row(fn=fn, row=tab, condi=condi, overwrite=overwrite, append=append)
 			# tab.write(fn, format='ascii.csv', overwrite=overwrite)
 		else:
 			print("[measurer] skip making noiselevel for {} as files exist".format(imgtag))

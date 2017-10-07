@@ -39,7 +39,7 @@ class isoMeasurer(Measurer):
 		return fp_root+'_contours{ctrtag}.pkl'.format(ctrtag=ctrtag)
 
 
-	def make_measurements(self, imgtag='OIII5008_I', isocut=1.e-15*u.Unit('erg / (arcsec2 cm2 s)'), minarea=0, onlycenter=False, centerradius=2.*u.arcsec, suffix='', overwrite=False, savecontours=False, plotmsr=False):
+	def make_measurements(self, imgtag='OIII5008_I', isocut=3.e-15*u.Unit('erg / (arcsec2 cm2 s)'), minarea=5, onlycenter=True, centerradius=5.*u.arcsec, plotsuffix='', savecontours=False, plotmsr=False, msrsuffix='', overwrite=False, append=False):
 		"""
 		make measurements on a map and write to msr_iso.csv. 
 			if imgtag='OIII5008_I' then measure 'stamp-OIII5008_I.fits'
@@ -57,11 +57,14 @@ class isoMeasurer(Measurer):
 		onlycenter=False:
 			whether to consider only the center contours
 		centerradius=2.*u.arcsec
-		suffix = '':
-			suffix label to be attach to the end of hte file names. 
-		overwrite=False
+		plotsuffix = '':
+			plotsuffix label to be attach to the end of the plot or contour file names. 
 		savecontours=False
 		plotmsr=False
+		msrsuffix=''
+			plotsuffix label in the end of the measurement csv file: msr_iso_{msrsuffix}.csv.
+		overwrite=False
+		append=False
 
 		Return
 		------
@@ -71,11 +74,11 @@ class isoMeasurer(Measurer):
 		------------
 		e.g., msr_iso.csv
 		"""
-		fn = self.get_fp_msr()
+		fn = self.get_fp_msr(msrsuffix=msrsuffix)
 
 		condi = {'imgtag': imgtag, 'isocut': isocut, 'minarea': minarea, 'onlycenter': onlycenter, 'centerradius': centerradius}
 
-		if not tabtools.fn_has_line(fn, condi) or overwrite:
+		if append or overwrite or (not tabtools.fn_has_row(fn, condi)):
 			print("[isomeasurer] making measurement")
 
 			img = self.get_stamp_img(imgtag=imgtag, wunit=True)
@@ -93,16 +96,16 @@ class isoMeasurer(Measurer):
 			tabout = at.hstack([tab_params, tab_msr])
 
 			# output
-			tabtools.write_line(fn=fn, line=tabout, condi=condi, overwrite=overwrite)
+			tabtools.write_row(fn=fn, row=tabout, condi=condi, overwrite=overwrite, append=append)
 			# tabout.write(fn, overwrite=overwrite)
 
 			# optional output
 			if savecontours:
-				fn_contours = self.get_fp_contours(imgtag=imgtag, onlycenter=onlycenter, suffix=suffix)
+				fn_contours = self.get_fp_contours(imgtag=imgtag, onlycenter=onlycenter, suffix=plotsuffix)
 				write_pickle(contours, fn_contours, overwrite=overwrite)
 
 			if plotmsr:
-				fn_plot = self.get_fp_msrplot(imgtag=imgtag, suffix=suffix)
+				fn_plot = self.get_fp_msrplot(imgtag=imgtag, suffix=plotsuffix)
 				plottools.make_plot_img_w_contours(fn_plot=fn_plot, img=img, contours=contours)
 
 		else:
