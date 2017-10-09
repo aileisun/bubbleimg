@@ -82,14 +82,8 @@ def tab_has_row(tab, condi):
 
 		e.g., condi = {'imgtag': 'OIII5008_I'}
 	"""
-	select_arr = [[str(tab[key][i]) == str(condi[key]) for i in range(len(tab))] for key in condi]
-	select = np.all(select_arr, axis=0)
-
-	# select_condis = np.array([tab[key] == condi[key] for key in condi])
-	print select_arr
-	# select = np.all(select_condis, axis=0)
+	select = get_select(tab, condi)
 	return np.sum(select) > 0
-
 
 
 def fn_delete_row(fn, condi):
@@ -125,9 +119,93 @@ def tab_delete_row(tab, condi):
 	------
 	tab
 	"""
-	select = np.all(np.array([tab[key] == condi[key] for key in condi]), axis=0)
+	select = get_select(tab, condi)
+
 	if np.sum(select)>0:
 		tab.remove_rows(select)
 
 	return tab
 
+
+def tab_extract_row(tab, condi):
+	"""
+	return a table of only the extracted rows that meet the condition.
+
+	Params
+	------
+	tab: table
+	condi (dictionary)
+		{key: value, ...}, where key is the name of the column and value is the value that the column should take. 
+
+	Return
+	------
+	tab
+	"""
+	select = get_select(tab, condi)
+
+	print tab
+	return tab[select]
+
+	
+def get_select(tab, condi):
+	""" return boolean array indicating whether each row of the tab is selected """
+	select_arr = [[str(tab[key][i]) == str(condi[key]) for i in range(len(tab))] for key in condi]
+	print(select_arr)
+	select = np.all(select_arr, axis=0)
+	return select
+	
+
+
+def summarize(fn_in, fn_out, columns=[], condi={}, overwrite=False):
+	"""
+	Summarize the table 'fn_in' and write the results to 'fn_out'. 
+	For each of the column in columns, take the mean, std, median, and 16%, 84% quantile. 
+	All the other columns that are not specified in columns and condi are ignored. 
+
+	Params
+	------
+	fn_in
+	fn_out
+	columns=[] (list of string)
+		list of column names, e.g., ['area_ars', 'dmax_ars']. Default: all columns. 
+	condi={} 
+		conditions, e.g. {'imgtag': 'OIII5008_I'}
+	overwrite=False
+
+	Return
+	------
+	status (bool)
+	"""
+	if not os.path.isdir(fn_out) or overwrite:
+		tab_in = at.Table.read(fn_in)
+
+		if len(condi)>0:
+			tab_select = tab_extract_row(tab_in, condi=condi)
+			tab_sum = tab_select[condi.keys()][0] # creating headers
+		else: 
+			tab_select = tab_in
+			tab_sum = at.Table() # no headers
+
+		if len(columns)==0:
+			columns = tab_in.colnames
+
+		# calculation
+		for col in columns:
+			if not col in condi.keys():
+				arr = tab_select[col]
+				if arr.dtype in [float, int]:
+					var_mean = np.mean(arr)
+					var_std = np.std(arr)
+					var_median = np.median(arr)
+					var_p16 = np.percentile(arr, 16)
+					var_p84 = np.percentile(arr, 84)
+
+					tab_stat = at.Table([[var_mean], [var_std], [var_median], [var_p16], [var_p84], ], names=[col+tag for tag in ['_mean', '_std', '_median', '_p16', '_p84']])
+					tab_sum = at.hstack([tab_sum, tab_stat])
+
+		tab_sum.write(fn_out, overwrite=overwrite)
+
+	else: 
+		print("[tabtools] skip summarizing as files exist")
+
+	return os.path.isfile(fn_out)

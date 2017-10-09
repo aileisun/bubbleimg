@@ -24,21 +24,21 @@ def setUp_tearDown():
 		shutil.rmtree(dir_test)
 
 
-def test_tabtools_has_line():
+def test_tabtools_has_row():
 
 	fn_in = dir_test+'msr_iso.csv'
-	assert tabtools.fn_has_line(fn_in, condi={'imgtag': 'OIII5008_I'})
-	assert tabtools.fn_has_line(fn_in, condi={'imgtag': 'OIII5008_I', 'isocut':'1e-15 erg / (arcsec2 cm2 s)'})
-	assert tabtools.fn_has_line(fn_in, condi={'imgtag': 'OIII5008_I', 'isocut':'3e-15 erg / (arcsec2 cm2 s)'})
+	assert tabtools.fn_has_row(fn_in, condi={'imgtag': 'OIII5008_I'})
+	assert tabtools.fn_has_row(fn_in, condi={'imgtag': 'OIII5008_I', 'isocut':'1e-15 erg / (arcsec2 cm2 s)'})
+	assert tabtools.fn_has_row(fn_in, condi={'imgtag': 'OIII5008_I', 'isocut':'3e-15 erg / (arcsec2 cm2 s)'})
 
 
-def test_tabtools_delete_line():
+def test_tabtools_delete_row():
 	fn_in = dir_test+'msr_iso.csv'
-	assert tabtools.fn_has_line(fn_in, condi={'imgtag': 'OIII5008_I', 'isocut':'1e-15 erg / (arcsec2 cm2 s)'})
+	assert tabtools.fn_has_row(fn_in, condi={'imgtag': 'OIII5008_I', 'isocut':'1e-15 erg / (arcsec2 cm2 s)'})
 
-	tabtools.fn_delete_line(fn_in, condi={'imgtag': 'OIII5008_I', 'isocut':'1e-15 erg / (arcsec2 cm2 s)'})
+	tabtools.fn_delete_row(fn_in, condi={'imgtag': 'OIII5008_I', 'isocut':'1e-15 erg / (arcsec2 cm2 s)'})
 
-	assert (not tabtools.fn_has_line(fn_in, condi={'imgtag': 'OIII5008_I', 'isocut':'1e-15 erg / (arcsec2 cm2 s)'}))
+	assert (not tabtools.fn_has_row(fn_in, condi={'imgtag': 'OIII5008_I', 'isocut':'1e-15 erg / (arcsec2 cm2 s)'}))
 
 	tab = at.Table.read(fn_in)
 	assert len(tab) == 1
@@ -56,7 +56,7 @@ def test_tabtools_write_row_empty():
 
 	# write to an empty file
 	assert not os.path.isfile(fn_test)
-	tabtools.write_row(fn_test, line=tab_toadd, condi=condi, overwrite=False)
+	tabtools.write_row(fn_test, row=tab_toadd, condi=condi, overwrite=False)
 	assert os.path.isfile(fn_test)
 	tab_test = at.Table.read(fn_test)
 	assert len(tab_test) == 1 
@@ -73,14 +73,14 @@ def test_tabtools_write_row_nooverwrite():
 
 	assert len(at.Table.read(fn_in)) == 2
 	# not overwrite an exisitng row
-	tabtools.write_row(fn_in, line=tab_toadd, condi=condi, overwrite=False)
+	tabtools.write_row(fn_in, row=tab_toadd, condi=condi, overwrite=False)
 	assert os.path.isfile(fn_in)
 	tab = at.Table.read(fn_in)
 	assert tab['area_kpc'][1] > 0
 	assert len(tab) == 2
 
 
-def test_tabtools_write_row_overwrite(setUp_tearDown):
+def test_tabtools_write_row_overwrite():
 
 	fn_toadd = dir_test+'msr_iso_toadd.csv'
 	fn_in = dir_test+'msr_iso.csv'
@@ -91,27 +91,56 @@ def test_tabtools_write_row_overwrite(setUp_tearDown):
 
 	assert len(at.Table.read(fn_in)) == 2
 	# overwrite an exisitng row
-	tabtools.write_row(fn_in, line=tab_toadd, condi=condi, overwrite=True)
+	tabtools.write_row(fn_in, row=tab_toadd, condi=condi, overwrite=True)
 	assert os.path.isfile(fn_in)
 	tab = at.Table.read(fn_in)
 	assert tab['area_kpc'][1] == 0
 	assert len(tab) == 2
 
 
-def test_tabtools_write_row_append(setUp_tearDown):
+def test_tabtools_tab_extract_row():
 
-	fn_toadd = dir_test+'msr_iso_toadd.csv'
-	fn_in = dir_test+'msr_iso.csv'
+	fn = dir_test+'msr_iso.csv'
 
-	tab_toadd = at.Table.read(fn_toadd)
+	tab = at.Table.read(fn)
+
+	assert len(tab) == 2
 
 	condi = {'imgtag': 'OIII5008_I', 'isocut':'3e-15 erg / (arcsec2 cm2 s)'}
+	tab_ext = tabtools.tab_extract_row(tab, condi=condi)
 
-	assert len(at.Table.read(fn_in)) == 2
-	# overwrite an exisitng row
-	tabtools.write_row(fn_in, line=tab_toadd, condi=condi, overwrite=False, append=True)
-	assert os.path.isfile(fn_in)
-	tab = at.Table.read(fn_in)
-	assert tab['area_kpc'][2] == 0
-	assert len(tab) == 3
+	assert len(tab_ext) == 1
 
+
+
+def test_isomeasurer_summarize(measurer1):
+	m = measurer1
+	fn = m.dir_obj+'msr_iso.csv'
+	fn_sum = m.dir_obj+'msr_iso_smr.csv'
+
+ 	imgtag = 'OIII5008_I'
+	minarea = 5
+	isocut1 = 1.e-15*u.Unit('erg / (arcsec2 cm2 s)')
+	isocut2 = 3.e-15*u.Unit('erg / (arcsec2 cm2 s)')
+
+	for isocut in (isocut1, isocut2):
+		status = m.make_measurements(imgtag=imgtag, isocut=isocut, minarea=minarea, onlycenter=True, centerradius=5.*u.arcsec, overwrite=True, savecontours=False, plotmsr=False)
+
+		assert status
+
+	tab = at.Table.read(fn)
+	assert len(tab) == 2
+
+	condi = {'imgtag': imgtag}
+	columns = ['area_ars']
+	m.summarize(columns=columns, condi=condi, msrsuffix='')
+
+	assert os.path.isfile(fn_sum)
+	tab_sum = at.Table.read(fn_sum)
+	assert len(tab_sum) == 1
+
+	assert tab_sum['area_ars_mean'] == np.mean(tab['area_ars'])
+	assert tab_sum['area_ars_std'] == np.std(tab['area_ars'])
+	assert tab_sum['area_ars_median'] == np.median(tab['area_ars'])
+	assert tab_sum['area_ars_p16'] == np.percentile(tab['area_ars'], 16)
+	assert tab_sum['area_ars_p84'] == np.percentile(tab['area_ars'], 84)

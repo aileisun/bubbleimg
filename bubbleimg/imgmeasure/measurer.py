@@ -69,20 +69,14 @@ class Measurer(Imager):
 		self.msrtype = None
 
 
-	# def get_fp_msr(self, imgtag='OIII5008_I', suffix=''):
-	# 	""" return the path to the measurement results .csv file, e.g., msr_iso-OIII5008_I{suffix}.csv """
-	# 	return self.dir_obj+'msr_{msrtype}-{imgtag}{suffix}.csv'.format(msrtype=self.msrtype, imgtag=imgtag, suffix=suffix)
-		
-
 	def get_fp_msr(self, msrsuffix=''):
 		""" return the path to the measurement results .csv file, e.g., msr_iso.csv """
 		return self.dir_obj+'msr_{msrtype}{msrsuffix}.csv'.format(msrtype=self.msrtype, msrsuffix=msrsuffix)
 
 
-	# def get_fp_msrplot(self, imgtag='OIII5008_I', suffix=''):
-	# 	fn_msr = self.get_fp_msr(imgtag=imgtag, suffix=suffix)
-	# 	fn_noext = os.path.splitext(fn_msr)[0]
-	# 	return fn_noext+'.pdf'
+	def get_fp_msr_smr(self, msrsuffix=''):
+		""" return the path to the measurement summary .csv file, e.g., msr_iso_smr.csv """
+		return self.dir_obj+'msr_{msrtype}{msrsuffix}_smr.csv'.format(msrtype=self.msrtype, msrsuffix=msrsuffix)
 
 
 	def get_fp_msrplot(self, imgtag='OIII5008_I', suffix=''):
@@ -96,12 +90,12 @@ class Measurer(Imager):
 		return self.dir_obj+'msr_{msrtype}-{imgtag}{suffix}'.format(msrtype=self.msrtype, imgtag=imgtag, suffix=suffix)
 
 
-	# def get_fp_noiselevel(self, imgtag='OIII5008_I'):
-	# 	return self.dir_obj+'noiselevel-{}.csv'.format(imgtag)
-
-
 	def get_fp_noiselevel(self, msrsuffix=''):
 		return self.dir_obj+'noiselevel{msrsuffix}.csv'.format(msrsuffix=msrsuffix)
+
+
+	def get_fp_noiselevel_smr(self, msrsuffix=''):
+		return self.dir_obj+'noiselevel{msrsuffix}_smr.csv'.format(msrsuffix=msrsuffix)
 
 
 	def get_fp_noiselevel_tagroot(self, imgtag='OIII5008_I'):
@@ -213,3 +207,28 @@ class Measurer(Imager):
 		return n_level
 
 
+	def summarize(self, columns=[], condi={}, msrsuffix='', overwrite=False):
+		"""
+		Summarize the measurement csv file and writes e.g., 'msr_iso.msr.csv' . 
+		For each of the column in columns, take the mean, std, median, and 16%, 84% quantile. 
+		All the other columns that are not specified in columns and condi are ignored. 
+
+		Params
+		------
+		columns=[] (list of string)
+			list of column names, e.g., ['area_ars', 'dmax_ars']. Default: all columns. 
+		condi={} 
+			conditions, e.g. {'imgtag': 'OIII5008_I'}
+		msrsuffix='' (string)
+		overwrite=False
+
+		Return
+		------
+		status (bool)
+		"""
+		fn = self.get_fp_msr_smr(msrsuffix=msrsuffix)
+		fn_in = self.get_fp_msr(msrsuffix=msrsuffix)
+
+		status = tabtools.summarize(fn_in=fn_in, fn_out=fn, columns=columns, condi=condi, overwrite=overwrite)
+
+		return status

@@ -3,6 +3,7 @@ import shutil
 import os
 import astropy.table as at
 import astropy.units as u
+from collections import OrderedDict
 
 from ...obsobj import obsObj
 
@@ -78,13 +79,6 @@ def test_simulator_make_noised(simulator1):
 	assert os.path.isfile(fp)
 
 
-def test_simulator_get_measurer(simulator1):
-	s = simulator1
-	m = s.get_measurer()
-
-	assert m.z == s.z
-
-
 def test_simulator_sim_noised_keep_img(simulator1):
 	s = simulator1
 
@@ -147,3 +141,41 @@ def test_simulator_sim_noised_customized_msr(simulator1):
 
 	for key in msrkwargs:
 		assert str(tab[key][0]) == str(msrkwargs[key])
+
+
+def test_simulator_summarize_sim_noised(simulator1):
+	s = simulator1
+
+	imgtag = 'OIII5008_I'
+	img_sigma=1
+	niter = 5
+
+	msrkwargs = OrderedDict(isocut=3.e-15*u.Unit('erg / (arcsec2 cm2 s)'), minarea=5, onlycenter=True, centerradius=5.*u.arcsec)
+	
+	s.sim_noised(imgtag=imgtag, img_sigma=img_sigma, niter=niter, msrtype='iso', running_indx=False, keep_img=False, summarize=True, overwrite=True, **msrkwargs)
+
+	noisedtag = s.get_tag_noised(img_sigma) # '_noised-1.0'
+	fn_smr = s.dir_obj+'msr_iso{}_smr.csv'.format(noisedtag)
+	assert os.path.isfile(fn_smr)
+	tab = at.Table.read(fn_smr)
+	assert 'area_ars_mean' in tab.colnames
+
+
+def test_simulator_summarize_sim_noised_stand_alone(simulator1):
+	s = simulator1
+
+	imgtag = 'OIII5008_I'
+	img_sigma=1
+	niter = 5
+
+	msrkwargs = OrderedDict(isocut=3.e-15*u.Unit('erg / (arcsec2 cm2 s)'), minarea=5, onlycenter=True, centerradius=5.*u.arcsec)
+	
+	s.sim_noised(imgtag=imgtag, img_sigma=img_sigma, niter=niter, msrtype='iso', running_indx=False, keep_img=False, summarize=False, overwrite=True, **msrkwargs)
+
+	s.summarize_sim_noised(imgtag=imgtag, img_sigma=img_sigma, msrtype='iso', overwrite=True, **msrkwargs)
+
+	noisedtag = s.get_tag_noised(img_sigma) # '_noised-1.0'
+	fn_smr = s.dir_obj+'msr_iso{}_smr.csv'.format(noisedtag)
+	assert os.path.isfile(fn_smr)
+	tab = at.Table.read(fn_smr)
+	assert 'area_ars_mean' in tab.colnames	

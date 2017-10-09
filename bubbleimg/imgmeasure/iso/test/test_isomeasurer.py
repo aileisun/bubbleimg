@@ -12,6 +12,7 @@ from ....obsobj import obsObj
 
 from .. import isoMeasurer
 from .. import polytools
+from .... import tabtools
 
 dir_parent = './testing/'
 
@@ -140,13 +141,17 @@ def test_isomeasurer_make_measurements_suffix(measurer1):
 	suffix2 = '_3e-15'
 
 	for isocut, suffix in ((isocut1, suffix1), (isocut2, suffix2)):
-		status = m.make_measurements(imgtag=imgtag, isocut=isocut, minarea=minarea, onlycenter=True, centerradius=5.*u.arcsec, suffix=suffix, overwrite=True, savecontours=True, plotmsr=True)
+		status = m.make_measurements(imgtag=imgtag, isocut=isocut, minarea=minarea, onlycenter=True, centerradius=5.*u.arcsec, plotsuffix=suffix, overwrite=True, savecontours=True, plotmsr=True)
 
 		assert status
 
 		assert os.path.isfile(m.dir_obj+'msr_iso-OIII5008_I{suffix}.pdf'.format(suffix=suffix))
-		assert os.path.isfile(m.dir_obj+'msr_iso.csv')
 		assert os.path.isfile(m.dir_obj+'msr_iso-OIII5008_I{suffix}_contours-ctr.pkl'.format(suffix=suffix))
+
+		assert os.path.isfile(m.dir_obj+'msr_iso.csv')
+
+		tab = at.Table.read(fn)
+		assert tabtools.tab_has_row(tab, {'isocut': isocut})
 
 	tab = at.Table.read(fn)
 	assert len(tab) == 2
@@ -227,3 +232,57 @@ def test_isomeasurer_make_noiselevel_multifiles(measurer1):
 	assert m.get_noiselevel(imgtag='i', wunit=False) > 0.
 
 
+
+
+# def test_isomeasurer_summarize_tab(measurer1):
+# 	m = measurer1
+
+# 	# isocut = 3.e-15*u.Unit('erg / (arcsec2 cm2 s)')
+
+# 	status = m.make_noiselevel(imgtag='OIII5008_I', toplot=True, overwrite=True)
+# 	status = m.make_noiselevel(imgtag='OIII5008_I', toplot=True, overwrite=True)
+# 	status = m.make_noiselevel(imgtag='i', toplot=True, overwrite=True)
+
+# 	assert status
+# 	assert os.path.isfile(m.dir_obj+'noiselevel.csv')
+# 	assert os.path.isfile(m.dir_obj+'noiselevel-OIII5008_I.pdf')
+# 	assert os.path.isfile(m.dir_obj+'noiselevel-i.pdf')
+
+# 	tab = at.Table.read(m.dir_obj+'noiselevel.csv')
+# 	assert len(tab) == 2
+
+# 	assert m.get_noiselevel(imgtag='OIII5008_I', wunit=False) > 0.
+# 	assert m.get_noiselevel(imgtag='i', wunit=False) > 0.
+
+
+def test_isomeasurer_summarize(measurer1):
+	m = measurer1
+	fn = m.dir_obj+'msr_iso.csv'
+	fn_sum = m.dir_obj+'msr_iso_smr.csv'
+
+ 	imgtag = 'OIII5008_I'
+	minarea = 5
+	isocut1 = 1.e-15*u.Unit('erg / (arcsec2 cm2 s)')
+	isocut2 = 3.e-15*u.Unit('erg / (arcsec2 cm2 s)')
+
+	for isocut in (isocut1, isocut2):
+		status = m.make_measurements(imgtag=imgtag, isocut=isocut, minarea=minarea, onlycenter=True, centerradius=5.*u.arcsec, overwrite=True, savecontours=False, plotmsr=False)
+
+		assert status
+
+	tab = at.Table.read(fn)
+	assert len(tab) == 2
+
+	condi = {'imgtag': imgtag}
+	columns = ['area_ars']
+	m.summarize(columns=columns, condi=condi, msrsuffix='')
+
+	assert os.path.isfile(fn_sum)
+	tab_sum = at.Table.read(fn_sum)
+	assert len(tab_sum) == 1
+
+	assert tab_sum['area_ars_mean'] == np.mean(tab['area_ars'])
+	assert tab_sum['area_ars_std'] == np.std(tab['area_ars'])
+	assert tab_sum['area_ars_median'] == np.median(tab['area_ars'])
+	assert tab_sum['area_ars_p16'] == np.percentile(tab['area_ars'], 16)
+	assert tab_sum['area_ars_p84'] == np.percentile(tab['area_ars'], 84)
