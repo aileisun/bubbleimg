@@ -8,6 +8,7 @@ import astropy.table as at
 import numpy as np
 
 from ..decomposer import Decomposer
+from ... import tabtools
 
 import matchpsf
 import plotpsf_tools
@@ -22,7 +23,10 @@ class plainDecomposer(Decomposer):
 		"""
 		
 		super(plainDecomposer, self).__init__(**kwargs)
-		self.fp_psf_tab = self.dir_obj + 'psf.csv'
+
+
+	def get_fp_psf_tab(self, msrsuffix=''):
+		return self.dir_obj + 'psf{}.csv'.format(msrsuffix)
 
 
 	def get_fp_psf(self, fp_stamp):
@@ -206,17 +210,23 @@ class plainDecomposer(Decomposer):
 		return os.path.isfile(fn_out)
 
 
-	def make_psf_tab(self, mode='moffat', overwrite=False):
-		fn = self.fp_psf_tab
+	def make_psf_tab_bands(self, mode='moffat', overwrite=False):
+		"""
+		make measurements on the psf sizes of stamp-*.fits of all bands and write to file 'psf.csv'. 
+		"""
+		fn = self.get_fp_psf_tab(msrsuffix='_bands')
 
 		if not os.path.isfile(fn) or overwrite:
 			print("[plaindecomposer] making psf.csv")
-			tab = at.Table([[mode]]+[[np.nan] for band in self.bands], names=['mode']+['psf_fwhm_{}'.format(band) for band in self.bands])
+			tab = at.Table([[mode]], names=['mode'])
 
 			for band in self.bands: 
+				psf_fwhm_arcs = self._get_psf_fwhm_arcs(imgtag=band, mode=mode)
+				tab['psf_fwhm_arcs_{}'.format(band)] = psf_fwhm_arcs
 
-				fwhm = self._get_psf_fwhm(band=band, mode=mode)
-				tab['psf_fwhm_{}'.format(band)] = fwhm
+			for band in self.bands: 
+				psf_fwhm_pix = self._get_psf_fwhm_pix(imgtag=band, mode=mode)
+				tab['psf_fwhm_pix_{}'.format(band)] = psf_fwhm_pix
 
 			tab.write(fn, format='ascii.csv', overwrite=overwrite)
 		else:
@@ -224,6 +234,46 @@ class plainDecomposer(Decomposer):
 
 		status = os.path.isfile(fn)
 		return status
+
+
+	def make_psf_tab(self, imgtag='OIII5008_I', mode='moffat', msrsuffix='', overwrite=False, append=False):
+		"""
+		make measurements on the psf sizes and write to file "psf{msrsuffix}.csv". 
+
+		Params
+		------
+		imgtag='OIII5008_I'
+			indicate which image to measure on
+		mode='moffat'
+		msrsuffix=''
+			the suffix for the measurement file name
+		overwrite=False
+		append=False
+			if true than always append line to end of file
+		"""
+		fn = self.get_fp_psf_tab(msrsuffix=msrsuffix)
+		condi = dict(imgtag=imgtag, mode=mode)
+
+		if append or overwrite or (not tabtools.fn_has_row(fn, condi)):
+			tab = at.Table([[imgtag], [mode]], names=['imgtag', 'mode'])
+
+			psf_fwhm_arcs = self._get_psf_fwhm_arcs(imgtag=imgtag, mode=mode)
+			tab['psf_fwhm_arcs'] = psf_fwhm_arcs
+
+			psf_fwhm_pix = self._get_psf_fwhm_pix(imgtag=imgtag, mode=mode)
+			tab['psf_fwhm_pix'] = psf_fwhm_pix
+
+			if mode == 'moffat':
+				gamma, alpha = self._get_psf_moffat_params(imgtag)
+				tab['moffat_gamma'] = gamma
+				tab['moffat_alpha'] = alpha
+
+			tabtools.write_row(fn=fn, row=tab, condi=condi, overwrite=overwrite, append=append)
+
+		else:
+			print("[plaindecomposer] skip making psf measurement as files exist")
+
+		return os.path.isfile(fn)
 
 
 	def make_stamp_psfmatch(self, band, bandto, overwrite=False, towrite_psk=False):
@@ -301,8 +351,8 @@ class plainDecomposer(Decomposer):
 		"""
 		return the table that contains info about the contsub prosedure 
 		"""
-		psf_fwhm = self._get_psf_fwhm(band=band, mode=mode)
-		psf_fwhm_conti = self._get_psf_fwhm(band=bandconti, mode=mode)
+		psf_fwhm = self._get_psf_fwhm_arcs(imgtag=band, mode=mode)
+		psf_fwhm_conti = self._get_psf_fwhm_arcs(imgtag=bandconti, mode=mode)
 
 		fwhm_fracdiff = np.absolute(psf_fwhm - psf_fwhm_conti)/max(psf_fwhm, psf_fwhm_conti)
 
@@ -499,9 +549,9 @@ class plainDecomposer(Decomposer):
 		return result
 
 
-	def _get_psf_fwhm_pix(self, band, mode='moffat'):
-		""" return the moffat fwhm of the psf of the band in pix"""
-		fp_psf = self.get_fp_psf(self.get_fp_stamp(band=band))
+	def _get_psf_fwhm_pix(self, imgtag, mode='moffat'):
+		""" return the moffat fwhm of the psf of the imgtag in pix"""
+		fp_psf = self.get_fp_psf(self.get_fp_stamp_img(imgtag=imgtag))
 		try:
 			psf = fits.getdata(fp_psf)
 			fwhm_pix = matchpsf.calc_psf_fwhm(psf, mode=mode)
@@ -510,11 +560,23 @@ class plainDecomposer(Decomposer):
 		return fwhm_pix
 
 
-	def _get_psf_fwhm(self, band, mode='moffat'):
-		""" return the moffat fwhm of the psf of the band in arcsec"""
-		fwhm_pix = self._get_psf_fwhm_pix(band=band, mode=mode)
+	def _get_psf_fwhm_arcs(self, imgtag, mode='moffat'):
+		""" return the moffat fwhm of the psf of the imgtag in arcsec"""
+		fwhm_pix = self._get_psf_fwhm_pix(imgtag=imgtag, mode=mode)
 		fwhm_arcs = fwhm_pix * np.array(self.pixsize.to(u.arcsec))
 		return fwhm_arcs
+
+
+	def _get_psf_moffat_params(self, imgtag):
+		""" return gamma, alpha """
+		fp_psf = self.get_fp_psf(self.get_fp_stamp_img(imgtag=imgtag))
+		# try:
+		psf = fits.getdata(fp_psf)
+		model = matchpsf.fit_moffat(psf)
+		gamma, alpha = model.gamma, model.alpha
+		# except:
+			# gamma, alpha = np.nan, np.nan
+		return gamma, alpha
 
 
 	def _copy_psf(self, fn_in, fn_out):

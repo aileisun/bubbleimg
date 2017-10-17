@@ -4,6 +4,8 @@ import os
 import astropy.table as at
 import astropy.units as u
 from collections import OrderedDict
+from astropy.io import fits
+import numpy as np
 
 from ...obsobj import obsObj
 
@@ -74,7 +76,7 @@ def test_simulator_make_noised(simulator1):
 	img_sigma=1
 	s.make_noised(imgtag=imgtag, img_sigma=img_sigma, overwrite=True)
 
-	fp = s.get_fp_noised(imgtag, img_sigma)
+	fp = s.get_fp_stamp_noised(imgtag, img_sigma)
 
 	assert os.path.isfile(fp)
 
@@ -179,3 +181,120 @@ def test_simulator_summarize_sim_noised_stand_alone(simulator1):
 	assert os.path.isfile(fn_smr)
 	tab = at.Table.read(fn_smr)
 	assert 'area_ars_mean' in tab.colnames	
+
+
+def test_simulator_make_binned(simulator1):
+	s = simulator1
+	imgtag = 'OIII5008_I'
+	binsize = 2
+	s.make_binned(imgtag=imgtag, binsize=binsize, binpsf=True, overwrite=True)
+
+	#=== image 
+	fp = s.get_fp_stamp_binned(imgtag, binsize=binsize)
+	assert os.path.isfile(fp)
+
+	img = fits.getdata(s.get_fp_stamp(imgtag))
+	img_b = fits.getdata(fp)
+	assert np.all(np.array([img.shape])//binsize == np.array([img_b.shape]))
+	assert np.sum(img) == np.sum(img_b) * 4. 
+
+	#=== psf
+	fp = s.get_fp_psf_binned(imgtag, binsize=binsize)
+	assert os.path.isfile(fp)
+
+	psf = fits.getdata(s.get_fp_psf(imgtag))
+	psf_b = fits.getdata(fp)
+
+	assert np.all(np.array([psf.shape])//binsize == np.array([psf_b.shape]))
+	assert np.absolute(np.sum(psf_b) * 4. - np.sum(psf))/np.sum(psf) < 1.e-3
+
+
+def test_simulator_make_smeared(simulator1):
+	s = simulator1
+
+	imgtag = 'OIII5008_I'
+	gamma = 2.
+	alpha = 1.
+
+	s.make_smeared(imgtag=imgtag, gamma=gamma, alpha=alpha, overwrite=True)
+
+	smearedtag = s.get_tag_smeared(gamma=gamma, alpha=alpha)
+
+	fn = s.dir_obj+'stamp-OIII5008_I{}.fits'.format(smearedtag)
+	assert os.path.isfile(fn)
+
+	fn = s.dir_obj+'psf-OIII5008_I{}.fits'.format(smearedtag)
+	assert os.path.isfile(fn)
+
+	d = s._get_decomposer()
+	d.make_psf_tab(imgtag=imgtag, msrsuffix='')
+	d.make_psf_tab(imgtag=imgtag+smearedtag, msrsuffix='_smeared')
+
+	fn = s.dir_obj+'psf.csv'
+	tab = at.Table.read(fn)
+
+	fn = s.dir_obj+'psf_smeared.csv'
+	assert os.path.isfile(fn)
+	tab_smeared = at.Table.read(fn)
+	assert tab_smeared['psf_fwhm_pix'] > tab['psf_fwhm_pix']
+
+
+
+def test_simulator_sim_smeared(simulator1):
+	s = simulator1
+
+	imgtag = 'OIII5008_I'
+	smearargs = at.Table([[1.5, 2., 3., 4.], [2.5, 2.5, 2.5, 2.5]], names=['gamma', 'alpha'])
+	s.sim_smeared(imgtag=imgtag, smearargs=smearargs, msrtype='iso', keep_img=True, overwrite=True)
+	d = s._get_decomposer()
+	d.make_psf_tab(imgtag=imgtag)
+
+	for i, smeararg in enumerate(smearargs):
+		alpha = smeararg['alpha']
+		gamma = smeararg['gamma']
+
+		smearedtag = s.get_tag_smeared(gamma=gamma, alpha=alpha)
+
+		fn = s.dir_obj+'stamp-OIII5008_I{}.fits'.format(smearedtag)
+		assert os.path.isfile(fn)
+
+		fn = s.dir_obj+'psf-OIII5008_I{}.fits'.format(smearedtag)
+		assert os.path.isfile(fn)
+
+		fn = s.dir_obj+'msr_iso_smeared.csv'
+		assert os.path.isfile(fn)
+		tab = at.Table.read(fn)
+		assert tab['imgtag'][i] == imgtag+smearedtag
+
+		fn = s.dir_obj+'psf_smeared.csv'
+		assert os.path.isfile(fn)
+
+
+def test_simulator_sim_smeared_not_keep_img(simulator1):
+	s = simulator1
+
+	imgtag = 'OIII5008_I'
+	smearargs = at.Table([[1.5, 2., 3., 4.], [2.5, 2.5, 2.5, 2.5]], names=['gamma', 'alpha'])
+	s.sim_smeared(imgtag=imgtag, smearargs=smearargs, msrtype='iso', keep_img=False, overwrite=True)
+	d = s._get_decomposer()
+	d.make_psf_tab(imgtag=imgtag)
+
+	for i, smeararg in enumerate(smearargs):
+		alpha = smeararg['alpha']
+		gamma = smeararg['gamma']
+
+		smearedtag = s.get_tag_smeared(gamma=gamma, alpha=alpha)
+
+		fn = s.dir_obj+'stamp-OIII5008_I{}.fits'.format(smearedtag)
+		assert not os.path.isfile(fn)
+
+		fn = s.dir_obj+'psf-OIII5008_I{}.fits'.format(smearedtag)
+		assert not os.path.isfile(fn)
+
+		fn = s.dir_obj+'msr_iso_smeared.csv'
+		assert os.path.isfile(fn)
+		tab = at.Table.read(fn)
+		assert tab['imgtag'][i] == imgtag+smearedtag
+
+		fn = s.dir_obj+'psf_smeared.csv'
+		assert os.path.isfile(fn)

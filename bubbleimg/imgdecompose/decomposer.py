@@ -63,30 +63,6 @@ class Decomposer(Imager):
 		"""
 		
 		super(Decomposer, self).__init__(**kwargs)
-
-		# # set survey
-		# if hasattr(self.obj, 'survey'):
-		# 	default_survey = self.obj.survey
-		# 	self.survey = kwargs.pop('survey', default_survey)
-		# else: 
-		# 	self.survey = kwargs.pop('survey')
-
-		# # set up obj.survey
-		# if self.survey == 'hsc':
-		# 	self.obj.add_hsc()
-		# elif self.survey == 'sdss':
-		# 	self.obj.add_sdss()
-
-		# # set z
-		# if hasattr(self.obj, 'z'):
-		# 	self.z = kwargs.pop('z', self.obj.z)
-		# elif hasattr(self.obj, 'sdss'):
-		# 	self.z = kwargs.pop('z', self.obj.sdss.z) 
-		# else: 
-		# 	self.z = kwargs.pop('z') 
-
-		# # set other attributes
-		# self.pixsize = surveysetup.pixsize[self.survey]
 		self.bands = surveysetup.surveybands[self.survey]
 
 
@@ -96,16 +72,6 @@ class Decomposer(Imager):
 
 	def get_fp_stamp_contsub(self, band, bandconti):
 		return self.dir_obj+'stamp-{0}_contsub-{1}.fits'.format(band, bandconti)
-
-
-	# def get_fp_stamp_line(self, line):
-	# 	""" e.g., stamp-OIII5008.fits, for stamp in observed frame in flux """
-	# 	return self.dir_obj+'stamp-{0}.fits'.format(line)
-
-
-	# def get_fp_stamp_line_I(self, line):
-	# 	""" e.g., stamp-OIII5008_I.fits for stamp in rest frame in intensity"""
-	# 	return self.dir_obj+'stamp-{0}_I.fits'.format(line)
 
 
 	def make_stamp_linemap_I(self, bandline, bandconti, line='OIII5008', overwrite=False):

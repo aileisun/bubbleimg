@@ -257,17 +257,40 @@ def test_decomposer_make_stamp_contsub_writetab(decomposer1):
 		assert os.path.isfile(d.dir_obj + 'contsub_psf_{}{}.pdf'.format(bandline, bandconti))
 
 
-def test_decomposer_make_psf_tab(decomposer1):
+def test_decomposer_make_psf_tab_bands(decomposer1):
 
 	d = decomposer1
-	status = d.make_psf_tab(overwrite=True)
+	status = d.make_psf_tab_bands(overwrite=True)
 
 	assert status
-	assert os.path.isfile(d.fp_psf_tab)
+	assert os.path.isfile(d.get_fp_psf_tab())
 
-	tab = at.Table.read(d.fp_psf_tab, format='ascii.csv')
+	tab = at.Table.read(d.get_fp_psf_tab(), format='ascii.csv')
 
-	assert tab['psf_fwhm_i'][0] < tab['psf_fwhm_y'][0]
+	assert tab['psf_fwhm_arcs_i'][0] < tab['psf_fwhm_arcs_y'][0]
 
 	for band in d.bands:
-		assert 'psf_fwhm_'+band in tab.colnames
+		assert 'psf_fwhm_pix_'+band in tab.colnames
+		assert 'psf_fwhm_arcs_'+band in tab.colnames
+
+
+def test_decomposer_make_psf_tab(decomposer1):
+
+	imgtag = 'OIII5008_I'
+
+	d = decomposer1
+	fn = d.dir_obj+'psf_testing.csv'
+
+	status = d.make_psf_tab(imgtag=imgtag, mode='moffat', msrsuffix='_testing', overwrite=True)
+
+	assert status
+	assert os.path.isfile(fn)
+
+	tab = at.Table.read(fn, format='ascii.csv')
+
+	assert tab['imgtag'][0] == imgtag
+	assert tab['psf_fwhm_arcs'][0] < tab['psf_fwhm_pix'][0]
+
+	status = d.make_psf_tab(imgtag=imgtag, mode='moffat', msrsuffix='_testing', overwrite=True, append=True)
+	tab = at.Table.read(fn, format='ascii.csv')
+	assert len(tab) == 2

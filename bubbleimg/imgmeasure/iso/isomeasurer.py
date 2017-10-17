@@ -97,7 +97,6 @@ class isoMeasurer(Measurer):
 
 			# output
 			tabtools.write_row(fn=fn, row=tabout, condi=condi, overwrite=overwrite, append=append)
-			# tabout.write(fn, overwrite=overwrite)
 
 			# optional output
 			if savecontours:

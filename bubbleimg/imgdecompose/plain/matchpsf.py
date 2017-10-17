@@ -52,18 +52,29 @@ def match_psf_fits(fp_img, fp_psf, fp_psfto, fp_img_out, fp_psf_out, fp_psk_out,
 
 	img_out, psf_out, psk_out, = match_psf(img, psf, psfto)
 
-	# construct hdus for outputs
-	hdus = fits.open(fp_img)
-	hdus[0].data = img_out
-	hdus[0].header['COMMENT'] = "PSF matched by ALS"
-	hdus[0].header['COMMENT'] = "    from {} to {}".format(os.path.basename(fp_psf), os.path.basename(fp_psfto))
-	hdus.writeto(fp_img_out, overwrite=overwrite)
+	replace_img_in_fits(fn_from=fp_img, fn_to=fp_img_out, img=img_out, comment="PSF matched by ALS", overwrite=overwrite)
+
+	# # construct hdus for outputs
+	# hdus = fits.open(fp_img)
+	# hdus[0].data = img_out
+	# hdus[0].header['COMMENT'] = "PSF matched by ALS"
+	# # hdus[0].header['COMMENT'] = "    from {} to {}".format(os.path.basename(fp_psf), os.path.basename(fp_psfto))
+	# hdus.writeto(fp_img_out, overwrite=overwrite)
 
 	fits.PrimaryHDU(psf_out).writeto(fp_psf_out, overwrite=overwrite)
 	if towrite_psk:
 		fits.PrimaryHDU(psk_out).writeto(fp_psk_out, overwrite=overwrite)
 
 
+def replace_img_in_fits(fn_from, fn_to, img, comment='', overwrite=True):
+	"""
+	replace the image in fn_from fits file by img and save it to fn+to
+	"""
+	hdus = fits.open(fn_from)
+	hdus[0].data = img
+	if len(comment) > 0:
+		hdus[0].header['COMMENT'] = comment
+	hdus.writeto(fn_to, overwrite=overwrite)
 
 
 def match_psf(img, psf, psfto): 

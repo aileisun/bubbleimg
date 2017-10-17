@@ -60,8 +60,6 @@ def fn_has_row(fn, condi):
 	"""
 	if os.path.isfile(fn):
 		tab = at.Table.read(fn)
-		# print tab
-		# print condi
 		result = tab_has_row(tab, condi)
 
 	else: 
@@ -142,15 +140,12 @@ def tab_extract_row(tab, condi):
 	tab
 	"""
 	select = get_select(tab, condi)
-
-	print tab
 	return tab[select]
 
 	
 def get_select(tab, condi):
 	""" return boolean array indicating whether each row of the tab is selected """
 	select_arr = [[str(tab[key][i]) == str(condi[key]) for i in range(len(tab))] for key in condi]
-	print(select_arr)
 	select = np.all(select_arr, axis=0)
 	return select
 	
@@ -176,7 +171,7 @@ def summarize(fn_in, fn_out, columns=[], condi={}, overwrite=False):
 	------
 	status (bool)
 	"""
-	if not os.path.isdir(fn_out) or overwrite:
+	if not os.path.isfile(fn_out) or overwrite:
 		tab_in = at.Table.read(fn_in)
 
 		if len(condi)>0:

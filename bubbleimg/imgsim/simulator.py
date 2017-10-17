@@ -3,11 +3,15 @@
 import os
 from astropy.io import fits
 import numpy as np
+import astropy.convolution as ac
+import astropy.table as at
 
 from ..obsobj import Imager
 from .. import imgmeasure
+from .. import imgdecompose
+from ..imgdecompose.plain import matchpsf
 from .. import tabtools
-import psfnoisetools
+import simtools
 
 class Simulator(Imager):
 
@@ -64,16 +68,17 @@ class Simulator(Imager):
 		return '_noised-{}'.format('%.1f'%img_sigma)
 
 
- 	def get_fp_noised(self, imgtag='OIII5008_I', img_sigma=1, suffix=''):
+	def get_fp_stamp_noised(self, imgtag='OIII5008_I', img_sigma=1, suffix=''):
  		""" e.g., 'stamp-OIII5008_I_noised-1.0.fits' """
 		return self.get_fp_stamp_img(imgtag+self.get_tag_noised(img_sigma)+suffix)
 
 
-	def _get_measurer(self, msrtype='iso'):
-		if msrtype=='iso':
-			return imgmeasure.isoMeasurer(obj=self.obj, survey=self.survey, z=self.z, center_mode=self.center_mode)
-		else: 
-			raise InputError("[simulator] msrtype not understood")
+	def get_fp_stamp_binned(self, imgtag='OIII5008_I', binsize=2):
+		return self.get_fp_stamp_img(imgtag+'_binned-{binsize}'.format(binsize=str(binsize)))
+
+
+	def get_fp_psf_binned(self, imgtag='OIII5008_I', binsize=2):
+		return self.get_fp_psf(imgtag+'_binned-{binsize}'.format(binsize=str(binsize)))
 
 
 	def make_noised(self, imgtag='OIII5008_I', img_sigma=1, suffix='', overwrite=False):
@@ -96,13 +101,13 @@ class Simulator(Imager):
 		------------
 		e.g., stamp-OIII5008_I_noised-1.0.fits
 		"""
-		fn = self.get_fp_noised(imgtag=imgtag, img_sigma=img_sigma, suffix=suffix)
+		fn = self.get_fp_stamp_noised(imgtag=imgtag, img_sigma=img_sigma, suffix=suffix)
 
 		if not os.path.isfile(fn) or overwrite:
 			fn_img = self.get_fp_stamp_img(imgtag=imgtag)
 			hdus = fits.open(fn_img)
 			img = hdus[0].data
-			img = psfnoisetools.add_gaussnoise(img=img, noise_sigma=img_sigma)
+			img = simtools.add_gaussnoise(img=img, noise_sigma=img_sigma)
 
 			# write
 			hdus[0].data = img
@@ -161,7 +166,7 @@ class Simulator(Imager):
 				if running_indx:
 					img_suffix = '_{}'.format(str(i))
 
-				fn_img = self.get_fp_noised(imgtag=imgtag, img_sigma=img_sigma, suffix=img_suffix)
+				fn_img = self.get_fp_stamp_noised(imgtag=imgtag, img_sigma=img_sigma, suffix=img_suffix)
 				status = self.make_noised(imgtag=imgtag, img_sigma=img_sigma, suffix=img_suffix, overwrite=True)
 
 				if status:
@@ -170,7 +175,7 @@ class Simulator(Imager):
 					m.make_measurements(imgtag=imgtag+tag_noised+img_suffix, savecontours=False, plotmsr=False, msrsuffix=tag_noised, overwrite=False, append=True, **msrkwargs)
 
 					if summarize:
-						status = self._summarize_sim_noised_kernel(imgtag, tag_noised, img_suffix, **msrkwargs)
+						status = self._summarize_sim_noised_kernel(imgtag, tag_noised, img_suffix, overwrite=True, **msrkwargs)
 				else:
 					raise Exception("[simulator] noised image not successfully created")
 
@@ -183,7 +188,7 @@ class Simulator(Imager):
 		return os.path.isfile(fn_msr)
 
 
-	def _summarize_sim_noised_kernel(self, imgtag, tag_noised, img_suffix, **msrkwargs):
+	def _summarize_sim_noised_kernel(self, imgtag, tag_noised, img_suffix, overwrite=False, **msrkwargs):
 		m = self._get_measurer()
 		imgtagkwargs = {'imgtag': imgtag+tag_noised+img_suffix}
 		fn_msr = m.get_fp_msr(msrsuffix=tag_noised)
@@ -193,17 +198,17 @@ class Simulator(Imager):
 		img_suffix = ''
 
 		condi = dict(msrkwargs.items() + imgtagkwargs.items())
-		status1 = tabtools.summarize(fn_in=fn_msr, fn_out=fn_msr_smr, columns=[], condi=condi, overwrite=True)
+		status1 = tabtools.summarize(fn_in=fn_msr, fn_out=fn_msr_smr, columns=[], condi=condi, overwrite=overwrite)
 
 		condi = imgtagkwargs
-		status2 = tabtools.summarize(fn_in=fn_nl, fn_out=fn_nl_smr, columns=[], condi=condi, overwrite=True)
+		status2 = tabtools.summarize(fn_in=fn_nl, fn_out=fn_nl_smr, columns=[], condi=condi, overwrite=overwrite)
 
 		return np.all([status1, status2])
 
 
 	def summarize_sim_noised(self, imgtag='OIII5008_I', img_sigma=1, msrtype='iso', overwrite=False, **msrkwargs):
 		"""
-		stand alone function to summarize measurements and noiselevels. 
+		stand alone function to summarize measurements and noiselevels. Always overwrites. 
 
 		Params
 		------
@@ -217,6 +222,178 @@ class Simulator(Imager):
 		tag_noised = self.get_tag_noised(img_sigma=img_sigma)
 		img_suffix = ''
 
-		status = self._summarize_sim_noised_kernel(imgtag, tag_noised, img_suffix, **msrkwargs)
+		status = self._summarize_sim_noised_kernel(imgtag, tag_noised, img_suffix, overwrite=overwrite, **msrkwargs)
 		return status
+
+
+	def make_binned(self, imgtag='OIII5008_I', binsize=2, binpsf=False, overwrite=False):
+		"""
+		create binned image, e.g., stamp-OIII5008_I_binned-2.fits
+
+		Params
+		------
+		imgtag='OIII5008_I' (str)
+		binsize = 2
+			how many pixels to bin into one pix
+		binpsf=False
+			whether to also produce binned psf
+		overwrite=False
+
+		Return
+		------
+		status (bool)
+
+		Write Output
+		------------
+		e.g., stamp-OIII5008_I_binned-2.fits
+		"""
+		fn = self.get_fp_stamp_binned(imgtag=imgtag, binsize=binsize)
+
+		if not os.path.isfile(fn) or overwrite:
+			fn_img_in = self.get_fp_stamp_img(imgtag=imgtag)
+			
+			hdus = fits.open(fn_img_in)
+			img = hdus[0].data
+			img = simtools.bin_img(img=img, binsize=binsize)
+			# write
+			hdus[0].data = img
+			hdus[0].header['COMMENT'] = 'binned with binsize = {}'.format(str(binsize))
+			hdus.writeto(fn, overwrite=overwrite)
+
+			#=== psf
+			if binpsf:
+				print("[simulator] WARNING: bin psf not tested")
+				fn_psf = self.get_fp_psf_binned(imgtag=imgtag, binsize=binsize)
+				fn_psf_in = self.get_fp_psf(band=imgtag)
+				hdus = fits.open(fn_psf_in)
+				img = hdus[0].data
+				img = simtools.bin_img(img=img, binsize=binsize)
+				# write
+				hdus[0].data = img
+				hdus[0].header['COMMENT'] = 'binned with binsize = {}'.format(str(binsize))
+				hdus.writeto(fn_psf, overwrite=overwrite)
+
+		else:
+			print("[simulator] skip making binned image a file exists")
+
+		return os.path.isfile(fn)
+
+
+	def get_tag_smeared(self, gamma=3., alpha=1.):
+		return '_smeared-moffatg{gamma}a{alpha}'.format(gamma='%.0f'%gamma, alpha='%.0f'%alpha,)
+
+
+	def make_smeared(self, imgtag='OIII5008_I', gamma=3., alpha=1., nx=43, ny=43, overwrite=True):
+		"""
+		make image convolved by moffat psf kernel. 
+		"""
+		tag_smeared = self.get_tag_smeared(gamma=gamma, alpha=alpha)
+		fn = self.get_fp_stamp_img(imgtag=imgtag+tag_smeared)
+
+		if not os.path.isfile(fn) or overwrite:
+			d = self._get_decomposer()
+
+			fn_psf = d.get_fp_psf(fn)
+			fn_stamp_in = self.get_fp_stamp_img(imgtag=imgtag)
+			fn_psf_in = d.get_fp_psf(fn_stamp_in)
+
+			img = fits.getdata(fn_stamp_in)
+			psf = fits.getdata(fn_psf_in)
+
+			kernel = ac.Moffat2DKernel(gamma, alpha, x_size=nx, y_size=ny)
+			img_smeared = ac.convolve(img, kernel)
+			psf_smeared = ac.convolve(psf, kernel)
+
+			comment = 'PSF smeared by moffat kernel with gamma {} alpha {}'.format(str(gamma), str(alpha))
+			matchpsf.replace_img_in_fits(fn_stamp_in, fn, img_smeared, comment=comment, overwrite=overwrite)
+			fits.PrimaryHDU(psf_smeared).writeto(fn_psf, overwrite=overwrite)
+
+		else:
+			print("[simulator] skip making smeared image a file exists")
+
+		return os.path.isfile(fn)
+
+
+	def sim_smeared(self, imgtag='OIII5008_I', smearargs=at.Table([[1.], [1.]], names=['gamma', 'alpha']), msrtype='iso', keep_img=True, overwrite=True, **msrkwargs):
+		"""
+		simulate noise images and make measurements with 'niter' iterations. 
+
+		Params
+		------
+		imgtag='OIII5008_I' (str)
+		smearargs=at.Table([[1.], [1.]], names=['gamma', 'alpha']) (astropy table)
+			a table containing the param sets to use for smearing
+		msrtype='iso'
+		keep_img=False
+			whether to keep fits images
+		overwrite=False
+		**msrkwargs:
+			additional arguments for m.make_measurements()
+
+		Return
+		------
+		status (bool)
+ 
+		Write Output
+		------------
+		e.g., msr_iso_smeared-moffatg1a1.csv, psf_smeared-moffatg1a1.csv
+		"""
+
+		m = self._get_measurer(msrtype=msrtype)
+		d = self._get_decomposer()
+		msrsuffix = '_smeared'
+		fn_msr = m.get_fp_msr(msrsuffix=msrsuffix)
+		fn_psftab = d.get_fp_psf_tab(msrsuffix=msrsuffix)
+
+		if not os.path.isfile(fn_msr) or overwrite:
+			if (os.path.isfile(fn_msr)) and overwrite:
+				# Delete before writing
+				os.remove(fn_msr)
+				os.remove(fn_psftab)
+
+			for row in smearargs:
+				gamma = row['gamma']
+				alpha = row['alpha']
+
+				tag_smeared = self.get_tag_smeared(gamma=gamma, alpha=alpha)
+				status = self.make_smeared(imgtag=imgtag, gamma=gamma, alpha=alpha, overwrite=True)
+
+				if status:
+					m.make_measurements(imgtag=imgtag+tag_smeared, savecontours=False, plotmsr=False, msrsuffix=msrsuffix, overwrite=False, append=True, **msrkwargs)
+					d.make_psf_tab(imgtag=imgtag+tag_smeared, msrsuffix=msrsuffix, overwrite=False, append=True)
+				else:
+					raise Exception("[simulator] smeared image not successfully created")
+
+				if not keep_img:
+					fn_img = self.get_fp_stamp_img(imgtag=imgtag+tag_smeared)
+					fn_psf = d.get_fp_psf(fn_img)
+					os.remove(fn_img)
+					os.remove(fn_psf)
+
+			# add header
+			fn_psftab = d.get_fp_psf_tab(msrsuffix=msrsuffix)
+			tpsf = at.Table.read(fn_psftab)
+			tpsf = at.hstack([smearargs, tpsf])
+			tpsf.rename_column('gamma', 'smearing_gamma')
+			tpsf.rename_column('alpha', 'smearing_alpha')
+			tpsf.write(fn_psftab, overwrite=True)
+
+		else: 
+			print("[simulator] skip sim_smeared as file exists")
+
+		return os.path.isfile(fn_msr)
+
+
+	def _get_measurer(self, msrtype='iso'):
+		if msrtype == 'iso':
+			return imgmeasure.isoMeasurer(obj=self.obj, survey=self.survey, z=self.z, center_mode=self.center_mode)
+		else: 
+			raise InputError("[simulator] msrtype not understood")
+
+
+	def _get_decomposer(self, decomtype='plain'):
+		if decomtype == 'plain':
+			return imgdecompose.plainDecomposer(obj=self.obj, survey=self.survey, z=self.z, center_mode=self.center_mode)
+		else: 
+			raise InputError("[simulator] decomtype not understood")
 
