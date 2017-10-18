@@ -43,7 +43,7 @@ class imgLoader(obsobj.Operator):
 		Attributes
 		----------
 		Operator Attributes:	
-			obj (instance of objObj)
+			obj (instance of obsObj)
 			ra (float)
 			dec (float)
 			dir_obj (string)
@@ -301,7 +301,7 @@ class imgLoader(obsobj.Operator):
 
 
 	def get_imager(self):
-		return objobj.imager.Imager(obj=self.obj, survey=self.survey)
+		return obsobj.imager.Imager(obj=self.obj, survey=self.survey)
 
 
 

@@ -3,6 +3,7 @@ import pytest
 import os
 import shutil
 import astropy.table as at
+from astropy.io import ascii
 from .. import tabtools
 
 dir_test = './testing/'
@@ -144,3 +145,20 @@ def test_isomeasurer_summarize(measurer1):
 	assert tab_sum['area_ars_median'] == np.median(tab['area_ars'])
 	assert tab_sum['area_ars_p16'] == np.percentile(tab['area_ars'], 16)
 	assert tab_sum['area_ars_p84'] == np.percentile(tab['area_ars'], 84)
+
+
+def test_extract_line_from_file():
+
+	fn_out = dir_test+'msr_iso_compile.csv'
+	fn = dir_test +'hsc_xid.csv'
+	fn_empty = dir_test+'hsc_xid_empty.csv'
+
+	header = tabtools.extract_line_from_file(fn, iline=0)	
+	l = tabtools.extract_line_from_file(fn, iline=1, comment='#', fill_trailing_empty=True)
+
+	l_empty = tabtools.extract_line_from_file(fn_empty, iline=1, comment='#', fill_trailing_empty=True)
+
+	tab_data = ascii.read([header, l, l_empty])
+	tab_data.write(fn_out, format='ascii.csv')
+	
+	assert tab_data[1]['object_id'].mask == True

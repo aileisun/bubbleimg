@@ -185,8 +185,6 @@ class plainDecomposer(Decomposer):
 			self.make_stamp_psfmatch(band=bandfrom, bandto=bandto, overwrite=overwrite)
 			self._subtract_img_w_ratio(fn1=fn_band, fn2=fn_cont, fnout=fn_out, a1=1., a2=ratioconti, overwrite=overwrite)
 
-
-
 			# copy psf
 			fn_psf_in = self.get_fp_psf(fn_band)
 			fn_psf_out = self.get_fp_psf(fn_out)

@@ -45,7 +45,7 @@ def test_batch_build(batch_good):
 	b = batch_good
 
 	kwargs = {'environment': 'online'}
-	status = b.build(func_build, **kwargs)
+	status = b.build(func_build, processes=-1, **kwargs)
 
 	assert status
 	assert os.path.isdir(b.dir_batch+'good/')

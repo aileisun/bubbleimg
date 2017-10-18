@@ -5,6 +5,7 @@ from astropy.io import fits
 import numpy as np
 import astropy.convolution as ac
 import astropy.table as at
+import copy
 
 from ..obsobj import Imager
 from .. import imgmeasure
@@ -286,6 +287,20 @@ class Simulator(Imager):
 	def make_smeared(self, imgtag='OIII5008_I', gamma=3., alpha=1., nx=43, ny=43, overwrite=True):
 		"""
 		make image convolved by moffat psf kernel. 
+
+		Params
+		------
+		self, imgtag='OIII5008_I', gamma=3., alpha=1., nx=43, ny=43, overwrite=True
+
+		Return
+		------
+		status (bool)
+
+		Write Output
+		------------
+		e.g., 
+			stamp-OIII5008_I_smeared-moffatg2a1.fits
+			psf-OIII5008_I_smeared-moffatg2a1.fits
 		"""
 		tag_smeared = self.get_tag_smeared(gamma=gamma, alpha=alpha)
 		fn = self.get_fp_stamp_img(imgtag=imgtag+tag_smeared)
@@ -314,7 +329,7 @@ class Simulator(Imager):
 		return os.path.isfile(fn)
 
 
-	def sim_smeared(self, imgtag='OIII5008_I', smearargs=at.Table([[1.], [1.]], names=['gamma', 'alpha']), msrtype='iso', keep_img=True, overwrite=True, **msrkwargs):
+	def sim_smeared(self, imgtag='OIII5008_I', smearargs=at.Table([[2.], [2.]], names=['gamma', 'alpha']), msrtype='iso', keep_img=True, overwrite=True, **msrkwargs):
 		"""
 		simulate noise images and make measurements with 'niter' iterations. 
 
@@ -351,6 +366,10 @@ class Simulator(Imager):
 				os.remove(fn_msr)
 				os.remove(fn_psftab)
 
+			# measure before smearing
+			m.make_measurements(imgtag=imgtag, savecontours=False, plotmsr=False, msrsuffix=msrsuffix, overwrite=False, append=True, **msrkwargs)
+			d.make_psf_tab(imgtag=imgtag, msrsuffix=msrsuffix, overwrite=False, append=True)
+
 			for row in smearargs:
 				gamma = row['gamma']
 				alpha = row['alpha']
@@ -371,12 +390,12 @@ class Simulator(Imager):
 					os.remove(fn_psf)
 
 			# add header
-			fn_psftab = d.get_fp_psf_tab(msrsuffix=msrsuffix)
-			tpsf = at.Table.read(fn_psftab)
-			tpsf = at.hstack([smearargs, tpsf])
-			tpsf.rename_column('gamma', 'smearing_gamma')
-			tpsf.rename_column('alpha', 'smearing_alpha')
-			tpsf.write(fn_psftab, overwrite=True)
+			theader_0 = at.Table([[0.], [0.]], names=['gamma', 'alpha'])
+			theader = at.vstack([theader_0, smearargs])
+			theader.rename_column('gamma', 'smearing_gamma')
+			theader.rename_column('alpha', 'smearing_alpha')
+			_attach_header_columns_to_tab(fn_msr, theader)
+			_attach_header_columns_to_tab(fn_psftab, theader)
 
 		else: 
 			print("[simulator] skip sim_smeared as file exists")
@@ -397,3 +416,7 @@ class Simulator(Imager):
 		else: 
 			raise InputError("[simulator] decomtype not understood")
 
+def _attach_header_columns_to_tab(fn, theader):
+	tab = at.Table.read(fn)
+	tab = at.hstack([theader, tab])
+	tab.write(fn, overwrite=True)

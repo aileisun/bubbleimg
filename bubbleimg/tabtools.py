@@ -2,6 +2,7 @@ import io
 import os
 import numpy as np
 import astropy.table as at
+from astropy.io import ascii
 
 def write_row(fn, row, condi, overwrite=False, append=False):
 	"""
@@ -34,16 +35,23 @@ def write_row(fn, row, condi, overwrite=False, append=False):
 
 def append_row_to_end(fn, row, withheader=False):
 	""" append the row to the end of file """
-	with io.BytesIO() as f_temp: 
-		row.write(f_temp, format='ascii.csv')
-		rowstring = f_temp.getvalue()
-
-	if not withheader:
-		# take out header
-		rowstring = '\n'.join(rowstring.splitlines()[1:]) + '\n'
+	rowstring = tab_to_string(row, withheader=withheader)
 
 	with open(fn, 'a') as f_to:
 		f_to.write(rowstring)
+
+
+def tab_to_string(tab, withheader=False):
+	""" turn table into string with each line seperated by \n """
+	with io.BytesIO() as f_temp: 
+		tab.write(f_temp, format='ascii.csv')
+		tabstring = f_temp.getvalue()
+
+	if not withheader:
+		# take out header
+		tabstring = '\n'.join(tabstring.splitlines()[1:]) + '\n'
+
+	return tabstring
 
 
 def fn_has_row(fn, condi):
@@ -148,7 +156,6 @@ def get_select(tab, condi):
 	select_arr = [[str(tab[key][i]) == str(condi[key]) for i in range(len(tab))] for key in condi]
 	select = np.all(select_arr, axis=0)
 	return select
-	
 
 
 def summarize(fn_in, fn_out, columns=[], condi={}, overwrite=False):
@@ -204,3 +211,44 @@ def summarize(fn_in, fn_out, columns=[], condi={}, overwrite=False):
 		print("[tabtools] skip summarizing as files exist")
 
 	return os.path.isfile(fn_out)
+
+
+def extract_line_from_file(fn, iline=1, comment='#', fill_trailing_empty=True): 
+	""" 
+	return the iline-th line of the file which is non-empty and does not start with the comment ('#' by default).  
+	if fill_trailing_emtpy is True then if iline is larger than the number of lines then return comma seperated empty values with the size the same as the header line. 
+
+	iline could be either integer or slice instances, such as iline=slice(1, None, None) will return all lines after the first one. 
+
+	Params
+	------
+	fn (str)
+	iline=1 (int or slice instance)
+	comment='#'
+	fill_trailing_empty=True
+
+	Return 
+	------
+	list of strings (lines)
+	"""
+
+	with open(fn, 'r') as f:
+		data = f.read()
+	lines = data.split('\n')
+
+	lines_noncomment = []
+	for line in lines:
+		if len(line) > 0:
+			if (line[0] != comment):
+				lines_noncomment += [line]
+
+	if iline < len(lines_noncomment) or isinstance(iline, slice): 
+		return lines_noncomment[iline]
+
+	elif fill_trailing_empty and len(lines_noncomment)>0:
+		n_comma = lines_noncomment[0].count(',') 
+		return "," * n_comma
+
+	else:
+		raise Exception("[batch] _extract_line_from_file iline exceeding the number of lines")
+

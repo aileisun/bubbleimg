@@ -11,6 +11,7 @@ import copy
 import multiprocessing as mtp
 
 from .. import obsobj
+from .. import tabtools
 import mtp_tools
 
 class Batch(object):
@@ -119,6 +120,7 @@ class Batch(object):
 		self._set_attr_list()
 		self._set_attr_list_good()
 		self._set_attr_list_except()
+		self.args_in_list = ['ra', 'dec', 'obj_name'] + self.args_to_list
 
 		# sanity check
 		if self.dir_batch[-1] != '/':
@@ -214,7 +216,7 @@ class Batch(object):
 		return obj
 
 
-	def compile_table(self, fn_tab, overwrite=False):
+	def compile_table(self, fn_tab, alllines=False, overwrite=False):
 		"""
 		compile table fn_tab for the entire batch and creates self.dir_batch+fn_tab.
 
@@ -223,6 +225,8 @@ class Batch(object):
 		self
 		fn_tab (str):
 			file name of the table to be compiled, e.g., 'sdss_photoobj.csv'.
+		alllines=True (str):
+			if true, then compile all the lines in the file. Otherwise, compile only the first line of content. 
 		overwrite (bool)
 
 		Return
@@ -241,27 +245,37 @@ class Batch(object):
 		if not os.path.isfile(fp) or overwrite:
 			print("[batch] compiling table {}".format(fn_tab))
 
+			#=== compiling good objects
 			if len(self.list_good) > 0:
 				obj1 = self.get_ith_obj_from_list(iobj=0, listname='good')
-				header = _extract_line_from_file(obj1.dir_obj+fn_tab, iline=0)
 
-				lines_data = self.iterlist(func=self._iterfunc_extract_line_from_file, listargs=[], listname='good', processes=-1, overwrite=False, **{'fn': fn_tab})
-				tab_data = ascii.read([header]+lines_data)
-
-				self._rename_list_args(tab_data)
-				tab_good = at.hstack([self.list_good, tab_data])
+				# making header
+				header_heading = ",".join(self.args_in_list)
+				tab_example = at.Table.read(obj1.dir_obj+fn_tab)
+				self._rename_list_args(tab_example)
+				header_content = tabtools.tab_to_string(tab_example, withheader=True).split("\n")[0]
+				header = ",".join([header_heading, header_content])
+				# compiling content
+				lines_data = self.iterlist(func=self._iterfunc_extract_line_from_file, listargs=[], listname='good', processes=-1, overwrite=False, **dict(fn=fn_tab, alllines=alllines, wlist_heading=True))
+				if isinstance(lines_data[0], list):
+					lines_data = [line for anobj in lines_data for line in anobj]
+				# merge header with content
+				tab_good = ascii.read([header]+lines_data)
 			else:
 				tab_good = at.Table()
 
+			#=== compiling except objects (with masked content)
 			if len(self.list_good) > 0 and len(self.list_except) > 0:
-				row_masked = at.Table(tab_data[0], masked=True)
+				row_masked = at.Table(tab_good[0], masked=True)
 				row_masked.mask = True
+				for col in self.args_in_list:
+					del row_masked[col]
 				tab_masked = at.vstack([row_masked for i in range(len(self.list_except))])
-				self._rename_list_args(tab_masked)
 				tab_except = at.hstack([self.list_except, tab_masked])
 			else:
 				tab_except = at.Table()
 
+			#=== combining
 			tab = at.vstack([tab_good, tab_except])
 
 			if len(tab) > 0:
@@ -581,7 +595,7 @@ class Batch(object):
 		return lst
 
 
-	def _iterfunc_extract_line_from_file(self, obj, fn, iline=1, overwrite=False):
+	def _iterfunc_extract_line_from_file(self, obj, fn, alllines=False, wlist_heading=False, overwrite=False):
 		""" 
 		function to be iterated for each object to return a particular line in the file as a string
 
@@ -591,20 +605,44 @@ class Batch(object):
 		obj
 		fn (str):
 			file name 
-		iline (int):
-			the number of the row
+		alllines (bool):
+			if true than return all the lines, otherwise return only the first line of content. 
+		wlist_heading (bool):
+			if true, then have the object list heading (ra, dec, obj_name, etc.) attached in front of the content. 
 		overwrite (bool):
 			can be ignored
 		"""
-		return _extract_line_from_file(obj.dir_obj+fn, iline=iline)
+		if alllines:
+			iline = slice(1, None, None)
+		else: 
+			iline = 1
+
+		str_content = tabtools.extract_line_from_file(obj.dir_obj+fn, iline=iline)
+
+		if wlist_heading:
+			tab_heading = self._get_obj_list_heading(obj=obj)
+			str_heading = tabtools.tab_to_string(tab_heading, withheader=False).split("\n")[0]
+
+			if isinstance(str_content, list):
+				result = [",".join([str_heading, str_line]) for str_line in str_content]
+			else:
+				result = ",".join([str_heading, str_content])
+		else: 
+			result = str_content
+
+		return result
+
+
+	def _get_obj_list_heading(self, obj):
+		""" get the header of the object listed in list """
+		lst = self.list
+		condi = dict(ra=obj.ra, dec=obj.dec, obj_name=obj.name)
+		return tabtools.tab_extract_row(lst, condi)
 
 
 	def _rename_list_args(self, tab):
 		""" rename the arguments that could conflict with the ones in list """
-
-		args = ['ra', 'dec', 'obj_name'] + self.args_to_list
-
-		for arg in args:
+		for arg in self.args_in_list:
 			if arg in tab.colnames:
 				tab.rename_column(arg, arg+'_1')
 
@@ -638,30 +676,4 @@ class Batch(object):
 				if not all(arr_list == arr_fold): 
 					raise Exception("[batch] list of object folders inconsistent with the list in the batch")
 
-
-def _extract_line_from_file(fn, iline=1, comment='#', fill_trailing_empty=True): 
-	""" 
-	return the iline-th line of the file which is non-empty and does not start with the comment ('#') 
-	if fill_trailing_emtpy then if iline is larger than the number of lines then return comma seperated empty values with the size the same as the header line. 
-	"""
-
-	with open(fn, 'r') as f:
-		data = f.read()
-	lines = data.split('\n')
-
-	lines_noncomment = []
-	for line in lines:
-		if len(line) > 0:
-			if (line[0] != comment):
-				lines_noncomment += [line]
-
-	if iline < len(lines_noncomment): 
-		return lines_noncomment[iline]
-
-	elif fill_trailing_empty and len(lines_noncomment)>0:
-		n_comma = lines_noncomment[0].count(',') 
-		return "," * n_comma
-
-	else:
-		raise Exception("[batch] _extract_line_from_file iline exceeding the number of lines")
 

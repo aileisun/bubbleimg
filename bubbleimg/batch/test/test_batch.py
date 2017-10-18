@@ -97,19 +97,3 @@ def test_batch_write_list(batch1):
 	assert len(lst) > 0
 
 
-def test_extract_line_from_file():
-	if not os.path.isdir(dir_parent):
-		os.mkdir(dir_parent)
-
-	fn_out = dir_parent+'hsc_xid_compiled.csv'
-	fn = dir_veri +'hsc_xid.csv'
-	header = batch._extract_line_from_file(fn, iline=0)	
-	l = batch._extract_line_from_file(fn, iline=1, comment='#', fill_trailing_empty=True)
-
-	fn_empty = dir_veri+'hsc_xid_empty.csv'
-	l_empty = batch._extract_line_from_file(fn_empty, iline=1, comment='#', fill_trailing_empty=True)
-
-	tab_data = ascii.read([header, l, l_empty])
-	tab_data.write(fn_out, format='ascii.csv')
-	
-	assert tab_data[1]['object_id'].mask == True

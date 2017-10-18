@@ -22,10 +22,10 @@ def setUp_tearDown():
 		shutil.rmtree(dir_parent)
 	os.mkdir(dir_parent)
 
-	yield
-	# tear down
-	if os.path.isdir(dir_parent):
-		shutil.rmtree(dir_parent)
+	# yield
+	# # tear down
+	# if os.path.isdir(dir_parent):
+	# 	shutil.rmtree(dir_parent)
 
 
 def test_batch_compile_table(batch_good):
@@ -136,4 +136,20 @@ def test_batch_compile_incomplete_table(batch_hscphotoobj_incomplete):
 	assert len(tab.colnames) == len(tab1.colnames) + 3
 
 
+
+def test_batch_compile_multiline(batch_multiline):
+
+	b = batch_multiline
+	fn = 'psf_smeared.csv'
+	fp = b.dir_batch+fn
+
+	b.compile_table(fn, alllines=True)
+
+	assert os.path.isfile(fp)
+
+	tab = at.Table.read(fp)
+
+	assert len(tab) == 15
+
+	assert 'psf_fwhm_arcs' in tab.colnames
 

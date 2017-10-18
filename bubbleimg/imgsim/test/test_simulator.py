@@ -275,9 +275,11 @@ def test_simulator_sim_smeared_not_keep_img(simulator1):
 
 	imgtag = 'OIII5008_I'
 	smearargs = at.Table([[1.5, 2., 3., 4.], [2.5, 2.5, 2.5, 2.5]], names=['gamma', 'alpha'])
-	s.sim_smeared(imgtag=imgtag, smearargs=smearargs, msrtype='iso', keep_img=False, overwrite=True)
+	status = s.sim_smeared(imgtag=imgtag, smearargs=smearargs, msrtype='iso', keep_img=False, overwrite=True)
 	d = s._get_decomposer()
 	d.make_psf_tab(imgtag=imgtag)
+
+	assert status
 
 	for i, smeararg in enumerate(smearargs):
 		alpha = smeararg['alpha']
@@ -294,7 +296,7 @@ def test_simulator_sim_smeared_not_keep_img(simulator1):
 		fn = s.dir_obj+'msr_iso_smeared.csv'
 		assert os.path.isfile(fn)
 		tab = at.Table.read(fn)
-		assert tab['imgtag'][i] == imgtag+smearedtag
+		assert tab['imgtag'][i+1] == imgtag+smearedtag
 
 		fn = s.dir_obj+'psf_smeared.csv'
 		assert os.path.isfile(fn)
