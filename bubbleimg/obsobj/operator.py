@@ -3,12 +3,10 @@
 
 import abc
 
-from obsobj import obsObj
+from .obsobj import obsObj
 
 
-class Operator(object):
-	__metaclass__ = abc.ABCMeta
-
+class Operator(object, metaclass=abc.ABCMeta):
 	def __init__(self, **kwargs):
 		"""
 		objOperator
@@ -51,6 +49,6 @@ class Operator(object):
 		self.dir_obj = self.obj.dir_obj
 
 		# sanity check
-		if (self.ra is None) or (self.dec is None) or (self.dir_obj is None):
-			raise TypeError('ra or dec or dir_obj not specified')
+		if self.dir_obj is None:
+			raise TypeError('dir_obj not specified')
 		

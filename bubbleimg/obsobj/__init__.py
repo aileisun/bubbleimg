@@ -4,13 +4,13 @@
 __all__ = ['obsobj', 'plainobj', 'sdss', 'hsc', 'objnaming', 'operator', 'imager']
 
 
-import obsobj
-import plainobj
-import sdss
-import hsc
-import objnaming
-import operator
-import imager
+from . import obsobj
+from . import plainobj
+from . import sdss
+from . import hsc
+from . import objnaming
+from . import operator
+from . import imager
 
 # reload(obsobj)
 # reload(plainobj)
@@ -20,9 +20,9 @@ import imager
 # reload(operator)
 # reload(imager)
 
-from obsobj import obsObj
-from operator import Operator
-from imager import Imager
+from .obsobj import obsObj
+from .operator import Operator
+from .imager import Imager
 
-from sdss import sdssObj
-from hsc import hscObj
+from .sdss import sdssObj
+from .hsc import hscObj

@@ -8,7 +8,7 @@ import astropy.table as at
 
 from ..obsobj import Imager
 from .. import tabtools
-import noiselevel
+from . import noiselevel
 
 class Measurer(Imager):
 
@@ -161,7 +161,7 @@ class Measurer(Imager):
 
 		if append or overwrite or (not tabtools.fn_has_row(fn, condi)):
 
-			print("[measurer] making noiselevel for {}".format(imgtag))
+			print(("[measurer] making noiselevel for {}".format(imgtag)))
 			img = self.get_stamp_img(imgtag=imgtag, wunit=True)
 			u_img = img.unit
 			img = np.array(img)
@@ -172,7 +172,7 @@ class Measurer(Imager):
 			tabtools.write_row(fn=fn, row=tab, condi=condi, overwrite=overwrite, append=append)
 			# tab.write(fn, format='ascii.csv', overwrite=overwrite)
 		else:
-			print("[measurer] skip making noiselevel for {} as files exist".format(imgtag))
+			print(("[measurer] skip making noiselevel for {} as files exist".format(imgtag)))
 
 		return os.path.isfile(fn)
 

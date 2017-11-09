@@ -3,25 +3,17 @@
 
 __all__ = ['main','filtertools']
 
-import main
-import filtertools
-import getzrange_batch
-import getzrange_line
-import getllambda
-import surveysetup
-import inttools
+from bubbleimg.filters import main
+from bubbleimg.filters import filtertools
+from bubbleimg.filters import getzrange_batch
+from bubbleimg.filters import getzrange_line
+from bubbleimg.filters import getllambda
+from bubbleimg.filters import surveysetup
+from bubbleimg.filters import inttools
 
-reload(main)
-reload(filtertools)
-reload(getzrange_batch)
-reload(getzrange_line)
-reload(getllambda)
-reload(surveysetup)
-reload(inttools)
-
-from filtertools import getFilterResponseFunc
-from filtertools import getNormTransFunc
-from filtertools import getFilterCentroids
-from filtertools import getlocalpath
-from filtertools import accessFile
-from getllambda import getllambda
+from bubbleimg.filters.filtertools import getFilterResponseFunc
+from bubbleimg.filters.filtertools import getNormTransFunc
+from bubbleimg.filters.filtertools import getFilterCentroids
+from bubbleimg.filters.filtertools import getlocalpath
+from bubbleimg.filters.filtertools import accessFile
+from bubbleimg.filters.getllambda import getllambda

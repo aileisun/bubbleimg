@@ -11,7 +11,7 @@ import re
 from ..loader import imgLoader
 from ...filters import surveysetup
 from ..get_credential import getCrendential
-import hscurl
+from . import hscurl
 # from downloadbutler import multiButler
 # import psf
 
@@ -194,7 +194,7 @@ class hscimgLoader(imgLoader):
 
 			return True
 		else:  
-			print "[hscimgloader] image cannot be retrieved"
+			print("[hscimgloader] image cannot be retrieved")
 			return False
 
 
@@ -275,7 +275,7 @@ class hscimgLoader(imgLoader):
 				return rqst
 				break
 			except requests.exceptions.RequestException as e:
-				print("[hscimgloader] retrying as error detected: "+str(e))
+				print(("[hscimgloader] retrying as error detected: "+str(e)))
 
 
 	def _write_request_to_file(self, rqst, fn=''):

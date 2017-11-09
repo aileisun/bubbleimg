@@ -3,8 +3,9 @@
 
 __all__ = ['sdssobj']
 
-import sdssobj
+from . import sdssobj
+import imp
 
-reload(sdssobj)
+imp.reload(sdssobj)
 
-from sdssobj import sdssObj
+from .sdssobj import sdssObj

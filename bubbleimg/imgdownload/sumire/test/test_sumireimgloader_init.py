@@ -227,7 +227,7 @@ def test_transform_img_widthheight_unit_to_pix(L_radec):
 
 def test_sumireimgLoader_get_img_width_pix(L_radec): 
 	L = L_radec
-	print L.img_width_pix
+	print(L.img_width_pix)
 	assert type(L.img_width_pix) is int
 	assert (L.img_width_pix) == 119.
 

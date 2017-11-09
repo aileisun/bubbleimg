@@ -3,8 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-import polytools
-import plottools
+from . import polytools
+from . import plottools
 
 def main():
 	img = np.array([[0, 0, 0,], [0, 1, 0], [0, 0, 0]])
@@ -25,7 +25,7 @@ def main():
 	contours = polytools.find_contours(img, threshold, tocomplete=True)
 
 	area = polytools.NetPolygonsArea(contours)
-	print area
+	print(area)
 
 	fig, ax = plottools.plot_img(img, colorlabel='')
 	plottools.overplot_contours(ax, contours)
@@ -39,7 +39,7 @@ def main():
 	contours = polytools.find_contours(img, threshold, tocomplete=True)
 
 	area = polytools.NetPolygonsArea(contours)
-	print area
+	print(area)
 
 
 	fig, ax = plottools.plot_img(img, colorlabel='')

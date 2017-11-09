@@ -10,8 +10,8 @@ import numpy as np
 from ..decomposer import Decomposer
 from ... import tabtools
 
-import matchpsf
-import plotpsf_tools
+from . import matchpsf
+from . import plotpsf_tools
 
 class plainDecomposer(Decomposer):
 
@@ -161,14 +161,14 @@ class plainDecomposer(Decomposer):
 
 			# psf matching accorindg to which psf is larger
 			if self._band_has_smaller_psf(band, bandconti, fracdiff_threshold=fwhm_fracdiff_threshold):
-				print("[decomposer] matching psf of {}-band to conti {}-band".format(band, bandconti))
+				print(("[decomposer] matching psf of {}-band to conti {}-band".format(band, bandconti)))
 				bandfrom = band
 				bandto = bandconti
 				fn_band = self.get_fp_stamp_psfmatched(band=bandfrom, bandto=bandto)
 				fn_cont = self.get_fp_stamp(bandto)
 
 			elif self._band_has_smaller_psf(bandconti, band, fracdiff_threshold=fwhm_fracdiff_threshold):
-				print("[decomposer] matching psf of conti {}-band to {}-band".format(bandconti, band))
+				print(("[decomposer] matching psf of conti {}-band to {}-band".format(bandconti, band)))
 				bandfrom = bandconti
 				bandto = band
 				fn_band = self.get_fp_stamp(bandto)

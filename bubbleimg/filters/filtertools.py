@@ -17,10 +17,10 @@ from scipy.optimize import fsolve
 
 import glob
 
-from surveysetup import surveybands
-from surveysetup import waverange
+from .surveysetup import surveybands
+from .surveysetup import waverange
 
-import inttools
+from . import inttools
 
 
 def getlocalpath():
@@ -306,7 +306,7 @@ def accessTabZranges(lineconfig = 'wOIII_nHaNIISII', survey='sdss', joinsurveys=
             tabnew = at.Table.read(f, format='ascii')
             tab = at.vstack([tab, tabnew])
 
-        print filenames
+        print(filenames)
 
     return tab
 

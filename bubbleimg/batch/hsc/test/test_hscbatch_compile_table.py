@@ -7,8 +7,8 @@ import os
 import shutil
 import astropy.table as at
 
-from setpaths import *
-from fixture_built_batch import *
+from .setpaths import *
+from .fixture_built_batch import *
 
 fn_tab = 'sdss_xid.csv'
 

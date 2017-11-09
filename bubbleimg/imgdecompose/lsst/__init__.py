@@ -2,7 +2,7 @@
 
 __all__ = ['lsstdecomposer']
 
-import lsstdecomposer
+from . import lsstdecomposer
 
-from lsstdecomposer import lsstDecomposer
+from .lsstdecomposer import lsstDecomposer
 

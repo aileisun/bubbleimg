@@ -51,7 +51,7 @@ def two_kernels_are_similar(k0, k1, avgdiff_threshold=1.e-3):
 	avgdiffsq = np.average((k0_m - k1_m)**2, weights=k0_m)
 
 	avgdiff = np.sqrt(avgdiffsq)
-	print("avgdiff "+str(avgdiff))
+	print(("avgdiff "+str(avgdiff)))
 	return avgdiff < avgdiff_threshold
 
 
@@ -221,7 +221,7 @@ def test_calc_psf_fwhm_inpix():
 		fwhm_manual_measured_inpix = 4.869
 
 		fracerr = np.absolute((fwhm_inpix - fwhm_manual_measured_inpix)/fwhm_manual_measured_inpix)
-		print fracerr
+		print(fracerr)
 		assert fracerr < 0.2
 
 	# moffat is more accurate

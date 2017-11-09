@@ -3,9 +3,10 @@
 
 __all__ = ['hscobj']
 
-import hscobj
-import hscsspquery
+from . import hscobj
+from . import hscsspquery
+import imp
 
-reload(hscobj)
-reload(hscsspquery)
-from hscobj import hscObj
+imp.reload(hscobj)
+imp.reload(hscsspquery)
+from .hscobj import hscObj

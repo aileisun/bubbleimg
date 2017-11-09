@@ -16,7 +16,7 @@ import matplotlib.gridspec as gridspec
 import astropy.units as u
 from astropy.table import Table
 
-import polytools
+from . import polytools
 
 def make_plot_img_w_contours(fn_plot, img, contours):
     """ 

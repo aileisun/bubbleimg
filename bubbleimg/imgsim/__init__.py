@@ -2,7 +2,7 @@
 
 __all__ = ['simulator']
 
-import simulator
+from . import simulator
 
-from simulator import Simulator
+from .simulator import Simulator
 

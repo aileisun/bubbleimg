@@ -286,8 +286,8 @@ def test_spector_make_lineflux(spector1):
 	f, ferr = s._get_line_flux_sdss(line='OIII5008', wunit=False)
 
 	assert np.absolute(f-tab['f_OIII5008'][0]) / f < 0.05
-	print 'sdss ferr', ferr
-	print 'my ferr', tab['ferr_OIII5008'][0]
+	print('sdss ferr', ferr)
+	print('my ferr', tab['ferr_OIII5008'][0])
 	assert np.absolute(ferr-tab['ferr_OIII5008'][0]) / ferr < 0.1
 
 	# currently lines other than hb, OIII, are not supported

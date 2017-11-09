@@ -6,8 +6,8 @@ import lsst.afw.image as afwImage
 
 from .. import Decomposer
 
-import matchpsf
-import subtractexp
+from . import matchpsf
+from . import subtractexp
 
 class lsstDecomposer(Decomposer):
 

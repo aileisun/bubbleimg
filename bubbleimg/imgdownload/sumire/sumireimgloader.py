@@ -12,9 +12,9 @@ from ..loader import imgLoader
 from ...filters import surveysetup
 from ..get_credential import getCrendential
 
-import cutout
+from . import cutout
 # from lsst.daf.persistence import Butler
-from sumirebutler import Butler
+from .sumirebutler import Butler
 
 nanomaggy = u.def_unit('nanomaggy', 3.631e-6*u.Jy)
 u.add_enabled_units([nanomaggy])
@@ -124,7 +124,7 @@ class sumireimgLoader(imgLoader):
 			stamp.writeFits(fp)
 			return True
 		else:
-			print "[sumireimgloader] image cannot be retrieved"
+			print("[sumireimgloader] image cannot be retrieved")
 			return False
 
 

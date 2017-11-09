@@ -8,7 +8,7 @@ from astropy.io import fits
 from astropy.cosmology import FlatLambdaCDM
 cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
 
-from operator import Operator
+from .operator import Operator
 from .. import standards
 from ..filters import surveysetup
 from ..external_links import file_humvi_compose

@@ -12,7 +12,7 @@ import multiprocessing as mtp
 
 from .. import obsobj
 from .. import tabtools
-import mtp_tools
+from . import mtp_tools
 
 class Batch(object):
 	def __init__(self, survey, obj_naming_sys='sdss', args_to_list=[], **kwargs):
@@ -188,7 +188,7 @@ class Batch(object):
 		dec = row['dec']
 		obj_name = row['obj_name']
 
-		print("[batch] {obj_name} iterating".format(obj_name=obj_name))
+		print(("[batch] {obj_name} iterating".format(obj_name=obj_name)))
 
 		for arg in listargs:
 			kwargs.update({arg: row[arg]})
@@ -243,7 +243,7 @@ class Batch(object):
 		fp = self.dir_batch+fn_tab
 
 		if not os.path.isfile(fp) or overwrite:
-			print("[batch] compiling table {}".format(fn_tab))
+			print(("[batch] compiling table {}".format(fn_tab)))
 
 			#=== compiling good objects
 			if len(self.list_good) > 0:
@@ -283,10 +283,10 @@ class Batch(object):
 				tab.write(fp, overwrite=overwrite)
 			else:
 				# in case if there is no good object
-				print("[batch] skipped compiling table {} as no data to compile".format(fn_tab))
+				print(("[batch] skipped compiling table {} as no data to compile".format(fn_tab)))
 
 		else:
-			print("[batch] skipped compiling table {} as file exists".format(fn_tab))
+			print(("[batch] skipped compiling table {} as file exists".format(fn_tab)))
 
 		status = os.path.isfile(fp)	
 		return status 
@@ -420,9 +420,9 @@ class Batch(object):
 		status = (obj_names.sort() == (list_ran).sort())
 
 		if status: 
-			print("[batch] building batch {0} done".format(self.name))
+			print(("[batch] building batch {0} done".format(self.name)))
 		else: 
-			print("[batch] building batch {0} unfinished".format(self.name))
+			print(("[batch] building batch {0} unfinished".format(self.name)))
 
 		return status
 
@@ -436,15 +436,15 @@ class Batch(object):
 		dir_obj_except = self.dir_except+row['obj_name']+'/'
 
 		if (obj_name not in self.list_good['obj_name']) and (obj_name not in self.list_except['obj_name']):
-			print("[batch] {obj_name} building".format(obj_name=obj_name))
+			print(("[batch] {obj_name} building".format(obj_name=obj_name)))
 
 			try:
 				obj = obsobj.obsObj(ra=ra, dec=dec, dir_parent=self.dir_good, obj_naming_sys=self.obj_naming_sys, overwrite=overwrite)
 				obj.survey = self.survey
 				status = func_build(obj=obj, overwrite=overwrite, **kwargs)
 
-			except KeyboardInterrupt, e:
-				print("[batch] func_build() encounters exception {0}".format(str(e)))
+			except KeyboardInterrupt as e:
+				print(("[batch] func_build() encounters exception {0}".format(str(e))))
 				if os.path.isdir(dir_obj_good) and (obj_name not in self.list_good['obj_name']):
 					shutil.rmtree(dir_obj_good)
 				sys.exit(1)
@@ -463,7 +463,7 @@ class Batch(object):
 					ascii.write(row, output=f, format='no_header', delimiter=',')
 
 		else: 
-			print("[batch] {obj_name} skipped".format(obj_name=obj_name))
+			print(("[batch] {obj_name} skipped".format(obj_name=obj_name)))
 
 
 	def _set_attr_list(self):

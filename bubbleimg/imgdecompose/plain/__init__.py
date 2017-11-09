@@ -2,11 +2,11 @@
 
 __all__ = ['plaindecomposer']
 
-import plaindecomposer
+from . import plaindecomposer
 
-import matchpsf
+from . import matchpsf
 
-from plaindecomposer import plainDecomposer
+from .plaindecomposer import plainDecomposer
 
 # reload(plaindecomposer)
 # reload(matchpsf)

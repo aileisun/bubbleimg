@@ -1,9 +1,9 @@
 # obsobj.py
 # ALS 2017/05/11
 
-from plainobj import plainObj
-from sdss.sdssobj import sdssObj
-from hsc.hscobj import hscObj
+from .plainobj import plainObj
+from .sdss.sdssobj import sdssObj
+from .hsc.hscobj import hscObj
 
 
 class obsObj(plainObj):

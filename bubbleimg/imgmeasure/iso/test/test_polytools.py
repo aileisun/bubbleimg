@@ -26,7 +26,7 @@ def test_find_contours_one():
 
 	assert len(contours) == 1.
 
-	print("real area: ", np.sum(img), "cntr area: ", polytools.NetPolygonsArea(contours))
+	print(("real area: ", np.sum(img), "cntr area: ", polytools.NetPolygonsArea(contours)))
 
 	assert about_the_same_area(contours, np.sum(img), uncertainty=0.)
 
@@ -47,7 +47,7 @@ def test_find_contours_donut():
 
 	assert polytools.isinside_polygon(lowcontour[0], highcontour[0])
 
-	print("real area: ", np.sum(img), "cntr area: ", polytools.NetPolygonsArea(contours))
+	print(("real area: ", np.sum(img), "cntr area: ", polytools.NetPolygonsArea(contours)))
 
 	assert about_the_same_area(contours, np.sum(img), uncertainty=0.)
 
@@ -68,7 +68,7 @@ def test_find_contours_eight():
 
 	assert polytools.isinside_polygon(lowcontour[0], highcontour[0])
 
-	print("real area: ", np.sum(img), "cntr area: ", polytools.NetPolygonsArea(contours))
+	print(("real area: ", np.sum(img), "cntr area: ", polytools.NetPolygonsArea(contours)))
 
 	assert about_the_same_area(contours, np.sum(img), uncertainty=0.)
 
@@ -92,7 +92,7 @@ def test_find_centercontours():
 	yc = 0.
 
 	contours = polytools.find_centercontours(img, threshold, xc, yc, radius=0.)
-	print contours
+	print(contours)
 	assert len(contours) == 0
 
 	contours = polytools.find_centercontours(img, threshold, xc, yc, radius=2.)
@@ -163,8 +163,8 @@ def tests_ShapeParamsTab_from_contours():
 
 	tab = polytools.ShapeParamsTab_from_contours(contours, xc, yc)
 
-	print ""
-	print tab
+	print("")
+	print(tab)
 	assert len(tab) == 1
 
 	assert about_the_same_area(contours, tab['area_pix'], uncertainty = 0.) 

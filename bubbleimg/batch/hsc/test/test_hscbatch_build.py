@@ -14,7 +14,7 @@ from ..hscbatch import hscBatch
 from .... import imgdownload
 from .... import obsobj
 
-from setpaths import *
+from .setpaths import *
 
 
 @pytest.fixture(scope="module", autouse=True)

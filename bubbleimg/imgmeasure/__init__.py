@@ -2,11 +2,11 @@
 
 __all__ = ['measurer']
 
-import measurer
-import iso
+from . import measurer
+from . import iso
 
 # reload(iso)
 # reload(measurer)
 
-from measurer import Measurer
-from iso import isoMeasurer
+from .measurer import Measurer
+from .iso import isoMeasurer

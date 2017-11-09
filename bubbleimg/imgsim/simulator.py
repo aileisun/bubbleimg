@@ -12,7 +12,7 @@ from .. import imgmeasure
 from .. import imgdecompose
 from ..imgdecompose.plain import matchpsf
 from .. import tabtools
-import simtools
+from . import simtools
 
 class Simulator(Imager):
 
@@ -70,7 +70,7 @@ class Simulator(Imager):
 
 
 	def get_fp_stamp_noised(self, imgtag='OIII5008_I', img_sigma=1, suffix=''):
- 		""" e.g., 'stamp-OIII5008_I_noised-1.0.fits' """
+		""" e.g., 'stamp-OIII5008_I_noised-1.0.fits' """
 		return self.get_fp_stamp_img(imgtag+self.get_tag_noised(img_sigma)+suffix)
 
 
@@ -198,7 +198,7 @@ class Simulator(Imager):
 		fn_nl_smr = m.get_fp_noiselevel_smr(msrsuffix=tag_noised)
 		img_suffix = ''
 
-		condi = dict(msrkwargs.items() + imgtagkwargs.items())
+		condi = dict(list(msrkwargs.items()) + list(imgtagkwargs.items()))
 		status1 = tabtools.summarize(fn_in=fn_msr, fn_out=fn_msr_smr, columns=[], condi=condi, overwrite=overwrite)
 
 		condi = imgtagkwargs

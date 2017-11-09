@@ -3,15 +3,16 @@
 
 __all__ = ['filters', 'external_links', 'standards', 'imgdownload', 'obsobj', 'batch', 'spector']
 
-import filters, external_links, standards, imgdownload, obsobj, batch, spector, imgdecompose, imgmeasure, imgsim
+from bubbleimg import filters, external_links, standards, imgdownload, obsobj, batch, spector, imgdecompose, imgmeasure, imgsim
+import imp
 
-reload(filters)
-reload(external_links)
-reload(standards)
-reload(imgdownload)
-reload(obsobj)
-reload(batch)
-reload(spector)
-reload(imgdecompose)
-reload(imgmeasure)
-reload(imgsim)
+imp.reload(filters)
+imp.reload(external_links)
+imp.reload(standards)
+imp.reload(imgdownload)
+imp.reload(obsobj)
+imp.reload(batch)
+imp.reload(spector)
+imp.reload(imgdecompose)
+imp.reload(imgmeasure)
+imp.reload(imgsim)

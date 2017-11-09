@@ -13,14 +13,15 @@ are .txt files:
 """
 # from pylab import *
 
-import filtertools
-reload(filtertools)
+from . import filtertools
+import imp
+imp.reload(filtertools)
 
-import getzrange_batch
-reload(getzrange_batch)
+from . import getzrange_batch
+imp.reload(getzrange_batch)
 
-import getzrange_line
-reload(getzrange_line)
+from . import getzrange_line
+imp.reload(getzrange_line)
 
 def main():
 	"""
@@ -50,7 +51,7 @@ def main():
 	survey = 'hsc'
 	getzrange_batch.write_zranges(survey=survey, wline='OIII', nline='OII', wthreshold=0.6, nthreshold=0.2)
 
-	print " wOIII nOII combination (usually i-r) has only been implemented on hsc but no other surveys"
+	print(" wOIII nOII combination (usually i-r) has only been implemented on hsc but no other surveys")
 
 
 if __name__ == '__main__':

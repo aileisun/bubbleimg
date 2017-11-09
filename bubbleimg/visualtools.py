@@ -47,7 +47,7 @@ def fits_to_png(fn_in, fn_out=None, vmin=None, vmax=None, scaling='arcsinh'):
 			fn_out = fn_in+extension
 
 	if not os.path.isfile(fn_in):
-		print "skipping "+fn_in+" as in file does not exist"
+		print("skipping "+fn_in+" as in file does not exist")
 	else:
 		# read in
 		img = fits.getdata(fn_in)

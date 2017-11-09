@@ -81,7 +81,7 @@ def download_psField(xid, dir_out='./', filename='psField.fits'):
 	dir_out='./' (string)
 	filename='psField.fits' (string)
 	"""
-	print "downloading psField file for psf"
+	print("downloading psField file for psf")
 
 	# sanity check
 	if not isinstance(xid, at.Table) or len(xid)!=1:
@@ -101,7 +101,7 @@ def download_psField(xid, dir_out='./', filename='psField.fits'):
 				out.write(bits)
 		return True
 	else:  
-		print "psField cannot be retrieved"
+		print("psField cannot be retrieved")
 		return False
 
 

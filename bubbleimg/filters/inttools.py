@@ -44,7 +44,7 @@ def calc_Fnu_in_band_from_fl(fl, ws, trans, ws_trans, isnormed=False):
             (ws_trans/u.Unit("AA")).unit == u.dimensionless_unscaled, 
             ]
     if not all(checks):
-        print checks
+        print(checks)
         raise Exception("[inttools] units of spectrum or filter response function is wrong")
 
     # convert to quantity
@@ -86,7 +86,7 @@ def calc_Fnu_in_band_from_fnu(fnu, ws, trans, ws_trans, isnormed=False):
             (ws_trans/u.Unit("AA")).unit == u.dimensionless_unscaled, 
             ]
     if not all(checks):
-        print checks
+        print(checks)
         raise Exception("[inttools] units of spectrum or filter response function is wrong")
 
     # convert to quantity

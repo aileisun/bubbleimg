@@ -6,7 +6,7 @@ tools to extrapolate spectrum. Currently works on continuum.
 """
 
 import numpy as np
-import getconti
+from . import getconti
 
 def extrapolate(ys1, xs1, xs2, polydeg=1, extbase_length=2000., epsilon=1.e-5):
 	""" extrapolate ys1 to cover the entire range of xs2 """

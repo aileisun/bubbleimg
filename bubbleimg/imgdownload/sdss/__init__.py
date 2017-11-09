@@ -3,8 +3,9 @@
 
 __all__ = ['sdssimgloader']
 
-import sdssimgloader
+from . import sdssimgloader
+import imp
 
-reload(sdssimgloader)
+imp.reload(sdssimgloader)
 
-from sdssimgloader import sdssimgLoader
+from .sdssimgloader import sdssimgLoader

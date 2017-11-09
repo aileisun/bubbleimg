@@ -145,13 +145,13 @@ class imgLoader(obsobj.Operator):
 			    os.makedirs(self.dir_obj)
 
 			if (not os.path.isfile(filepath)) or overwrite:
-				print("[loader] making file {}".format(filename))
+				print(("[loader] making file {}".format(filename)))
 				# try: 
 				return func_download_file(band=band, **kwargs) # if failed then return False
 				# except:
 					# return False
 			else:
-				print("[loader] skip make file as file {0} exists".format(filename))
+				print(("[loader] skip make file as file {0} exists".format(filename)))
 				return True
 		else: 
 			print("[loader] make file failed as loader not properly initiated")
@@ -190,20 +190,20 @@ class imgLoader(obsobj.Operator):
 		if not hasattr(self.img_width, 'unit'):
 			if type(self.img_width) is int:
 				self.img_width *= u.pix
-				print "Assuming img_width unit is pix"
+				print("Assuming img_width unit is pix")
 			elif type(self.img_width) is float and (self.img_width).is_integer():
 				self.img_width *= u.pix
-				print "Assuming img_width unit is pix"
+				print("Assuming img_width unit is pix")
 			else: 
 				raise ValueError("Param img_width has to be angular quantity or a whole number for pix")
 
 		if not hasattr(self.img_height, 'unit'):
 			if type(self.img_height) is int:
 				self.img_height *= u.pix
-				print "Assuming img_height unit is pix"
+				print("Assuming img_height unit is pix")
 			elif type(self.img_height) is float and (self.img_height).is_integer():
 				self.img_height *= u.pix
-				print "Assuming img_height unit is pix"
+				print("Assuming img_height unit is pix")
 			else: 
 				raise ValueError("Param img_height has to be angular quantity or a whole number for pix")
 

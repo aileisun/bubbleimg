@@ -58,8 +58,8 @@ def test_plaindecomposer_get_fp_psf(decomposer1):
 
 	fp_stamp = d.get_fp_stamp(band='i')
 	fp_psf = d.get_fp_psf(fp_stamp)
-	print fp_stamp
-	print fp_psf
+	print(fp_stamp)
+	print(fp_psf)
 
 	assert os.path.dirname(fp_stamp) == os.path.dirname(fp_psf)
 	assert os.path.basename(fp_stamp)[5:] == os.path.basename(fp_psf)[3:]

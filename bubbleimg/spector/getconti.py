@@ -11,7 +11,7 @@ import copy
 from scipy.ndimage.filters import median_filter, generic_filter
 
 from ..filters import getllambda
-import linelist
+from . import linelist
 
 def decompose_cont_line_t2AGN(spec, ls, z):
     """
@@ -28,6 +28,7 @@ def decompose_cont_line_t2AGN(spec, ls, z):
 
     Return
     ------
+    selcon
     speccon
     specline
     ls
@@ -46,7 +47,7 @@ def decompose_cont_line_t2AGN(spec, ls, z):
     specline = inhereit_unit(specline, spec)
     speccon = inhereit_unit(speccon, spec)
 
-    return speccon, specline, ls
+    return selcon, speccon, specline, ls
 
 
 def inhereit_unit(y, x):

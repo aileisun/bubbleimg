@@ -11,8 +11,8 @@ import scipy.ndimage as simg
 
 from ..measurer import Measurer
 from ... import tabtools
-import polytools
-import plottools
+from . import polytools
+from . import plottools
 
 class isoMeasurer(Measurer):
 

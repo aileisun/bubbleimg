@@ -11,7 +11,7 @@ import copy
 from ..hscbatch import hscBatch
 from .... import obsobj
 
-from setpaths import *
+from .setpaths import *
 
 obj_naming_sys = 'sdss'
 catalog = at.Table.read(fn_cat, format='fits')
@@ -104,10 +104,10 @@ def test_batch_override_short_obj_name_in_catalog():
 	survey = 'hsc'
 
 	b = hscBatch(dir_batch=dir_batch, catalog=catalog, survey=survey)
-	print(b.list[0]['obj_name'])
+	print((b.list[0]['obj_name']))
 	assert len(b.list[0]['obj_name']) == 14
 
 	b = hscBatch(dir_batch=dir_batch, catalog=catalog, survey=survey, obj_naming_sys='sdss_precise')
 
-	print(b.list[0]['obj_name'])
+	print((b.list[0]['obj_name']))
 	assert len(b.list[0]['obj_name']) == 18

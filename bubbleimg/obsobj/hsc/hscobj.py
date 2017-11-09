@@ -14,7 +14,7 @@ import astropy.io.ascii
 import astropy.units as u
 import ntpath
 
-import hscsspquery
+from . import hscsspquery
 from ..plainobj import plainObj
 
 fn_table_template_sql = 'table_template.sql'
@@ -143,8 +143,8 @@ class hscObj(plainObj):
 			os.remove(fn_temp)
 
 		if not os.path.isfile(fn) or overwrite: # download xid from sdss
-			print 'fn', fn
-			print "[hscObj] querying xid from server"
+			print('fn', fn)
+			print("[hscObj] querying xid from server")
 			self.make_dir_obj()	
 			sql = _get_xid_sql(ra=self.ra, dec=self.dec, rerun=self.rerun, search_radius=self.search_radius)
 			hscsspquery.hscSspQuery_retry(n_trials=20, sql=sql, filename_out=fn_temp, release_version=self.data_release)
@@ -154,11 +154,14 @@ class hscObj(plainObj):
 				xid.write(fn, format='ascii.csv', overwrite=overwrite)
 
 		else: # retrieve xid locally
-			print "[hscObj] reading xid locally"
+			print("[hscObj] reading xid locally")
 			xid = at.Table.read(fn, format='ascii.csv', comment='#')
-			self._xid_sanity_check(xid)
+
+		self._update_obj_ra_dec(xid)
+		self._xid_sanity_check(xid)
 
 		return xid
+
 
 	def _read_xid_from_fp_xid_temp_and_delete_file(self, fn_temp):
 		""" read in xid from file and return it, delete fn_temp after reading """
@@ -168,13 +171,21 @@ class hscObj(plainObj):
 				os.remove(fn_temp)
 				xid = self._xid_pick_only_closest(xid)
 			else: 
-				print "[hscObj] no object found - xid file empty"
+				print("[hscObj] no object found - xid file empty")
 				os.remove(fn_temp)
 				xid = None
 		else: 
-			print "[hscObj] query failed"
+			print("[hscObj] query failed")
 			xid = None
 		return xid
+
+
+	def _update_obj_ra_dec(self, xid):
+		""" if self ra or dec is none, update it with xid"""
+		if self.ra is None:
+			self.ra = xid['ra']
+		if self.dec is None:
+			self.dec = xid['dec']
 
 
 	def _xid_pick_only_closest(self, xid):
@@ -183,12 +194,12 @@ class hscObj(plainObj):
 			self._xid_sanity_check(xid)
 
 		elif len(xid) > 1: 
-			print "[hscObj] multiple objects found, picking the closest"
+			print("[hscObj] multiple objects found, picking the closest")
 			xid = self._resolve_multiple_sources(xid)
 			self._xid_sanity_check(xid)
 
 		elif len(xid) < 1:
-			print "[hscObj] no object found"
+			print("[hscObj] no object found")
 			xid = None
 
 		return xid
@@ -222,7 +233,7 @@ class hscObj(plainObj):
 
 	def _resolve_multiple_sources(self, xid):
 		""" return the xid with only the row that is closest to self.ra, dec"""
-		print "[hscObj] multiple primary objects found, choose the closest one"
+		print("[hscObj] multiple primary objects found, choose the closest one")
 		c = ac.SkyCoord(self.ra, self.dec, 'icrs', unit='deg')
 		crows = [ac.SkyCoord(row['ra'], row['dec'], 'icrs', unit='deg') for row in xid]
 		
@@ -352,7 +363,7 @@ class hscObj(plainObj):
 		fn = ntpath.basename(fp)
 
 		if not os.path.isfile(fp) or overwrite:
-			print("[hscobj] querying table {} from HSC".format(fn))
+			print(("[hscobj] querying table {} from HSC".format(fn)))
 
 			hscsspquery.hscSspQuery_retry(n_trials=20, sql=sql, filename_out=fp, release_version=self.data_release)
 
@@ -365,13 +376,13 @@ class hscObj(plainObj):
 				status = True
 
 			else: 
-				print("[hscobj] querying table {} from HSC failed".format(fn))
+				print(("[hscobj] querying table {} from HSC failed".format(fn)))
 				if os.path.isfile(fp):
 					os.remove(fp)
 				status = False
 
 		else:
-			print("[hscobj] skip querying table {} from HSC as file exists".format(fn))
+			print(("[hscobj] skip querying table {} from HSC as file exists".format(fn)))
 			status = True
 
 		return status

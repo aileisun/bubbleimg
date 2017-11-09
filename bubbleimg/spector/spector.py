@@ -13,11 +13,11 @@ import os
 
 from ..obsobj import Operator
 from .. import filters
-import getconti
+from . import getconti
 # import inttools
-import extrap
-import linelist
-import lineflux
+from . import extrap
+from . import linelist
+from . import lineflux
 # import linefrac
 
 class Spector(Operator):
@@ -110,6 +110,8 @@ class Spector(Operator):
 		self.fp_spec_lineflux = self.dir_obj+'spec_lineflux.csv'
 		self.fp_spec_linefrac = self.dir_obj+'spec_linefrac.csv'
 
+		self.spec, self.ws = self.get_spec_ws()
+
 
 	def get_spec_ws(self, forceload_from_fits=False):
 		"""
@@ -201,14 +203,14 @@ class Spector(Operator):
 
 		if (not os.path.isfile(fn)) or overwrite:
 			spec, ws = self.get_spec_ws()
-			speccon, specline, ws = getconti.decompose_cont_line_t2AGN(spec, ws, self.z)
+			iscon, speccon, specline, ws = getconti.decompose_cont_line_t2AGN(spec, ws, self.z)
 
 			spec = spec.to(u_spec)
 			speccon = speccon.to(u_spec)
 			specline = specline.to(u_spec)
 			ws = ws.to(u_ws)
 
-			tab = at.Table([ws, spec, speccon, specline], names=['ws', 'spec', 'speccont', 'specline'])
+			tab = at.Table([ws, spec, speccon, specline, iscon], names=['ws', 'spec', 'speccont', 'specline', 'iscon'])
 			tab.write(fn, format='ascii.ecsv', overwrite=overwrite)
 
 			# sanity check: units are identical
@@ -270,19 +272,19 @@ class Spector(Operator):
 					colmag = self.__get_specmag_colname(band, component=component, fluxquantity='mag')
 					try:
 						fnu = self._calc_Fnu_in_band(band=band, component=component)
-						print 'fnu', fnu
+						print('fnu', fnu)
 					except KeyboardInterrupt:
 						sys.exit(0) 
 					except:
-						print("[spector] skip calculating fnu of {} in band {}".format(component, band))
+						print(("[spector] skip calculating fnu of {} in band {}".format(component, band)))
 					else: 
 						mag = fnu.to(u.ABmag)
 						fnu_nm = fnu.to(u.nanomaggy)				
 						tabmag[colmag] = [mag.value]
 						tabfnu[colfnu] = [fnu_nm.value]
 
-			print 'tabmag', tabmag
-			print 'tabfnu', tabfnu
+			print('tabmag', tabmag)
+			print('tabfnu', tabfnu)
 
 			tab = at.hstack([tabmag, tabfnu])
 			tab.meta['comments'] = [
@@ -292,7 +294,7 @@ class Spector(Operator):
 									"unit_fnu: nanomaggy",
 									]
 
-			print 'tab', tab
+			print('tab', tab)
 			tab.write(fn, comment='#', format='ascii.csv', overwrite=overwrite)
 		else:
 			print("[spector] skip making spec_mag as file exists")

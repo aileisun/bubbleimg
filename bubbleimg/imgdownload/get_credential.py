@@ -10,6 +10,6 @@ def getCrendential(cred_env, cred_name = 'username'):
 	if cred_from_env != '':
 		return cred_from_env
 	else:
-		print "To avoid being asked, please set up environment variables \n     > export {cred_env} \n	> read -s {cred_env}".format(cred_env=cred_env)
+		print(("To avoid being asked, please set up environment variables \n     > export {cred_env} \n	> read -s {cred_env}".format(cred_env=cred_env)))
 
 		return getpass.getpass(cred_name+': ')

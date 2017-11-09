@@ -1,11 +1,12 @@
 # linelist.py
 # ALS 2017/06/14
+# updated 2017/11/09: added MgII to narrowline
 
 """ include line list for spectral line related operations """
 
 
 # ======= for continuum subtraction ===========
-narrowline = ['OII', 'OIII', 'OI', 'NII', 'NeV', 'SII', 'Ha', 'Hb', 'Hg', 'Hd', 'ArIII', 'NeIII', 'Dip', 'Mg', 'Na', 'He', 'HeI', 'HeII', 'FeVII']
+narrowline = ['MgII', 'OII', 'OIII', 'OI', 'NII', 'NeV', 'SII', 'Ha', 'Hb', 'Hg', 'Hd', 'ArIII', 'NeIII', 'Dip', 'Mg', 'Na', 'He', 'HeI', 'HeII', 'FeVII']
 
 broadline = ['Ha', 'Hb', 'Hg', 'Hd']
 

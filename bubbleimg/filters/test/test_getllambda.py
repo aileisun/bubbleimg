@@ -1,7 +1,8 @@
 
 import pytest
 from .. import getllambda
-reload(getllambda)
+import imp
+imp.reload(getllambda)
 
 def test_getllambda():
 	assert getllambda.getllambda('OIII5008') == 5008.240

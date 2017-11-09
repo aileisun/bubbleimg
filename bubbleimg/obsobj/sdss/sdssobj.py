@@ -132,7 +132,7 @@ class sdssObj(plainObj):
 
 		if not os.path.isfile(fn) or overwrite:
 			# download xid from sdss
-			print "[sdssobj] querying xid from SDSS"
+			print("[sdssobj] querying xid from SDSS")
 			c = ac.SkyCoord(self.ra, self.dec, 'icrs', unit='deg')
 
 			func_query = astroquery.sdss.SDSS.query_region
@@ -148,37 +148,47 @@ class sdssObj(plainObj):
 
 				if xid is not None:
 					if len(xid) == 1:
-						print "[sdssobj] science primary object found"
+						print("[sdssobj] science primary object found")
 					elif len(xid) > 1:
-						print "[sdssobj] multiple science primary object found, choose the closest one"
+						print("[sdssobj] multiple science primary object found, choose the closest one")
 						cspecs = [ac.SkyCoord(row['ra'], row['dec'], 'icrs', unit='deg') for row in xid]
-						print "[sdssobj] science primary object found"
+						print("[sdssobj] science primary object found")
 						a = np.array([c.separation(cspec).value for cspec in cspecs])
 						xid = at.Table(xid[np.argmin(a)])
 					else:
-						print "[sdssobj] no science primary found or duplicate"
+						print("[sdssobj] no science primary found or duplicate")
 						xid = None
 				else:
 					pass
 			else:
-				print "[sdssobj] no object found"
+				print("[sdssobj] no object found")
 				xid = None
 
 			# write xid
 			if (xid is not None):
+				self._update_obj_ra_dec(xid)
 				self._xid_sanity_check(xid)
 				self.make_dir_obj()
 				xid.write(fn, format='ascii.csv', comment='#', overwrite=overwrite)
 
 		else: 
 			# retrieve xid locally
-			print "[sdssobj] reading xid locally"
+			print("[sdssobj] reading xid locally")
 			xid = at.Table.read(fn, format='ascii.csv', comment='#')
 
 			if (xid is not None):
+				self._update_obj_ra_dec(xid)
 				self._xid_sanity_check(xid)
 
 		return xid
+
+
+	def _update_obj_ra_dec(self, xid):
+		""" if self ra or dec is none, update it with xid"""
+		if self.ra is None:
+			self.ra = xid['ra']
+		if self.dec is None:
+			self.dec = xid['dec']
 
 
 	def _xid_sanity_check(self, xid):
@@ -252,7 +262,7 @@ class sdssObj(plainObj):
 		fn = self.fp_photoobj
 
 		if not os.path.isfile(fn) or overwrite:
-			print "[sdssobj] querying photoobj from SDSS"
+			print("[sdssobj] querying photoobj from SDSS")
 			sql_query = "SELECT p.* FROM PhotoObj AS p WHERE p.objid="+str(self.objid)
 			# photoobj = astroquery.sdss.SDSS.query_sql(sql_query, data_release=self.data_release)
 
@@ -268,7 +278,7 @@ class sdssObj(plainObj):
 					photoobj = None
 
 		else: 
-			print "[sdssobj] reading photoobj locally"
+			print("[sdssobj] reading photoobj locally")
 			photoobj = at.Table.read(fn, format='ascii.csv',comment='#')
 
 		return photoobj
@@ -337,7 +347,7 @@ class sdssObj(plainObj):
 
 		if self.status: 
 			if not os.path.isfile(fn) or overwrite: 
-				print "[sdssObj] download spec"
+				print("[sdssObj] download spec")
 				# sp = astroquery.sdss.SDSS.get_spectra(matches=self.xid, data_release=self.data_release)
 				func_query = astroquery.sdss.SDSS.get_spectra
 				kwargs_query = dict(matches=self.xid, data_release=self.data_release)
@@ -355,7 +365,7 @@ class sdssObj(plainObj):
 				else:
 					status = False
 			else: 
-				print "[sdssObj] skip download spec as file exists"
+				print("[sdssObj] skip download spec as file exists")
 				status = True
 		else: 
 			status = False
@@ -403,5 +413,5 @@ def _retry_sdss_query(func_query, n_trials=5, **kwargs_query):
 			return results
 			break
 		except Exception as e:
-			print("[sdssobj] retrying as error detected: "+str(e))
+			print(("[sdssobj] retrying as error detected: "+str(e)))
 

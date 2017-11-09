@@ -3,7 +3,8 @@
 
 __all__ = ['hscbatch']
 
-import hscbatch
-reload(hscbatch)
+from . import hscbatch
+import imp
+imp.reload(hscbatch)
 
-from hscbatch import hscBatch
+from .hscbatch import hscBatch

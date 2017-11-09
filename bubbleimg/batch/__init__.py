@@ -3,11 +3,12 @@
 
 __all__ = ['batch', 'hsc']
 
-import batch
-import hsc
+from . import batch
+from . import hsc
+import imp
 
-reload(batch)
-reload(hsc)
+imp.reload(batch)
+imp.reload(hsc)
 
-from batch import Batch
-from hsc import hscBatch
+from .batch import Batch
+from .hsc import hscBatch

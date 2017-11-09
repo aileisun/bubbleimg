@@ -2,11 +2,11 @@
 
 __all__ = ['decomposer']
 
-import decomposer
-import plain
+from . import decomposer
+from . import plain
 
-from decomposer import Decomposer
-from plain.plaindecomposer import plainDecomposer
+from .decomposer import Decomposer
+from .plain.plaindecomposer import plainDecomposer
 
 
 # reload(decomposer)

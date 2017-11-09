@@ -5,7 +5,8 @@ import numpy as np
 
 import pytest
 from .. import getzrange_batch
-reload(getzrange_batch)
+import imp
+imp.reload(getzrange_batch)
 
 
 def test_determine_non_excluded_zrange():

@@ -3,11 +3,12 @@
 
 __all__ = ['hscimgloader']
 
-import hscimgloader
+from . import hscimgloader
+import imp
 
-reload(hscimgloader)
+imp.reload(hscimgloader)
 
-from hscimgloader import hscimgLoader
+from .hscimgloader import hscimgLoader
 
 
 # import downloadbutler

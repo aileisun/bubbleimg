@@ -11,7 +11,7 @@ import re
 import astropy.table as at
 from PyAstronomy import pyasl
 
-import filtertools
+from . import filtertools
 
 
 def getllambda(ion='OIII', lid=0, vacuum=True):

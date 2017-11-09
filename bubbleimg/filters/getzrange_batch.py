@@ -4,7 +4,7 @@ import os
 import numpy as np
 import astropy.table as at
 
-import filtertools
+from . import filtertools
 
 
 def write_zranges(filenameout='', wline='OIII', nline='HaNIISII', survey='sdss', wthreshold=0.6, nthreshold=0.2):
@@ -69,7 +69,7 @@ def getzrange_batch(bandline='r', bandconti='i', wline='OIII', nline='HaNIISII',
     z0 (float or list of floats)
     z1 (float or list of floats)
     """
-    print "calculating zrange_batch for "+bandline+'-'+bandconti
+    print(("calculating zrange_batch for "+bandline+'-'+bandconti))
     filename_wline = 'zrange_wline_'+wline+'_'+'%.1f'%wthreshold+'.txt'
     filename_nline = 'zrange_nline_'+nline+'_'+'%.1f'%nthreshold+'.txt'
 
@@ -126,7 +126,7 @@ def determine_non_excluded_zrange(in_zmin, in_zmax, ex_zmin, ex_zmax):
         z1 = in_zmax
 
     else: # should not happen
-        print("in_zmin, in_zmax, ex_zmin, ex_zmax:", str(in_zmin), str(in_zmax), str(ex_zmin), str(ex_zmax))
+        print(("in_zmin, in_zmax, ex_zmin, ex_zmax:", str(in_zmin), str(in_zmax), str(ex_zmin), str(ex_zmax)))
         raise ValueError("zrange errors -- scenario not considered")
 
     if type(z0) is not list:

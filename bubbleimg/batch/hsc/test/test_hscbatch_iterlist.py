@@ -13,8 +13,8 @@ from ..hscbatch import hscBatch
 from .... import imgdownload
 from .... import obsobj
 
-from setpaths import *
-from fixture_built_batch import *
+from .setpaths import *
+from .fixture_built_batch import *
 
 
 fn_testing = 'testing_list.txt'
@@ -91,7 +91,7 @@ def test_batch_iterlist_imgdownload_default_processes(batch_good):
 def func_iterlist(obj, overwrite=False, **kwargs):
 
 	fn = obj.dir_parent+fn_testing
-	print fn
+	print(fn)
 	with open(fn, 'a') as f:
 		f.write(obj.name+'\n')
 

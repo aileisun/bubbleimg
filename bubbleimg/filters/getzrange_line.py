@@ -8,8 +8,8 @@ find zrange for lines to be in/out the band.
 import numpy as np
 from astropy.table import Table, Row
 
-import filtertools
-import getllambda
+from . import filtertools
+from . import getllambda
 
 
 def findzrange_wline_OIIIs(threshold=0.6, survey='sdss'):

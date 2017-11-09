@@ -39,7 +39,7 @@ def write_alignedstampImages(obj, bands=('g','r','i'), band_rf='r', xwidth=64, y
 	"""
 	#=== get alinged (w.r.t. reference ('r') band) stamp (xwdith*ywidth) images
 	# get center pix coord
-	print "[alignstamp] aligning and stamping images "+str(bands)
+	print(("[alignstamp] aligning and stamping images "+str(bands)))
 	xcenter,ycenter = round(obj.sdss.photoobj['colc']), round(obj.sdss.photoobj['rowc'])
 	images_aligned = getalignedImages(obj, bands, band_rf)
 	images_aligned_stamp = np.zeros([len(bands), xwidth, ywidth])

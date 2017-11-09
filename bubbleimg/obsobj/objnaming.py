@@ -22,7 +22,10 @@ def get_obj_name(ra, dec, obj_naming_sys='sdss'):
 	------
 	name (str)
 	"""
-	if obj_naming_sys == 'sdss':
+	if (ra is None) or (dec is None):
+		return 'newobject'
+
+	elif obj_naming_sys == 'sdss':
 		J_str = getJstring_fromRaDec(ra, dec, precision='m')
 		return 'SDSS'+J_str
 

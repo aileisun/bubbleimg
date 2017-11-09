@@ -3,10 +3,11 @@
 
 __all__ = ['sumireimgloader']
 
-import sumireimgloader
+from . import sumireimgloader
+import imp
 
-reload(sumireimgloader)
+imp.reload(sumireimgloader)
 
-from sumireimgloader import sumireimgLoader
+from .sumireimgloader import sumireimgLoader
 
 

@@ -183,7 +183,7 @@ def summarize(fn_in, fn_out, columns=[], condi={}, overwrite=False):
 
 		if len(condi)>0:
 			tab_select = tab_extract_row(tab_in, condi=condi)
-			tab_sum = tab_select[condi.keys()][0] # creating headers
+			tab_sum = tab_select[list(condi.keys())][0] # creating headers
 		else: 
 			tab_select = tab_in
 			tab_sum = at.Table() # no headers
@@ -193,7 +193,7 @@ def summarize(fn_in, fn_out, columns=[], condi={}, overwrite=False):
 
 		# calculation
 		for col in columns:
-			if not col in condi.keys():
+			if not col in list(condi.keys()):
 				arr = tab_select[col]
 				if arr.dtype in [float, int]:
 					var_mean = np.mean(arr)

@@ -5,7 +5,7 @@ import shutil
 
 from ..hscbatch import hscBatch
 
-from setpaths import *
+from .setpaths import *
 
 
 @pytest.fixture

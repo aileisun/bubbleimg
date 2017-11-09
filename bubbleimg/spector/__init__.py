@@ -2,10 +2,11 @@
 
 __all__ = ['spector']
 
-import spector
+from . import spector
+import imp
 # import linefrac
 
-reload(spector)
+imp.reload(spector)
 # reload(linefrac)
 
-from spector import Spector
+from .spector import Spector

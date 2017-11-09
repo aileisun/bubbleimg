@@ -8,8 +8,8 @@ from astropy.io import fits
 
 from ..loader import imgLoader
 from ...filters import surveysetup
-import stamp
-import psf
+from . import stamp
+from . import psf
 
 class sdssimgLoader(imgLoader):
 
@@ -149,11 +149,11 @@ class sdssimgLoader(imgLoader):
 		file = self._get_frame_filepath(band)
 
 		if (not os.path.isfile(file)) or overwrite:
-			print "[sdssimgLoader] downloading frame image band {0}".format(band)
+			print(("[sdssimgLoader] downloading frame image band {0}".format(band)))
 			im = SDSS.get_images(matches=self.obj.sdss.xid, band=band)
 			im[0].writeto(file, overwrite=True)
 		else: 
-			print "[sdssimgLoader] skip downloading frame image band {0}".format(band)
+			print(("[sdssimgLoader] skip downloading frame image band {0}".format(band)))
 
 		return os.path.isfile(file)
 
