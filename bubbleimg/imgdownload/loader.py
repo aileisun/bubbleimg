@@ -297,7 +297,7 @@ class imgLoader(obsobj.Operator):
 		status (bool)
 		"""
 		m = self.get_imager()
-		m.make_colorimg(bands=band, img_type=img_type, overwrite=overwrite)
+		m.make_colorimg(bands=bands, img_type=img_type, overwrite=overwrite)
 
 
 	def get_imager(self):

@@ -21,8 +21,7 @@ class sdssimgLoader(imgLoader):
 		"""
 
 		super(sdssimgLoader, self).__init__(**kwargs)
-		self.status = super(self.__class__, self).add_obj_sdss(update=False)
-
+		self.status = super(self.__class__, self).add_obj_sdss(overwrite=False)
 
 		self.survey = 'sdss'
 		self.bands = surveysetup.surveybands[self.survey]
@@ -31,8 +30,9 @@ class sdssimgLoader(imgLoader):
 
 		# sanity check
 		if self.status:
-			if round(self.obj.sdss.xid['ra'][0], 4) != round(self.ra, 4):
+			if round(self.obj.sdss.xid['ra'][0], 3) != round(self.ra, 3):
 				raise ValueError("xid created inconsistent with init ra")
+
 
 
 	def make_stamps(self, overwrite=False, band_rf='r', tokeepframe=False):
@@ -98,6 +98,7 @@ class sdssimgLoader(imgLoader):
 		------
 		status: True if all psf-(band).fits exist
 		"""
+		self.obj.sdss.load_photoobj()
 		# make psField.fit
 		filename_psfield = 'psField.fits'
 		if not os.path.isfile(self.dir_obj+filename_psfield) or overwrite:

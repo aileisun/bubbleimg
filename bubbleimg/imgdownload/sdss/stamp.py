@@ -15,7 +15,7 @@ from scipy.ndimage import interpolation
 from astroquery.sdss import SDSS
 
 
-def write_alignedstampImages(obj, bands=('g','r','i'), band_rf='r', xwidth=64, ywidth=64, clipnegative=False, overwrite=True):
+def write_alignedstampImages(obj, bands=('g','r','i'), band_rf='r', xwidth=64, ywidth=64, clipnegative=False, overwrite=True): 
 	"""
 	PURPOSE: write aligned stamp images of an SDSS object
 
@@ -40,7 +40,8 @@ def write_alignedstampImages(obj, bands=('g','r','i'), band_rf='r', xwidth=64, y
 	#=== get alinged (w.r.t. reference ('r') band) stamp (xwdith*ywidth) images
 	# get center pix coord
 	print(("[alignstamp] aligning and stamping images "+str(bands)))
-	xcenter,ycenter = round(obj.sdss.photoobj['colc']), round(obj.sdss.photoobj['rowc'])
+	obj.sdss.load_photoobj()
+	xcenter,ycenter = round(obj.sdss.photoobj['colc'][0]), round(obj.sdss.photoobj['rowc'][0])
 	images_aligned = getalignedImages(obj, bands, band_rf)
 	images_aligned_stamp = np.zeros([len(bands), xwidth, ywidth])
 	for nb in range(len(bands)):
@@ -224,7 +225,7 @@ def getstampheader(obj, band, band_rf='r', xwidth=64, ywidth=64):
 	header=fits.getheader(filename)
 	
 	w_ref=wcs.WCS(filename_rf)
-	xcenter,ycenter = round(obj.sdss.photoobj['colc']), round(obj.sdss.photoobj['rowc'])
+	xcenter,ycenter = round(obj.sdss.photoobj['colc'][0]), round(obj.sdss.photoobj['rowc'][0])
 	worldcrds = w_ref.wcs_pix2world([[xcenter,ycenter]], 1)[0]
 
 	header['NAXIS1']=xwidth

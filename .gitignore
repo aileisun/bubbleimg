@@ -4,6 +4,11 @@ bubbleimg/*/*.pyc
 bubbleimg/*/*/*.pyc
 bubbleimg/*/*/*/*.pyc
 
+bubbleimg/*.bak
+bubbleimg/*/*.bak
+bubbleimg/*/*/*.bak
+bubbleimg/*/*/*/*.bak
+
 # Setuptools distribution folder.
 /dist/
 

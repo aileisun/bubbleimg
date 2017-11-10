@@ -673,7 +673,7 @@ class Batch(object):
 				if n_list != n_fold:
 					raise Exception("[batch] number of object folders {n_fold} inconsistent with the list ({name}, {n_list}) in the batch".format(n_fold=n_fold, name=name, n_list=n_list))
 
-				if not all(arr_list == arr_fold): 
+				if not np.all(arr_list.astype(str) == arr_fold.astype(str)): 
 					raise Exception("[batch] list of object folders inconsistent with the list in the batch")
 
 
