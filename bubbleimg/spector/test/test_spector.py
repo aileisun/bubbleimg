@@ -6,6 +6,7 @@ import astropy.units as u
 import numpy as np
 import astropy.table as at
 import filecmp
+import numpy.testing as npt
 
 from ...obsobj import obsObj
 
@@ -120,7 +121,7 @@ def test_spector_make_spec_contextrp_ecsv(spector1):
 	tab = at.Table.read(fn, format='ascii.ecsv')
 
 	assert tab['ws'].unit == u.AA
-	assert tab['speccontextrp'].unit == u.Unit("erg / (Angstrom cm2 s)")
+	assert tab['speccontextrp'].unit == u.Unit("1e-17 erg / (Angstrom cm2 s)")
 
 
 def test_spector_get_contline(spector1):
@@ -203,10 +204,10 @@ def test_spector_get_spec_mag_value(spector1):
 
 	x = s.get_spec_mag_value(component='line', fluxquantity='mag', band='i')
 	assert isinstance(x, np.float64)
-	assert round(x, 3) == round(21.726328586041113, 3)
+	npt.assert_almost_equal(x, 21.726328586041113, decimal=1)
 
 	x = s.get_spec_mag_value(component='cont', fluxquantity='fnu', band='g')
-	assert round(x, 3) == round(1.6768567248522026, 3)
+	npt.assert_almost_equal(x, 1.6768567248522026, decimal=2)
 
 
 def test_spector_get_fnu_ratio_band1_over_band2(spector1):
@@ -215,14 +216,14 @@ def test_spector_get_fnu_ratio_band1_over_band2(spector1):
 	b2 = 'z'
 	x = s.get_fnu_ratio_band1_over_band2(band1=b1, band2=b2, component='contextrp')
 	
-	assert round(x, 3) == round(0.7281524829527901, 3)
+	npt.assert_almost_equal(x, 0.7281524829527901, decimal=2)
 
 
 def test_spector_get_line_obs_wave(spector1):
 	s = spector1
 
 	w = s._get_line_obs_wave(line='OIII5008', wunit=False)
-	assert round(w, 3) == round(7068.724090912, 3)
+	npt.assert_almost_equal(w, 7068.724090912, decimal=1)
 
 	w = s._get_line_obs_wave(line='OIII5008', wunit=True)
 	assert w.unit == u.Unit("AA")
@@ -304,7 +305,7 @@ def test_spector_get_line_flux(spector1):
 
 
 	f_sdss, __ = s._get_line_flux_sdss(line='OIII5008', wunit=False)
-	assert round(f_sdss, 3) == round(499.73093, 3)
+	npt.assert_almost_equal(f_sdss, 499.73093, decimal=1)
 
 
 	for line in ['NeIII3870', 'NeIII3969', 'Hg', 'Hb', 'OIII4960', 'OIII5008']:

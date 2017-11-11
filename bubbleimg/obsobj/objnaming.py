@@ -59,7 +59,7 @@ def getJstring_fromRaDec(ra, dec, precision='m'):
 	precision='m' (str)
 		'm' for minutes 's' for seconds
 	"""
-	c = SkyCoord(ra, dec, 'icrs', unit='deg')
+	c = SkyCoord(ra, dec, frame='icrs', unit='deg')
 
 	if precision == 'm':
 		ra_str = "%02d"%c.ra.hms[0] + "%02d"%c.ra.hms[1]
@@ -71,22 +71,4 @@ def getJstring_fromRaDec(ra, dec, precision='m'):
 		raise Exception('[objnaming] precision not understood')
 
 	return 'J'+ra_str+dec_str
-
-
-
-
-# def getSDSSName_fromRADEC(ra, dec):
-# 	"""
-# 	return SDSS name given 
-# 	Params
-# 	------
-# 	ra (float) in deg
-# 	dec (float) in deg
-# 	"""
-# 	c = SkyCoord(ra, dec, 'icrs', unit='deg')
-# 	return getSDSSName_fromc(c)
-
-
-# def getSDSSName_fromc(c):
-# 	return "SDSSJ"+"%02d"%c.ra.hms[0]+"%02d"%c.ra.hms[1]+"%+03d"%c.dec.dms[0]+"%02d"%abs(c.dec.dms[1])
 

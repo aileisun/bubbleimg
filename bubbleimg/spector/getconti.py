@@ -7,50 +7,74 @@ tools to isolate continuum
 
 import numpy as np
 import copy
-
-from scipy.ndimage.filters import median_filter, generic_filter
+import scipy.ndimage.filters as scif
+import modelBC03
 
 from ..filters import getllambda
 from . import linelist
 
-def decompose_cont_line_t2AGN(spec, ls, z):
+def decompose_cont_line_t2AGN(spec, ws, z, method='modelBC03'):
     """
-    decompose the spectrum of type 2 AGN into two components: continumm and emission line, by making the lines and running medium filter. This method is slower than a vanilla version medium filter but it estiamtes the continuum around the strong lines better. 
+    decompose the spectrum of type 2 AGN into two components: continumm and emission line. There are two methods: 
+
+    method 'modelBC03':
+        fit BC03 stellar population synthesis model to line masked continuum and use the best fit as the continuum model. 
+
+    method 'running_median':
+        mask the lines and do running medium filter. 
 
     See selectcont() for the line selection. 
 
     Params
     ------
     spec (array): spectrum, may have unit
-    ls (array)
+    ws (array)
     z (float)
     toplot=False (bool)
+    method = 'modelBC03'
 
     Return
     ------
     selcon
     speccon
     specline
-    ls
+    ws
+    model
     """
     # main
-    selcon = selectcont(spec, ls, z, AGN_TYPE=2, NLcutwidth=80., BLcutwidth=180., vacuum=True)
+    selcon = selectcont(spec, ws, z, AGN_TYPE=2, NLcutwidth=80., BLcutwidth=180., vacuum=True)
 
-    speccon_nan = copy.copy(spec)
-    speccon_nan[~selcon] = np.nan
+    if method == 'modelBC03':
+        m = modelBC03.modelBC03(extinction_law='none')
+        m.fit(ws=ws, spec=spec, z=z)
+        speccon = m.bestfit_regrid
+        model = m
 
-    speccon = generic_filter(speccon_nan, np.nanmedian, size=300)
+    elif method == 'running_median':
+        speccon = getcont_medianfilter(spec, selcon)
+        model = None
+
+    else:
+        raise Exception("method is not recognized")
 
     specline = spec - speccon
     specline[selcon] = 0.
 
-    specline = inhereit_unit(specline, spec)
-    speccon = inhereit_unit(speccon, spec)
+    specline = inherit_unit(specline, spec)
+    speccon = inherit_unit(speccon, spec)
 
-    return selcon, speccon, specline, ls
+    return selcon, speccon, specline, ws, model
 
 
-def inhereit_unit(y, x):
+def getcont_medianfilter(spec, selcon):
+    speccon_nan = copy.copy(spec)
+    speccon_nan[~selcon] = np.nan
+    speccon = scif.generic_filter(speccon_nan, np.nanmedian, size=300)
+
+    return speccon
+
+
+def inherit_unit(y, x):
     if hasunit(x):
         try:
             y.unit = x.unit
@@ -107,5 +131,3 @@ def selectcont(spec, xcoord, z, AGN_TYPE=2, NLcutwidth=70., BLcutwidth=180., vac
         selkeep = np.all([selkeep, np.logical_not(selcut)], axis=0)
     selkeep[np.all([np.arange(selkeep.size) > 1870, np.arange(selkeep.size) < 1905], axis=0)] = 0
     return selkeep.astype('bool')
-
-

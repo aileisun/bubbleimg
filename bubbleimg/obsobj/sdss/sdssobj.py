@@ -133,7 +133,7 @@ class sdssObj(plainObj):
 		if not os.path.isfile(fn) or overwrite:
 			# download xid from sdss
 			print("[sdssobj] querying xid from SDSS")
-			c = ac.SkyCoord(self.ra, self.dec, 'icrs', unit='deg')
+			c = ac.SkyCoord(self.ra, self.dec, frame='icrs', unit='deg')
 
 			func_query = astroquery.sdss.SDSS.query_region
 			kwargs_query = dict(coordinates=c, spectro=True, photoobj_fields=photoobj_defs, specobj_fields=specobj_defs, data_release=self.data_release, radius=self.search_radius)
@@ -151,7 +151,7 @@ class sdssObj(plainObj):
 						print("[sdssobj] science primary object found")
 					elif len(xid) > 1:
 						print("[sdssobj] multiple science primary object found, choose the closest one")
-						cspecs = [ac.SkyCoord(row['ra'], row['dec'], 'icrs', unit='deg') for row in xid]
+						cspecs = [ac.SkyCoord(row['ra'], row['dec'], frame='icrs', unit='deg') for row in xid]
 						print("[sdssobj] science primary object found")
 						a = np.array([c.separation(cspec).value for cspec in cspecs])
 						xid = at.Table(xid[np.argmin(a)])
@@ -204,8 +204,8 @@ class sdssObj(plainObj):
 			raise Exception("[sdssObj] xid not unique")
 
 		# 3)
-		cself = ac.SkyCoord(self.ra, self.dec, 'icrs', unit='deg')
-		cxid = ac.SkyCoord(xid['ra'], xid['dec'], 'icrs', unit='deg')
+		cself = ac.SkyCoord(self.ra, self.dec, frame='icrs', unit='deg')
+		cxid = ac.SkyCoord(xid['ra'], xid['dec'], frame='icrs', unit='deg')
 		sep = cself.separation(cxid)
 		if sep > self.search_radius:
 			raise Exception("[sdssObj] xid coordinate inconsistent with object {}".format(self.name))

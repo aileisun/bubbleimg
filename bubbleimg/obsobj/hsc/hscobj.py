@@ -219,8 +219,8 @@ class hscObj(plainObj):
 			raise Exception("[hscObj] xid not unique")
 
 		# 2)
-		cself = ac.SkyCoord(self.ra, self.dec, 'icrs', unit='deg')
-		cxid = ac.SkyCoord(xid['ra'], xid['dec'], 'icrs', unit='deg')
+		cself = ac.SkyCoord(self.ra, self.dec, frame='icrs', unit='deg')
+		cxid = ac.SkyCoord(xid['ra'], xid['dec'], frame='icrs', unit='deg')
 		sep = cself.separation(cxid)
 		if sep > self.search_radius:
 			raise Exception("[hscObj] xid coordinate inconsistent with object")
@@ -234,8 +234,8 @@ class hscObj(plainObj):
 	def _resolve_multiple_sources(self, xid):
 		""" return the xid with only the row that is closest to self.ra, dec"""
 		print("[hscObj] multiple primary objects found, choose the closest one")
-		c = ac.SkyCoord(self.ra, self.dec, 'icrs', unit='deg')
-		crows = [ac.SkyCoord(row['ra'], row['dec'], 'icrs', unit='deg') for row in xid]
+		c = ac.SkyCoord(self.ra, self.dec, frame='icrs', unit='deg')
+		crows = [ac.SkyCoord(row['ra'], row['dec'], frame='icrs', unit='deg') for row in xid]
 		
 		a = np.array([c.separation(crow).value for crow in crows])
 		xid = at.Table(xid[np.argmin(a)])

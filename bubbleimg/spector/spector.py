@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import astropy.units as u
 from astropy.io import fits
 import astropy.constants as const
+import modelBC03
 
 import os
 
@@ -47,6 +48,9 @@ class Spector(Operator):
 		survey_spec (str): 
 			survey of the spectrum
 			if not provided, use the instrument of sdss_xid.csv
+		decompose_method = 'modelBC03' (str)
+			'modelBC03' or 'running_median'
+			the method for decomposing spectrum into continuum and lines, and extrapolate the continum. 
 
 
 		Attributes
@@ -64,6 +68,10 @@ class Spector(Operator):
 		bands (list): 
 			e.g., ['g', 'r', 'i', 'z', 'y'] for survey = 'hsc'
 		z (float):  
+		decompose_method (str)
+			'modelBC03' or 'running_median'
+		conti_model
+			if decompose_method is modelBC03 then this is an instance of modelBC03
 		"""
 		
 		super(Spector, self).__init__(**kwargs)
@@ -97,6 +105,10 @@ class Spector(Operator):
 		elif self.survey_spec in ['sdss', 'boss', 'eboss', 'auto']:
 			self.obj.add_sdss(toload_photoobj=False)
 			self.z = kwargs.pop('z', self.obj.sdss.z) 
+
+		# set self.decompose_method
+		self.decompose_method = kwargs.pop('decompose_method', 'modelBC03')
+		self.conti_model = None
 
 		# set others
 		self.bands = filters.filtertools.surveybands[self.survey]
@@ -203,7 +215,10 @@ class Spector(Operator):
 
 		if (not os.path.isfile(fn)) or overwrite:
 			spec, ws = self.get_spec_ws()
-			iscon, speccon, specline, ws = getconti.decompose_cont_line_t2AGN(spec, ws, self.z)
+
+			iscon, speccon, specline, ws, model = getconti.decompose_cont_line_t2AGN(spec, ws, self.z, method=self.decompose_method)
+
+			self.conti_model = model # modelBC03 instance if set method='modelBC03', otherwise None.
 
 			spec = spec.to(u_spec)
 			speccon = speccon.to(u_spec)
@@ -222,18 +237,35 @@ class Spector(Operator):
 		return status 
 
 
-	def make_spec_contextrp_ecsv(self, overwrite=False):
-		""" extrapolate continuum to cover all of the wavelength range of filters """
+	def make_spec_contextrp_ecsv(self, overwrite=False, refit=False):
+		""" 
+		extrapolate continuum to cover all of the wavelength range of filters 
+		there are two methods:
+			for self.conti_model modelBC03: use the bestfit
+			for running_median: polynomial fit
+		"""
 		fn = self.fp_spec_contextrp
 
 		if (not os.path.isfile(fn)) or overwrite:
 			speccon, ws = self.get_spec_ws_from_spectab(component='cont')
 
 			l0, l1 = self.waverange
-			
-			speccon_ext, ws_ext = extrap.extrap_to_end(ys=speccon, xs=ws, x_end=l0, polydeg=1, extbase_length=2000.)
-			speccon_ext, ws_ext = extrap.extrap_to_end(ys=speccon_ext, xs=ws_ext, x_end=l1, polydeg=1, extbase_length=2000.)
 
+			if self.decompose_method == 'modelBC03':
+				if self.conti_model is None or refit:
+					m = modelBC03.modelBC03(extinction_law='none')
+					m.fit(ws=np.array(ws), spec=np.array(speccon), z=self.z)
+				else: 
+					m = self.conti_model # reuse 
+				speccon_ext = getconti.inherit_unit(m.bestfit, speccon)
+				ws_ext = getconti.inherit_unit(m.ws_bestfit, ws)
+
+			elif self.decompose_method == 'running_median':			
+				speccon_ext, ws_ext = extrap.extrap_to_ends(ys=speccon, xs=ws, x_end0=l0, x_end1=l1, polydeg=1, extbase_length=2000.)
+			else:
+				raise Exception("method is not recognized")
+
+			assert (np.min(ws_ext) < l0) & (np.max(ws_ext) > l1)
 			col = self.__get_spectab_colname('contextrp')
 			tab = at.Table([ws_ext, speccon_ext], names=['ws', col])
 			tab.write(fn, format='ascii.ecsv', overwrite=overwrite)
@@ -272,7 +304,6 @@ class Spector(Operator):
 					colmag = self.__get_specmag_colname(band, component=component, fluxquantity='mag')
 					try:
 						fnu = self._calc_Fnu_in_band(band=band, component=component)
-						print('fnu', fnu)
 					except KeyboardInterrupt:
 						sys.exit(0) 
 					except:
@@ -283,9 +314,6 @@ class Spector(Operator):
 						tabmag[colmag] = [mag.value]
 						tabfnu[colfnu] = [fnu_nm.value]
 
-			print('tabmag', tabmag)
-			print('tabfnu', tabfnu)
-
 			tab = at.hstack([tabmag, tabfnu])
 			tab.meta['comments'] = [
 									"survey_photo: {}".format(self.survey),
@@ -294,7 +322,6 @@ class Spector(Operator):
 									"unit_fnu: nanomaggy",
 									]
 
-			print('tab', tab)
 			tab.write(fn, comment='#', format='ascii.csv', overwrite=overwrite)
 		else:
 			print("[spector] skip making spec_mag as file exists")

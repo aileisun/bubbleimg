@@ -23,16 +23,24 @@ def extrapolate(ys1, xs1, xs2, polydeg=1, extbase_length=2000., epsilon=1.e-5):
 	return ys1, xs1
 
 
+def extrap_to_ends(ys, xs, x_end0, x_end1, polydeg=1, extbase_length=2000.):
+	# extrapolte blue end
+	ys_ext, xs_ext = extrap_to_end(ys=ys, xs=xs, x_end0=l0, polydeg=polydeg, extbase_length=extbase_length)
+	# extrapolte red end
+	ys_ext, xs_ext = extrap_to_end(ys=ys_ext, xs=xs_ext, x_end=l1, polydeg=polydeg, extbase_length=extbase_length)
+
+	return ys_ext, xs_ext
+
+
 def extrap_to_end(ys, xs, x_end, polydeg=1, extbase_length=2000.):
-	""" get ys_ext, xs_ext that is extrapolated ys, xs out to x_end
+	""" 
+	get ys_ext, xs_ext that is extrapolated ys, xs out to x_end.  
 
 	Params
 	------
 	ys: ys to extrapolate
 	xs: ys's coord system
 	x_end: to extrapolate to
-	polydeg: deg of poly
-	extbase_length: the length on the side of array in x space to do poly fitting on in units of xs's unit (usually Anstrom). 
 
 	Return
 	------
@@ -47,27 +55,40 @@ def extrap_to_end(ys, xs, x_end, polydeg=1, extbase_length=2000.):
 
 		xs_ext, xs_add = extend_xs_to_end(xs_uless, x_end)
 
-		ys_base, xs_base = get_extbase(ys_uless, xs_uless, x_end, extbase_length=extbase_length)
+		ys_ext = _extrap_polyfit(ys_uless, xs_uless, x_end, xs_add, polydeg=polydeg, extbase_length=extbase_length)
 
-		param = np.polyfit(x=xs_base, y=ys_base, deg=polydeg)
-		p = np.poly1d(param)
-
-		ys_add = p(xs_add)
-
-		x_start, trailing = get_trailing(xs_uless, x_end)
-
-		if trailing:
-			ys_ext = np.append(ys_uless, ys_add)
-		else: 
-			ys_ext = np.append(ys_add, ys_uless)
-
-		ys_ext = getconti.inhereit_unit(ys_ext, ys)
-		xs_ext = getconti.inhereit_unit(xs_ext, xs)
+		ys_ext = getconti.inherit_unit(ys_ext, ys)
+		xs_ext = getconti.inherit_unit(xs_ext, xs)
 
 		return ys_ext, xs_ext
 	else:
 		print("[extrap] skip extrapolating as xs contains x_end")
 		return ys, xs
+
+
+def _extrap_polyfit(ys_uless, xs_uless, x_end, xs_add, polydeg=1, extbase_length=2000.):
+	""" 
+	use polynomial fit to extrap the red end of the spectrum 
+
+	Params
+	------
+	polydeg: deg of poly
+	extbase_length: 
+		the length on the side of array in x space to do poly fitting on in units of xs's unit (usually Anstrom). 
+
+
+	"""
+	ys_base, xs_base = get_extbase(ys_uless, xs_uless, x_end, extbase_length=extbase_length)
+	param = np.polyfit(x=xs_base, y=ys_base, deg=polydeg)
+	p = np.poly1d(param)
+	ys_add = p(xs_add)
+	x_start, trailing = get_trailing(xs_uless, x_end)
+	if trailing:
+		ys_ext = np.append(ys_uless, ys_add)
+	else: 
+		ys_ext = np.append(ys_add, ys_uless)
+
+	return ys_ext
 
 
 def arr_enclose_x(arr, x):
@@ -77,6 +98,7 @@ def arr_enclose_x(arr, x):
 
 
 def get_extbase(ys, xs, x_end, extbase_length):	
+	""" get the red end of the spectrum to do estimation for extrapolation """
 	x_start, trailing = get_trailing(xs, x_end)
 
 	sel = [np.absolute(x-x_start) < extbase_length for x in xs]
