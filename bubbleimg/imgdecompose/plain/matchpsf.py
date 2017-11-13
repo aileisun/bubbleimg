@@ -176,8 +176,8 @@ def match_dimension(p0, p1):
 		nxmax = max(p0.shape[0], p1.shape[0])
 		nymax = max(p0.shape[1], p1.shape[1])
 
-		p0 = pad_edge_to_shape(p0, nxmax, nymax)
-		p1 = pad_edge_to_shape(p1, nxmax, nymax)
+		p0 = pad_edge_to_shape(p0, int(nxmax), int(nymax))
+		p1 = pad_edge_to_shape(p1, int(nxmax), int(nymax))
 
 	return p0, p1
 
@@ -195,13 +195,13 @@ def pad_edge_to_shape(arr, nx, ny):
 
 	if nx > nxa:
 		dx = (nx - nxa)/2
-		arr = np.pad(arr, ((dx, dx), (0, 0)), 'constant', constant_values=0)
+		arr = np.pad(arr, ((int(dx), int(dx)), (0, 0)), 'constant', constant_values=0)
 	elif nx < nxa:
 		raise Exception("[pad_edge_to_shape] final dimension smaller than array")
 
 	if ny > nya:
 		dy = (ny - nya)/2
-		arr = np.pad(arr, ((0, 0), (dy, dy)), 'constant', constant_values=0)
+		arr = np.pad(arr, ((0, 0), (int(dy), int(dy))), 'constant', constant_values=0)
 	elif ny < nya:
 		raise Exception("[pad_edge_to_shape] final dimension smaller than array")
 

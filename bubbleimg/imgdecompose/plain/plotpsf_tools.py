@@ -25,11 +25,11 @@ def _normalize_trim_psf(psf0, psf1, psfmt, w=21):
 def _cut_psf_center(psf, w=21):
 	nx, ny = psf.shape
 
-	x0 = (nx-w)/2
-	x1 = nx - x0
+	x0 = int((nx-w)/2)
+	x1 = int(nx - x0)
 
-	y0 = (ny-w)/2
-	y1 = ny - y0
+	y0 = int((ny-w)/2)
+	y1 = int(ny - y0)
 
 	psf_cut = psf[x0:x1, y0:y1]
 

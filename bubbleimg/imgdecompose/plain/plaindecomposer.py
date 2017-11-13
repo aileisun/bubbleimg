@@ -266,6 +266,11 @@ class plainDecomposer(Decomposer):
 				tab['moffat_gamma'] = gamma
 				tab['moffat_alpha'] = alpha
 
+			print(tab)
+			print(tab['imgtag'])
+			print(fn)
+			print(os.path.isfile(fn))
+
 			tabtools.write_row(fn=fn, row=tab, condi=condi, overwrite=overwrite, append=append)
 
 		else:
@@ -323,8 +328,11 @@ class plainDecomposer(Decomposer):
 		return status
 
 
-	def plot_psfmatch(self, band, bandto, fn, matching, overwrite=False):
+	def plot_psfmatch(self, band, bandto, fn=None, matching=True, overwrite=False):
 		""" make plot to visualize psf matching """
+		if fn is None:
+			fn = self.get_fp_contsubplot(band=band, bandconti=bandto)
+			
 		if not os.path.isfile(fn) or overwrite:
 			psfs = self._get_normalized_trimmed_psfs_for_plot(band=band, bandto=bandto, matching=matching)
 

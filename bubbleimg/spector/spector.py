@@ -259,7 +259,8 @@ class Spector(Operator):
 					m = self.conti_model # reuse 
 				speccon_ext = getconti.inherit_unit(m.bestfit, speccon)
 				ws_ext = getconti.inherit_unit(m.ws_bestfit, ws)
-
+				# import pdb; pdb.set_trace() # add pdb here
+				
 			elif self.decompose_method == 'running_median':			
 				speccon_ext, ws_ext = extrap.extrap_to_ends(ys=speccon, xs=ws, x_end0=l0, x_end1=l1, polydeg=1, extbase_length=2000.)
 			else:

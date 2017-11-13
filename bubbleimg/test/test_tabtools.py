@@ -4,7 +4,12 @@ import os
 import shutil
 import astropy.table as at
 from astropy.io import ascii
+import bubbleimg
+from astropy import units as u
+import numpy as np
+
 from .. import tabtools
+
 
 dir_test = './testing/'
 dir_verif = 'verification_data_tabtools/'
@@ -23,6 +28,15 @@ def setUp_tearDown():
 	# tear down
 	if os.path.isdir(dir_test):
 		shutil.rmtree(dir_test)
+
+
+@pytest.fixture
+def measurer1():
+	ra = 140.099341430207
+	dec = 0.580162492432517
+	z = 0.4114188
+	m = bubbleimg.imgmeasure.iso.isoMeasurer(dir_obj = 'verification_data_tabtools/SDSSJ0920+0034/', survey='hsc', z=z, center_mode='n/2-1')
+	return m
 
 
 def test_tabtools_has_row():
@@ -47,8 +61,8 @@ def test_tabtools_delete_row():
 
 def test_tabtools_write_row_empty():
 
-	fn_toadd = dir_test+'msr_iso_toadd.csv'
-	fn_in = dir_test+'msr_iso.csv'
+	fn_toadd = dir_verif+'msr_iso_toadd.csv'
+	fn_in = dir_verif+'msr_iso.csv'
 	fn_test = dir_test+'msr_iso_test.csv'
 
 	tab_toadd = at.Table.read(fn_toadd)
@@ -119,7 +133,7 @@ def test_isomeasurer_summarize(measurer1):
 	fn = m.dir_obj+'msr_iso.csv'
 	fn_sum = m.dir_obj+'msr_iso_smr.csv'
 
- 	imgtag = 'OIII5008_I'
+	imgtag = 'OIII5008_I'
 	minarea = 5
 	isocut1 = 1.e-15*u.Unit('erg / (arcsec2 cm2 s)')
 	isocut2 = 3.e-15*u.Unit('erg / (arcsec2 cm2 s)')

@@ -89,7 +89,7 @@ def plot_img(img, vmin=-1, vmax=10, origin='lower', tocolorbar=True, tosetlim=Tr
     plt.close('all')
     fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot(111, aspect='equal')
-    ax_imshow(fig, ax, img, vmin=vmin, vmax=vmax, origin=origin, tocolorbar=tocolorbar, tosetlim=tosetlim, colorlabel=colorlabel)
+    ax_imshow(fig, ax, np.array(img), vmin=vmin, vmax=vmax, origin=origin, tocolorbar=tocolorbar, tosetlim=tosetlim, colorlabel=colorlabel)
     ax.axis('off')    
     
     return fig, ax
@@ -127,7 +127,7 @@ def overplot_contour(ax, contour, color='white', ls='-',lw=3, alpha=1., label='_
 
     color: string 
     """
-    ax.plot(contour[:, 1], contour[:, 0], linewidth=lw, color=color,lw=lw, alpha=alpha, label=label)
+    ax.plot(contour[:, 1], contour[:, 0], linewidth=lw, color=color, alpha=alpha, label=label)
 
 
 

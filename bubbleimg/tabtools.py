@@ -19,7 +19,12 @@ def write_row(fn, row, condi, overwrite=False, append=False):
 	"""
 	withheader = not os.path.isfile(fn)
 
-	if append:
+	if (not os.path.isfile(fn)):
+		rowstring = tab_to_string(row, withheader=withheader)
+		with open(fn, 'w') as f_to:
+			f_to.write(rowstring)
+
+	elif append:
 		append_row_to_end(fn, row, withheader=withheader)
 
 	elif overwrite:
@@ -43,7 +48,8 @@ def append_row_to_end(fn, row, withheader=False):
 
 def tab_to_string(tab, withheader=False):
 	""" turn table into string with each line seperated by \n """
-	with io.BytesIO() as f_temp: 
+	# with io.BytesIO() as f_temp: 
+	with io.StringIO() as f_temp: 
 		tab.write(f_temp, format='ascii.csv')
 		tabstring = f_temp.getvalue()
 
