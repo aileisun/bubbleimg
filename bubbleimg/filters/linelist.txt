@@ -3,6 +3,7 @@
 # http://www.star.ucl.ac.uk/~msw/lines.html
 # http://astro.uchicago.edu/~subbarao/newWeb/line.html
 # modified by ALS to include OII doublet
+# HeII4686    4686.9914
 
 Line	Identifier	Wavelength
 OVI		1033	1033.30

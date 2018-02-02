@@ -46,8 +46,8 @@ def decompose_cont_line_t2AGN(spec, ws, z, method='modelBC03'):
 
     if method == 'modelBC03':
         m = modelBC03.modelBC03(extinction_law='none')
-        m.fit(ws=ws, spec=spec, z=z)
-        speccon = m.bestfit_regrid
+        m.fit(ws=ws[selcon], spec=spec[selcon], z=z)
+        speccon = m.predict(ws)
         model = m
 
     elif method == 'running_median':

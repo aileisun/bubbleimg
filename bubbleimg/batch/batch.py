@@ -100,14 +100,14 @@ class Batch(object):
 		elif 'fn_cat' in kwargs:
 			fn_cat = kwargs.pop('fn_cat', None)
 			if os.path.splitext(fn_cat)[1] == '.fits':
-				self.catalog = at.Table.read(fn_cat)
+				self.catalog = at.Table.read(fn_cat, comment='#')
 			elif os.path.splitext(fn_cat)[1] == '.csv':
 				self.catalog = at.Table.read(fn_cat, format='ascii.csv', comment='#')
 			else:
 				raise Exception("[batch] input catalog file extension not recognized")
 
 		elif os.path.isfile(self.fp_list):
-			self.catalog = at.Table.read(self.fp_list)
+			self.catalog = at.Table.read(self.fp_list, comment='#')
 			args_to_list = [col for col in self.catalog.colnames if col not in ['ra', 'dec', 'obj_name']]
 
 		else:
@@ -251,7 +251,8 @@ class Batch(object):
 
 				# making header
 				header_heading = ",".join(self.args_in_list)
-				tab_example = at.Table.read(obj1.dir_obj+fn_tab)
+				# import pdb; pdb.set_trace()
+				tab_example = at.Table.read(obj1.dir_obj+fn_tab, comment='#')
 				self._rename_list_args(tab_example)
 				header_content = tabtools.tab_to_string(tab_example, withheader=True).split("\n")[0]
 				header = ",".join([header_heading, header_content])
@@ -260,7 +261,7 @@ class Batch(object):
 				if isinstance(lines_data[0], list):
 					lines_data = [line for anobj in lines_data for line in anobj]
 				# merge header with content
-				tab_good = ascii.read([header]+lines_data)
+				tab_good = ascii.read([header]+lines_data, comment='#')
 			else:
 				tab_good = at.Table()
 
@@ -534,7 +535,7 @@ class Batch(object):
 		"""
 		fn = self._get_fp_of_listname(listname=listname)
 		if os.path.isfile(fn):
-			lst = at.Table.read(fn)
+			lst = at.Table.read(fn, comment='#')
 			if len(lst) == 0:
 				lst = self._create_empty_list_table()
 		else:

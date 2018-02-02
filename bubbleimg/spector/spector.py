@@ -123,6 +123,8 @@ class Spector(Operator):
 		self.fp_spec_linefrac = self.dir_obj+'spec_linefrac.csv'
 
 		self.spec, self.ws = self.get_spec_ws()
+		self.u_spec = 1.e-17*u.Unit('erg / (Angstrom cm2 s)') # default unit of spec
+		self.u_ws = u.AA # default unit of ws
 
 
 	def get_spec_ws(self, forceload_from_fits=False):
@@ -195,37 +197,44 @@ class Spector(Operator):
 		return tab[col], tab['ws']
 
 
-	def make_spec_decomposed_ecsv(self, u_spec=1.e-17*u.Unit('erg / (Angstrom cm2 s)'), u_ws=u.AA, overwrite=False):
+	def make_spec_decomposed_ecsv(self, overwrite=False):
 		""" 
 		saving seperated continuum and line spectrum in csv file 
 
 		Params
 		------
 		self
-		u_spec=1.e-17*u.Unit('erg / (Angstrom cm2 s)')
-		u_ws=u.AA
 		overwrite=False
 
 		Return
 		------
 		status
+
+		note: this part of the code can be refactorized better. 
+
 		"""
 
 		fn = self.fp_spec_decomposed
 
 		if (not os.path.isfile(fn)) or overwrite:
+
+			# import pdb; pdb.set_trace() # add pdb heres
+
 			spec, ws = self.get_spec_ws()
 
-			iscon, speccon, specline, ws, model = getconti.decompose_cont_line_t2AGN(spec, ws, self.z, method=self.decompose_method)
+			ws_uless = np.array((ws/self.u_ws).to(u.dimensionless_unscaled))
+			spec_uless = np.array((spec/self.u_spec).to(u.dimensionless_unscaled))
+
+			iscon, speccont, specline, __, model = getconti.decompose_cont_line_t2AGN(spec_uless, ws_uless, self.z, method=self.decompose_method)
 
 			self.conti_model = model # modelBC03 instance if set method='modelBC03', otherwise None.
 
-			spec = spec.to(u_spec)
-			speccon = speccon.to(u_spec)
-			specline = specline.to(u_spec)
-			ws = ws.to(u_ws)
+			tab = at.Table([ws_uless, spec_uless, speccont, specline, iscon], names=['ws', 'spec', 'speccont', 'specline', 'iscon'])
+			tab['ws'].unit = self.u_ws
+			tab['spec'].unit = self.u_spec
+			tab['speccont'].unit = self.u_spec
+			tab['specline'].unit = self.u_spec
 
-			tab = at.Table([ws, spec, speccon, specline, iscon], names=['ws', 'spec', 'speccont', 'specline', 'iscon'])
 			tab.write(fn, format='ascii.ecsv', overwrite=overwrite)
 
 			# sanity check: units are identical
@@ -243,32 +252,36 @@ class Spector(Operator):
 		there are two methods:
 			for self.conti_model modelBC03: use the bestfit
 			for running_median: polynomial fit
+
 		"""
 		fn = self.fp_spec_contextrp
 
 		if (not os.path.isfile(fn)) or overwrite:
-			speccon, ws = self.get_spec_ws_from_spectab(component='cont')
+			speccont, ws = self.get_spec_ws_from_spectab(component='cont')
+			ws_uless = np.array((ws/self.u_ws).to(u.dimensionless_unscaled))
+			speccont_uless = np.array((speccont/self.u_spec).to(u.dimensionless_unscaled))
 
 			l0, l1 = self.waverange
 
 			if self.decompose_method == 'modelBC03':
 				if self.conti_model is None or refit:
 					m = modelBC03.modelBC03(extinction_law='none')
-					m.fit(ws=np.array(ws), spec=np.array(speccon), z=self.z)
+					m.fit(ws=ws_uless, spec=speccont_uless, z=self.z)
 				else: 
 					m = self.conti_model # reuse 
-				speccon_ext = getconti.inherit_unit(m.bestfit, speccon)
-				ws_ext = getconti.inherit_unit(m.ws_bestfit, ws)
-				# import pdb; pdb.set_trace() # add pdb here
-				
+				speccon_ext = m.bestfit
+				ws_ext = m.ws_bestfit
+
 			elif self.decompose_method == 'running_median':			
-				speccon_ext, ws_ext = extrap.extrap_to_ends(ys=speccon, xs=ws, x_end0=l0, x_end1=l1, polydeg=1, extbase_length=2000.)
+				speccon_ext, ws_ext = extrap.extrap_to_ends(ys=speccont_uless, xs=ws_uless, x_end0=l0, x_end1=l1, polydeg=1, extbase_length=2000.)
 			else:
 				raise Exception("method is not recognized")
 
-			assert (np.min(ws_ext) < l0) & (np.max(ws_ext) > l1)
-			col = self.__get_spectab_colname('contextrp')
-			tab = at.Table([ws_ext, speccon_ext], names=['ws', col])
+			assert (np.min(ws_ext*self.u_ws) < l0) & (np.max(ws_ext*self.u_ws) > l1)
+			col_contextrp = self.__get_spectab_colname('contextrp')
+			tab = at.Table([ws_ext, speccon_ext], names=['ws', col_contextrp])
+			tab['ws'].unit = self.u_ws
+			tab[col_contextrp].unit = self.u_spec
 			tab.write(fn, format='ascii.ecsv', overwrite=overwrite)
 
 		status = os.path.isfile(fn)

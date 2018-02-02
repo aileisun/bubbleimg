@@ -50,7 +50,7 @@ def tab_to_string(tab, withheader=False):
 	""" turn table into string with each line seperated by \n """
 	# with io.BytesIO() as f_temp: 
 	with io.StringIO() as f_temp: 
-		tab.write(f_temp, format='ascii.csv')
+		tab.write(f_temp, format='ascii.csv', comment=False)
 		tabstring = f_temp.getvalue()
 
 	if not withheader:
@@ -248,7 +248,10 @@ def extract_line_from_file(fn, iline=1, comment='#', fill_trailing_empty=True):
 			if (line[0] != comment):
 				lines_noncomment += [line]
 
-	if iline < len(lines_noncomment) or isinstance(iline, slice): 
+	if isinstance(iline, slice):
+		return lines_noncomment[iline]
+
+	elif iline < len(lines_noncomment): 
 		return lines_noncomment[iline]
 
 	elif fill_trailing_empty and len(lines_noncomment)>0:

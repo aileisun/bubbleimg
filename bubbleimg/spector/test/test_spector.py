@@ -121,7 +121,7 @@ def test_spector_make_spec_contextrp_ecsv(spector1):
 	tab = at.Table.read(fn, format='ascii.ecsv')
 
 	assert tab['ws'].unit == u.AA
-	assert tab['speccontextrp'].unit == u.Unit("1e-17 erg / (Angstrom cm2 s)")
+	assert tab['contextrp'].unit == u.Unit("1e-17 erg / (Angstrom cm2 s)")
 
 
 def test_spector_get_contline(spector1):

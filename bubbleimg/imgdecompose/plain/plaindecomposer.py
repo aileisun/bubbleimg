@@ -266,9 +266,6 @@ class plainDecomposer(Decomposer):
 				tab['moffat_gamma'] = gamma
 				tab['moffat_alpha'] = alpha
 
-			print(tab)
-			print(tab['imgtag'])
-			print(fn)
 			print(os.path.isfile(fn))
 
 			tabtools.write_row(fn=fn, row=tab, condi=condi, overwrite=overwrite, append=append)
