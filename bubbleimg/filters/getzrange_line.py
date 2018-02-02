@@ -117,7 +117,7 @@ def findzrange_line(linelist, l0, l1, inside=True, threshold=0.2, survey='sdss')
     # make table
     lmin, lmax = np.sort(np.array([l0,l1]))
 
-    tabout = Table([[],[],[],], names=('band','z0','z1'), dtype=('string', 'float', 'float'))
+    tabout = Table([[],[],[],], names=('band','z0','z1'), dtype=('S1', 'f8', 'f8'))
 
     for band in bands:
 

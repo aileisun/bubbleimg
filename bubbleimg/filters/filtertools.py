@@ -105,37 +105,32 @@ def getFilterResponseFunc(band='r', survey='sdss'):
 
         R = hdulist[ib+1].data['respt']
         l = hdulist[ib+1].data['wavelength']
-        return R, l
-    elif survey == 'hsc': 
-        filename=getlocalpath()+survey+'/'+'filter_curves/'+'HSC-'+band+'.txt'
-        tab = at.Table.read(filename, format='ascii')
-        R = np.array(tab['col2'])
-        l = np.array(tab['col1']*10)
 
-        if l[1] < l[0]: 
-            R = R[::-1]
-            l = l[::-1]
-        return R, l
+    elif survey == 'hsc': 
+        filename = getlocalpath()+survey+'/'+'filter_curves/'+band+'.txt'
+        tab = at.Table.read(filename, format='ascii')
+        R = np.array(tab['col3'])
+        l = np.array(tab['col2'])
+
     elif survey == 'ukirt':
         filename=getlocalpath()+survey+'/'+'filter_curves/'+'ukirt-'+band+'.txt'
         tab = at.Table.read(filename, format='ascii', comment='#')
         R = np.array(tab['R'])
         l = np.array(tab['l']*10)
-        if l[1] < l[0]: 
-            R = R[::-1]
-            l = l[::-1]
-        return R, l
+
     elif survey == 'cfht':
         filename=getlocalpath()+survey+'/'+'filter_curves/'+'cfht-'+band+'.txt'
         tab = at.Table.read(filename, format='ascii', comment='#')
         l = np.array(tab['col1'])
         R = np.array(tab['col2'])
-        if l[1] < l[0]: 
-            R = R[::-1]
-            l = l[::-1]
-        return R, l
+
     else: 
         raise NameError('survey name not recognized. ')
+
+    if l[1] < l[0]: 
+        R = R[::-1]
+        l = l[::-1]
+    return R, l
 
 
 def writeFilterCentroids(survey='sdss'):
@@ -158,7 +153,7 @@ def writeFilterCentroids(survey='sdss'):
     fileout = localpath+survey+'/filtercentroid.txt'
     bands = surveybands[survey]
 
-    tabout = at.Table([[], [], ], names=('band', 'w'), dtype=('string', 'int'))
+    tabout = at.Table([[], [], ], names=('band', 'w'), dtype=('S1', 'i4'))
 
     for band in bands:
         # readin filter function
@@ -215,7 +210,7 @@ def writeFilterBoundaries(threshold=0.6, toplot=True, survey='sdss'):
     bands = surveybands[survey]
 
 
-    tabout = at.Table([[], [], [], ], names=('band', 'w1', 'w2'), dtype=('string', 'int', 'int'))
+    tabout = at.Table([[], [], [], ], names=('band', 'w1', 'w2'), dtype=('S1', 'i4', 'i4'))
 
     for band in bands:
         # readin filter function
@@ -328,7 +323,7 @@ def write_int_response_dlnl(survey='sdss'):
 
     bands = surveybands[survey]
 
-    tabout = at.Table([[], [], ], names=('band', 'inttransdlnl'), dtype=('string', 'float'))
+    tabout = at.Table([[], [], ], names=('band', 'inttransdlnl'), dtype=('S1', 'f8'))
 
     for band in bands:
         # readin filter function
