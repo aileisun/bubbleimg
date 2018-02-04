@@ -44,7 +44,6 @@ import os.path
 import re
 import ssl
 
-
 version = 20160120.1
 
 
@@ -129,12 +128,12 @@ def hscSspQuery(sql, filename_out='results.csv', **kwargs):
 
     try:
         if args.preview:
-            with open(filename_out, 'wb') as out:
+            with open(filename_out, 'w') as out:
                 preview(credential, sql, out, args)
         else:
             job = submitJob(credential, sql, args)
             blockUntilJobFinishes(credential, job['id'], args)
-            with open(filename_out, 'wb') as out:
+            with open(filename_out, 'w') as out:
                 download(credential, job['id'], out, args)
             if args.delete_job:
                 deleteJob(credential, job['id'], args)
@@ -164,16 +163,16 @@ def httpJsonPost(url, data):
 
 
 def httpPost(url, postData, headers):
-    req = urllib.request.Request(url, postData, headers)
+    req = urllib.request.Request(url, data=postData.encode("utf-8"), headers=headers)
     skipVerifying = None
     try:
         skipVerifying = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
     except AttributeError:
         pass
     if skipVerifying:
-        res = urllib.request.urlopen(req, context=skipVerifying)
+        res = urllib.request.urlopen(req, context=skipVerifying).read().decode('utf-8')
     else:
-        res = urllib.request.urlopen(req)
+        res = urllib.request.urlopen(req).read().decode('utf-8')
     return res
 
 
@@ -187,7 +186,7 @@ def submitJob(credential, sql, args):
     }
     postData = {'credential': credential, 'catalog_job': catalog_job, 'nomail': args.nomail, 'skip_syntax_check': args.skip_syntax_check}
     res = httpJsonPost(url, postData)
-    job = json.load(res)
+    job = json.loads(res)
     return job
 
 
@@ -195,7 +194,7 @@ def jobStatus(credential, job_id, args):
     url = args.api_url + 'status'
     postData = {'credential': credential, 'id': job_id}
     res = httpJsonPost(url, postData)
-    job = json.load(res)
+    job = json.loads(res)
     return job
 
 
@@ -213,10 +212,10 @@ def preview(credential, sql, out, args):
     }
     postData = {'credential': credential, 'catalog_job': catalog_job}
     res = httpJsonPost(url, postData)
-    result = json.load(res)
-
+    result = json.loads(res)
     writer = csv.writer(out)
     writer.writerow(result['result']['fields'])
+
     for row in result['result']['rows']:
         writer.writerow(row)
 

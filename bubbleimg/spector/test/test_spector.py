@@ -320,7 +320,7 @@ def test_spector_make_linefrac(spector1):
 	s = spector1
 
 	fn = s.dir_obj + 'spec_linefrac.csv'
-	status = s.make_linefrac(band='i', overwrite=True)
+	status = s.make_linefrac(band='i', tofixOIIIratio=True, overwrite=True)
 
 	assert status
 	assert os.path.isfile(fn)
@@ -333,7 +333,7 @@ def test_spector_make_linefrac(spector1):
 
 	assert (tab['frac_OIII5008'] + tab['frac_OIII4960']) > 0.5
 	assert (tab['frac_OIII5008'] + tab['frac_OIII4960']) < 1.
-
+	assert tab['frac_OIII5008'] == tab['frac_OIII4960']*2.98 
 
 
 def test_spector_calc_fline_over_fnuband(spector1):

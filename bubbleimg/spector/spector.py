@@ -523,17 +523,21 @@ class Spector(Operator):
 		return frac
 
 
-	def make_linefrac(self, band, lines=['NeIII3870', 'NeIII3969', 'Hg', 'Hb', 'OIII4960', 'OIII5008', 'OI6302', 'OI6366'], overwrite=False):
+	def make_linefrac(self, band, lines=['NeIII3870', 'NeIII3969', 'Hg', 'Hb', 'OIII4960', 'OIII5008', 'OI6302', 'OI6366'], tofixOIIIratio=True, overwrite=False):
 		"""
 		make file spec_linefrac.csv that contains the fraction each of the strong lines have in a specific band.
 		Columns: f_{band}_{line}, T_{band}_{line}, w_{band}_{line}, frac_{band}_{line}
 
 		The fraction is based on the f*T*w of the line. Only the strong lines are listed. 
 
+		If tofixOIIIratio = True, then the ratio between OIII5008 and OIII4960 is fixed to the theoretical ratio of 2.98, see 
+		Storey + 2000. http://adsabs.harvard.edu/abs/2000MNRAS.312..813S. 
+
 		Params
 		------
 		band
 		lines=['NeIII3870', 'NeIII3969', 'Hg', 'Hb', 'OIII4960', 'OIII5008', 'OI6302', 'OI6366']
+		tofixOIIIratio=True
 		overwrite=False
 
 		Return
@@ -565,6 +569,12 @@ class Spector(Operator):
 				frac = tab['fwt_{}'.format(line)][0] / fwt_sum
 				col_new = at.Table([[frac]], names=['frac_{}'.format(line)])
 				tab = at.hstack([tab, col_new])
+
+			if tofixOIIIratio:
+				r = 2.98
+				frac_OIIItotal = tab['frac_OIII4960'] + tab['frac_OIII5008']
+				tab['frac_OIII5008'] = frac_OIIItotal * r / (1.+r)
+				tab['frac_OIII4960'] = frac_OIIItotal * 1. / (1.+r)
 
 			tab.write(fn, format='ascii.csv', overwrite=overwrite)
 
