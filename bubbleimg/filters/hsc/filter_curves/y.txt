@@ -1,4 +1,5 @@
 # HSC/hsc_y.txt   +atm  lambda_c= 1.0180e+04  AB-Vega= 0.70
+# including detector effects, telescope effects, and sky transmission, from A. Goulding
     1   9.00000e+03   1.81300e-03
     2   9.01000e+03   3.10800e-03
     3   9.02000e+03   5.18001e-03

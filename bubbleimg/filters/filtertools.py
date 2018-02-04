@@ -72,6 +72,22 @@ def isFile(filename='zranges_band_wOIII_nHaNIISII.txt', survey='sdss'):
 
     return os.path.isfile(filepath)
 
+
+def plotFilters2File(survey='sdss'):
+    """ 
+    """
+    localpath = getlocalpath()
+    fileout = localpath+survey+'/filters.pdf'
+
+    bands = surveybands[survey]
+
+    plt.clf()
+    for band in bands:
+        trans, ws_trans = getNormTransFunc(band=band, survey=survey)
+        plt.plot(ws_trans, trans/max(trans), label=band)
+    plt.savefig(fileout)
+
+
 def getFilterResponseFunc(band='r', survey='sdss'):
     """
     PURPOSE: 
@@ -111,6 +127,8 @@ def getFilterResponseFunc(band='r', survey='sdss'):
         tab = at.Table.read(filename, format='ascii')
         R = np.array(tab['col3'])
         l = np.array(tab['col2'])
+        # R = np.array(tab['col2'])
+        # l = np.array(tab['col1'])*10.
 
     elif survey == 'ukirt':
         filename=getlocalpath()+survey+'/'+'filter_curves/'+'ukirt-'+band+'.txt'

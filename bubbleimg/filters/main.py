@@ -47,6 +47,8 @@ def main():
 	
 		getzrange_batch.write_zranges(survey=survey, wline='OIII', nline='HaNIISII', wthreshold=0.6, nthreshold=0.2)
 		getzrange_batch.write_zranges(survey=survey, wline='OIII', nline='HaNII', wthreshold=0.6, nthreshold=0.4)
+
+		filtertools.plotFilters2File(survey=survey)
 		
 	survey = 'hsc'
 	getzrange_batch.write_zranges(survey=survey, wline='OIII', nline='OII', wthreshold=0.6, nthreshold=0.2)

@@ -18,12 +18,14 @@ def findzrange_wline_OIIIs(threshold=0.6, survey='sdss'):
     throughput > 0.6*max range of r band. 
     """
     fileprefix = 'OIII'
-    l1 = getllambda.getllambda(ion='OIII',lid=4960,vacuum=True) 
+    # l1 = getllambda.getllambda(ion='OIII',lid=4960,vacuum=True) 
     l2 = getllambda.getllambda(ion='OIII',lid=5008,vacuum=True) 
 
-    lmin = min(l1,l2)
-    lmax = max(l1,l2)
-    findzrange_line(fileprefix,lmin,lmax,threshold=threshold, survey=survey)
+    # lmin = min(l1, l2)
+    # lmax = max(l1, l2)
+    lmin = l2
+    lmax = l2
+    findzrange_line(fileprefix, lmin, lmax, threshold=threshold, survey=survey)
 
 
 
@@ -36,9 +38,9 @@ def findzrange_wline_HaNII(threshold=0.6, survey='sdss'):
     l2 = getllambda.getllambda(ion='NII', lid=6550)
     l3 = getllambda.getllambda(ion='NII', lid=6585)
 
-    lmin = min(l1,l2,l3)
-    lmax = max(l1,l2,l3)
-    findzrange_line(fileprefix,lmin,lmax,threshold=threshold, survey=survey)
+    lmin = min(l1, l2, l3)
+    lmax = max(l1, l2, l3)
+    findzrange_line(fileprefix, lmin, lmax, threshold=threshold, survey=survey)
 
 
 
