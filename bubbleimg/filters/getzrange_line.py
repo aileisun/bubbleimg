@@ -83,6 +83,36 @@ def findzrange_nline_OII(threshold=0.2, survey='sdss'):
     findzrange_line(fileprefix, l1, l1, threshold=threshold, inside=False,  survey=survey)
 
 
+def findzrange_nline_OIINeIII(threshold=0.2, survey='sdss'):
+    """
+    Find the right red shift range such that the NeIII 3869.81 are outside specified bands
+    """
+    fileprefix = 'OIINeIII'
+
+    l1 = getllambda.getllambda(ion='OII')[0]
+    l2 = getllambda.getllambda(ion='NeIII')[0]
+
+    lmin = min(l1, l2)
+    lmax = max(l1, l2)
+
+    findzrange_line(fileprefix, lmin, lmax, threshold=threshold, inside=False,  survey=survey)
+
+
+def findzrange_nline_OIII(threshold=0.2, survey='sdss'):
+    """
+    Find the right red shift range such that OIII 4959 and 5007 are outside specified bands
+    """
+
+    fileprefix = 'OIII'
+    l1 = getllambda.getllambda(ion='OIII',lid=4960,vacuum=True) 
+    l2 = getllambda.getllambda(ion='OIII',lid=5008,vacuum=True) 
+
+    lmin = min(l1, l2)
+    lmax = max(l1, l2)
+
+    findzrange_line(fileprefix, lmin, lmax, threshold=threshold, inside=False,  survey=survey)
+
+
 def findzrange_line(linelist, l0, l1, inside=True, threshold=0.2, survey='sdss'):
     """
     Find the right red shift range such that lines are inside/outside of

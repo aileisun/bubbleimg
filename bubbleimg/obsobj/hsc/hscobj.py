@@ -268,6 +268,10 @@ class hscObj(plainObj):
 		if not hasattr(self, 'xid'):
 			self.load_xid()
 
+		# sanity check -- no duplicated colnames
+		if len(band_columns) != len(set(band_columns)):
+			raise Exception("[hscobj] duplicated band_columns in load_photoobj()")
+
 		if self.status: 
 			status = self._download_photoobj(band_columns=band_columns, bands=bands, tab_name=tab_name, all_columns=all_columns, overwrite=overwrite)
 

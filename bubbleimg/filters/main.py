@@ -39,11 +39,17 @@ def main():
 		# write files
 		getzrange_line.findzrange_wline_OIIIs(threshold=0.6, survey=survey)
 		getzrange_line.findzrange_wline_HaNII(threshold=0.6, survey=survey)
-		getzrange_line.findzrange_nline_HaNII(threshold=0.4, survey=survey)
 		getzrange_line.findzrange_nline_HaNII(threshold=0.2, survey=survey)
+		getzrange_line.findzrange_nline_HaNII(threshold=0.4, survey=survey)
 		getzrange_line.findzrange_nline_HaNIISII(threshold=0.2, survey=survey)
 		getzrange_line.findzrange_nline_HaNIISII(threshold=0.4, survey=survey)
 		getzrange_line.findzrange_nline_OII(threshold=0.2, survey=survey)
+		getzrange_line.findzrange_nline_OII(threshold=0.4, survey=survey)
+		getzrange_line.findzrange_nline_OIINeIII(threshold=0.2, survey=survey)
+		getzrange_line.findzrange_nline_OIINeIII(threshold=0.4, survey=survey)
+		getzrange_line.findzrange_nline_OIII(threshold=0.2, survey=survey)
+		getzrange_line.findzrange_nline_OIII(threshold=0.4, survey=survey)
+
 	
 		getzrange_batch.write_zranges(survey=survey, wline='OIII', nline='HaNIISII', wthreshold=0.6, nthreshold=0.2)
 		getzrange_batch.write_zranges(survey=survey, wline='OIII', nline='HaNII', wthreshold=0.6, nthreshold=0.4)
@@ -51,7 +57,8 @@ def main():
 		filtertools.plotFilters2File(survey=survey)
 		
 	survey = 'hsc'
-	getzrange_batch.write_zranges(survey=survey, wline='OIII', nline='OII', wthreshold=0.6, nthreshold=0.2)
+	# getzrange_batch.write_zranges(survey=survey, wline='OIII', nline='OII', wthreshold=0.6, nthreshold=0.2)
+	getzrange_batch.write_zranges(survey=survey, wline='OIII', nline='OIINeIII', wthreshold=0.6, nthreshold=0.4)
 
 	print(" wOIII nOII combination (usually i-r) has only been implemented on hsc but no other surveys")
 

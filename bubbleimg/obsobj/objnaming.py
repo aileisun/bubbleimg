@@ -70,5 +70,11 @@ def getJstring_fromRaDec(ra, dec, precision='m'):
 	else: 
 		raise Exception('[objnaming] precision not understood')
 
-	return 'J'+ra_str+dec_str
+	# correcting for plus and minus sign in dec
+	if dec < 0.:
+		dec_str_corr = '-'+dec_str[1:]
+	else: 
+		dec_str_corr = '+'+dec_str[1:]
+
+	return 'J'+ra_str+dec_str_corr
 

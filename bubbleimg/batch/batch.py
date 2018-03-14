@@ -1,6 +1,7 @@
 # batch.py
 # ALS 2017/05/29
 
+# import pdb
 import numpy as np
 import astropy.table as at
 from astropy.io import ascii
@@ -260,24 +261,29 @@ class Batch(object):
 				lines_data = self.iterlist(func=self._iterfunc_extract_line_from_file, listargs=[], listname='good', processes=-1, overwrite=False, **dict(fn=fn_tab, alllines=alllines, wlist_heading=True))
 				if isinstance(lines_data[0], list):
 					lines_data = [line for anobj in lines_data for line in anobj]
+
 				# merge header with content
 				tab_good = ascii.read([header]+lines_data, comment='#')
 			else:
 				tab_good = at.Table()
+			# pdb.set_trace()
 
 			#=== compiling except objects (with masked content)
 			if len(self.list_good) > 0 and len(self.list_except) > 0:
-				row_masked = at.Table(tab_good[0], masked=True)
+				tab_good.add_row()
+				row_masked = at.Table(tab_good[len(tab_good)-1], masked=True)
 				row_masked.mask = True
 				for col in self.args_in_list:
 					del row_masked[col]
 				tab_masked = at.vstack([row_masked for i in range(len(self.list_except))])
 				tab_except = at.hstack([self.list_except, tab_masked])
+				tab_good.remove_row(len(tab_good)-1)
 			else:
 				tab_except = at.Table()
 
 			#=== combining
 			tab = at.vstack([tab_good, tab_except])
+			# pdb.set_trace()
 
 			if len(tab) > 0:
 				tab.sort('ra')
