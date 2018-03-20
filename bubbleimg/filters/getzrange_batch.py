@@ -92,7 +92,6 @@ def getzrange_batch(bandline='r', bandconti='i', wline='OIII', nline='HaNIISII',
 
 def determine_non_excluded_zrange(in_zmin, in_zmax, ex_zmin, ex_zmax):
     """
-
     return z range (z0, z1) that is within (in_zmin, in_zmax) and outside (ex_zmin, ex_zmax). 
     in case where there is more than 1 range that satisfy the criteria then return list ((z0_1, z0_2), (z1_1, z1_2))
     """

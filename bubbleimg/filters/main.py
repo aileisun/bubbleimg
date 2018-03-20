@@ -1,18 +1,68 @@
-# filterzrange.py
+# main.py
 # ALS 2016/05/02
 """
+
+Calculate the required files for spector from the filter transmission functions. 
+
+
 Determine the redshift range of a given line in a given filter. The outputs 
 are .txt files: 
 
+sdss/ 
+	filterboundary_0.01.txt
 	filterboundary_0.2.txt
+	filterboundary_0.4.txt
 	filterboundary_0.6.txt
 	filterboundary_0.8.txt
-	HaNIIredshiftrange0.2.txt
-	OIIIredshiftrange0.6.txt
+	filtercentroid.txt
+	intresdlnl.txt
+	zrange_nline_HaNII_0.2.txt
+	zrange_nline_HaNII_0.4.txt
+	zrange_nline_HaNIISII_0.2.txt
+	zrange_nline_HaNIISII_0.4.txt
+	zrange_nline_OII_0.2.txt
+	zrange_nline_OII_0.4.txt
+	zrange_nline_OIII_0.2.txt
+	zrange_nline_OIII_0.4.txt
+	zrange_nline_OIINeIII_0.2.txt
+	zrange_nline_OIINeIII_0.4.txt
+	zrange_wline_HaNII_0.6.txt
+	zrange_wline_OIII_0.6.txt
+	zranges_band_wOIII0.6_nHaNII0.4.txt
+	zranges_band_wOIII0.6_nHaNIISII0.2.txt
+	filters.pdf
+
+
+hsc/
+
+	filterboundary_0.01.txt
+	filterboundary_0.2.txt
+	filterboundary_0.4.txt
+	filterboundary_0.6.txt
+	filterboundary_0.8.txt
+	filtercentroid.txt
+	intresdlnl.txt
+	zrange_nline_HaNII_0.2.txt
+	zrange_nline_HaNII_0.4.txt
+	zrange_nline_HaNIISII_0.2.txt
+	zrange_nline_HaNIISII_0.4.txt
+	zrange_nline_OII_0.2.txt
+	zrange_nline_OII_0.4.txt
+	zrange_nline_OIII_0.2.txt
+	zrange_nline_OIII_0.4.txt
+	zrange_nline_OIINeIII_0.2.txt
+	zrange_nline_OIINeIII_0.4.txt
+	zrange_wline_HaNII_0.6.txt
+	zrange_wline_OIII_0.6.txt
+	zranges_band_wOIII0.6_nHaNII0.4.txt
+	zranges_band_wOIII0.6_nHaNIISII0.2.txt
+	zranges_band_wOIII0.6_nOII0.2.txt
+	zranges_band_wOIII0.6_nOIINeIII0.4.txt
+	filters.pdf
+
+wOIII nOII combination (usually i-r) has only been implemented on hsc but no other surveys
 
 """
-# from pylab import *
-
 from . import filtertools
 import imp
 imp.reload(filtertools)
@@ -28,7 +78,7 @@ def main():
 	make the following files: 
 	"""
 
-	for survey in ['sdss', 'hsc']: #, 'cfht', 'ukirt']:
+	for survey in ['sdss', 'hsc']: 
 		filtertools.writeFilterCentroids(survey=survey)
 		filtertools.write_int_response_dlnl(survey=survey)
 		filtertools.writeNormTransFunc(survey=survey)
@@ -57,10 +107,9 @@ def main():
 		filtertools.plotFilters2File(survey=survey)
 		
 	survey = 'hsc'
-	# getzrange_batch.write_zranges(survey=survey, wline='OIII', nline='OII', wthreshold=0.6, nthreshold=0.2)
+	getzrange_batch.write_zranges(survey=survey, wline='OIII', nline='OII', wthreshold=0.6, nthreshold=0.2)
 	getzrange_batch.write_zranges(survey=survey, wline='OIII', nline='OIINeIII', wthreshold=0.6, nthreshold=0.4)
 
-	print(" wOIII nOII combination (usually i-r) has only been implemented on hsc but no other surveys")
 
 
 if __name__ == '__main__':

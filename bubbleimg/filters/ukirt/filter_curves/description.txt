@@ -1,7 +1,0 @@
-UKIRT WFCAM Filter transmission functions
-
-First column:  wavelength (nm) 
-Second Column: Transmission (%)
-
-see 
-http://www.ukirt.hawaii.edu/instruments/wfcam/user_guide/description.html#Figure_1.1._Broad-band_filter_summary

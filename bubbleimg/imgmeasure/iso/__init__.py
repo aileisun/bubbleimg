@@ -6,6 +6,3 @@ from . import isomeasurer
 from . import plottools
 
 from .isomeasurer import isoMeasurer
-
-# reload(isomeasurer)
-# reload(plottools)

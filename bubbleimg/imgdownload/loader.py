@@ -9,7 +9,6 @@ import os
 
 from ..filters import surveysetup
 from .. import obsobj
-# from ..external_links import file_humvi_compose
 
 
 class imgLoader(obsobj.Operator):
@@ -90,22 +89,6 @@ class imgLoader(obsobj.Operator):
 	def get_fn_psf(self, band):
 		m = self.get_imager()
 		return m.get_fn_psf(band)
-
-
-	# def get_fp_stamp(self, band):
-	# 	return self.dir_obj + self.get_fn_stamp(band)
-
-
-	# def get_fn_stamp(self, band):
-	# 	return 'stamp-{0}.fits'.format(band)
-
-
-	# def get_fp_psf(self, band):
-	# 	return self.dir_obj + self.get_fn_psf(band)
-
-
-	# def get_fn_psf(self, band):
-	# 	return 'psf-{0}.fits'.format(band)
 
 
 	# @abc.abstractmethod
@@ -209,12 +192,14 @@ class imgLoader(obsobj.Operator):
 
 
 	def _add_attr_img_width_pix_arcsec(self):
-		""" creating attributes 
+		""" 
+		creating attributes 
 		self.img_width_pix (int)
 		self.img_height_pix (int)
 		self.img_height_arcsec (angular quantity)
 		self.img_width_arcsec (angular quantity)
-		which are self.img_width and img_height but changed to indicated units """
+		which are self.img_width and img_height but changed to indicated units 
+		"""
 		survey_pixelscale = u.pixel_scale(self.pixsize/u.pixel)
 
 		if hasattr(self.img_width, 'unit'): 
@@ -303,33 +288,4 @@ class imgLoader(obsobj.Operator):
 	def get_imager(self):
 		return obsobj.imager.Imager(obj=self.obj, survey=self.survey)
 
-
-
-	# def plot_colorimg(self, bands ='riz', img_type='stamp', overwrite=False):
-	# 	"""
-	# 	make color composit image using external package HumVI. Example file name: 'color_stamp-riz.png'.
-
-	# 	Params
-	# 	------
-	# 	bands ='riz'
-	# 	img_type='stamp'
-	# 	overwrite=False
-
-	# 	Return
-	# 	------
-	# 	status (bool)
-	# 	"""
-	# 	fn = self.dir_obj+'color_{img_type}-{bands}.png'.format(bands=bands, img_type=img_type)
-
-	# 	fns_in = [self.dir_obj+img_type+'-'+band+'.fits' for band in bands[::-1]]
-
-	# 	if (not os.path.isfile(fn)) or overwrite:
-	# 		commandfiles = '{0} {1} {2} {3}'.format(fn, fns_in[0], fns_in[1], fns_in[2])
-	# 		commandHumVI = file_humvi_compose+' -s 1.0,1.1,1.0  -p 1.6,1.6  -o '+commandfiles
-
-	# 		os.system(commandHumVI)
-
-	# 	status = os.path.isfile(fn)
-
-	# 	return status
 

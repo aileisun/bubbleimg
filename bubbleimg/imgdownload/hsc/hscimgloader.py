@@ -12,8 +12,6 @@ from ..loader import imgLoader
 from ...filters import surveysetup
 from ..get_credential import getCrendential
 from . import hscurl
-# from downloadbutler import multiButler
-# import psf
 
 nanomaggy = u.def_unit('nanomaggy', 3.631e-6*u.Jy)
 u.add_enabled_units([nanomaggy])

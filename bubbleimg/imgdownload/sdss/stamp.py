@@ -106,7 +106,6 @@ def getalignedImages(obj, bands=('g','r','i'), band_rf='r'):
 	return images_aligned
 
 
-
 def cutstampImage(image, xcenter, ycenter, xwidth, ywidth, fill_value=0.):
 	"""
 	Cut out a stamp image from image. If the stamp goes outside the image the edge is filled with fill_value. 
@@ -169,7 +168,6 @@ def cutstampImage(image, xcenter, ycenter, xwidth, ywidth, fill_value=0.):
 
 	stampimage[int(x_min_stp):int(x_max_stp), int(y_min_stp):int(y_max_stp)] = image[int(x_min_img):int(x_max_img), int(y_min_img):int(y_max_img)]
 
-	# return stamp image
 	return stampimage
 
 
@@ -220,7 +218,6 @@ def getstampheader(obj, band, band_rf='r', xwidth=64, ywidth=64):
 	"""
 	# get wcs
 	filename_rf=obj.dir_obj+'frame-'+band_rf+'.fits'
-	#header_rf=fits.getheader(filename_rf)
 	filename=obj.dir_obj+'frame-'+band+'.fits'
 	header=fits.getheader(filename)
 	

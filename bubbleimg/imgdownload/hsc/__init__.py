@@ -9,10 +9,3 @@ import imp
 imp.reload(hscimgloader)
 
 from .hscimgloader import hscimgLoader
-
-
-# import downloadbutler
-# import psf
-
-# reload(downloadbutler)
-# reload(psf)

@@ -1,4 +1,4 @@
-# py
+# polytools.py
 # ALS 2016/04/29
 
 """
@@ -54,24 +54,6 @@ def ShapeParamsTab_from_contours(contours, xc, yc):
     tab.add_row(row)
 
     return tab
-
-# def ShapeParamsdict_from_contours(contours, xc, yc):
-#     """
-#     return a dictionary of key:value pairs of ShapeParams measured from contours
-#     """
-#     cols = ['area', 'dferetmax', 'theta_dferetmax', 'rferetmax', 'theta_rferetmax', 'dferetper', 'theta_dferetper', 'aspectr']
-#     if len(contours)>0:
-#         area = NetPolygonsArea(contours)
-#         dferetmax, theta_dferetmax = FeretD_max(contours)
-#         rferetmax, theta_rferetmax = FeretR_max(contours, xc, yc)
-#         dferetper, theta_dferetper = FeretD_max90(contours)
-#         aspectr = FeretAspectRatio(contours)
-#         values=[area, dferetmax, theta_dferetmax, rferetmax, theta_rferetmax, dferetper, theta_dferetper, aspectr]
-#     else: 
-#         values=[0., 0., np.nan, 0., np.nan, 0., np.nan, np.nan]
-
-#     paramsdict = collections.OrderedDict(zip(cols, values))
-#     return paramsdict
 
 
 def find_centercontours(img, threshold, xc, yc, radius=3):
@@ -175,29 +157,6 @@ def contour_is_close_to_point(contour, pt, distance=1.):
 
     result = np.any(dissq <= distance**2)
     return result
-
-
-
-# def select_center_highcontours(contours, xc, yc, radius=3):
-#     """
-#     select all the high contours in contours that overlaps with the center region, which is defeined as a square region (xc +/- radius, yc +/- radius). 
-
-#     Find all high contours that enclose the centroid xc, yc. +/- radius
-#     # if skmeasure.points_in_poly([[yc, xc]], contour):
-#     """
-#     # define neighboring points
-#     xns = xc + np.arange(-radius, radius+1, step=1)
-#     yns = yc + np.arange(-radius, radius+1, step=1)
-#     pns = [[yn, xn] for yn in yns for xn in xns] 
-
-#     highcontours = select_highcontours(contours)
-#     ccontours = []
-
-#     for contour in highcontours:
-#         if np.any(skmeasure.points_in_poly(pns, contour)):
-#             ccontours = ccontours+[contour]
-
-#     return ccontours
 
 
 def select_highcontours(contours):
@@ -632,43 +591,3 @@ def mom_ellipseparams_poly(poly):
         return params
     else: 
         return [0., 0., 0., 0., 0., 0.]
-
-
-
-# def select_center_highcontours(contours, xc, yc, radius=3, areallimit_ctr=0.):
-#     """
-#     Find all high contours that enclose the centroid xc, yc. +/- radius
-#     # if skmeasure.points_in_poly([[yc, xc]], contour):
-#     """
-#     # define neighboring points
-#     xns = xc + np.arange(-radius, radius+1, step=1)
-#     yns = yc + np.arange(-radius, radius+1, step=1)
-#     pns = [[yn, xn] for yn in yns for xn in xns] 
-
-#     ccontours = []
-#     for contour in contours:
-#         if SignedPolygonArea(contour) > radius**2:
-#             if np.any(skmeasure.points_in_poly(pns, contour)):
-#                 ccontours = ccontours+[contour]
-#         elif SignedPolygonArea(contour) > areallimit_ctr:
-#             if np.absolute(contour[:, 0]-yc).min() < radius: 
-#                 if np.absolute(contour[:, 0]-xc).min() < radius: 
-#                     if np.any(skmeasure.points_in_poly(pns, contour)):
-#                         ccontours = ccontours+[contour]
-#     return ccontours
-
-# def find_realisocontours(img, threshold, minarea, xc, yc):
-#     """
-#     Return isophote high contours that are either centered on the image
-#     center or has area larger than minarea, as well as their enclosed low
-#     contours.
-#     """
-#     contours = find_contours(img, threshold)
-
-#     ccontours = select_center_highcontours(contours, xc, yc)
-#     largecontours = select_large_highcontours(contours, minarea)
-#     highrealcontours = ccontours+largecont    ours
-
-#     allcontours = get_patch_of_highcontour(contours, highcontours)
-
-#     return allcontours

@@ -12,14 +12,6 @@ from . import objnaming
 from . import operator
 from . import imager
 
-# reload(obsobj)
-# reload(plainobj)
-# reload(sdss)
-# reload(hsc)
-# reload(objnaming)
-# reload(operator)
-# reload(imager)
-
 from .obsobj import obsObj
 from .operator import Operator
 from .imager import Imager

@@ -3,8 +3,6 @@
 import numpy as np
 from skimage.util import random_noise
 from astropy.io import fits
-# from bubblepy.measureimg import gaussfit
-# from scipy.ndimage.filters import convolve
 
 
 def add_gaussnoise(img, noise_sigma):

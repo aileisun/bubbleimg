@@ -2,8 +2,6 @@
 do sql search on hsc data base
 
 this is modified from hscSspQuery.py version 20160120.1 by ALS on 2017/05/11
-it can be further improved to be object oriented
-
 
   --------------------------------------------------------------------------------
   Original Instructions:

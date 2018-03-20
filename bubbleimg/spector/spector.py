@@ -9,17 +9,15 @@ import astropy.units as u
 from astropy.io import fits
 import astropy.constants as const
 import modelBC03
-
 import os
 
 from ..obsobj import Operator
 from .. import filters
 from . import getconti
-# import inttools
 from . import extrap
 from . import linelist
 from . import lineflux
-# import linefrac
+
 
 class Spector(Operator):
 
@@ -217,8 +215,6 @@ class Spector(Operator):
 		fn = self.fp_spec_decomposed
 
 		if (not os.path.isfile(fn)) or overwrite:
-
-			# import pdb; pdb.set_trace() # add pdb heres
 
 			spec, ws = self.get_spec_ws()
 

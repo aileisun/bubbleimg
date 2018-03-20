@@ -1,13 +1,11 @@
 # Compiled python modules.
-bubbleimg/*.pyc
-bubbleimg/*/*.pyc
-bubbleimg/*/*/*.pyc
-bubbleimg/*/*/*/*.pyc
-
-bubbleimg/*.bak
-bubbleimg/*/*.bak
-bubbleimg/*/*/*.bak
-bubbleimg/*/*/*/*.bak
+*.DS_Store
+*__pycache__/
+*.pyc
+*.bak
+*.pytest_cache/
+.cache/
+*testing/
 
 # Setuptools distribution folder.
 /dist/
@@ -15,49 +13,9 @@ bubbleimg/*/*/*/*.bak
 # Python egg metadata, regenerated from source files by setuptools.
 /*.egg-info
 
-# old codes
-bubbleimg/trash/
-bubbleimg/torelocate/
-bubbleimg/blobmaps/trash/
-
-# test data
-bubbleimg/measureimg/sandbox.py
-bubbleimg/test_old/
-
-# .DS_Store
-.DS_Store
-*/.DS_Store
-*/*/.DS_Store
-
-# issues
-issues.txt
-
-# credential
-bubbleimg/downloadimg/hsc/stars_credential.py
-
-#__pycache__
-*__pycache__
-
-.cache/
-
-# test_verification_data
+# large test_verification_data
 bubbleimg/imgdownload/sdss/test/test_verification_data_64pix/
 bubbleimg/imgdownload/hsc/test/test_verification_data_128pix/
-bubbleimg/imgdecompose/test/test_verification_data/
-bubbleimg/imgdecompose/test/test_verification_data/
 bubbleimg/spector/test/test_verification_data/
-
-# deprecated
-# bubbleimg/trash_deprecated/
-# bubbleimg/spector/fromspec_todeprecate.py
-# bubbleimg/measureimg/
-
-bubbleimg/deprecated/
-bubbleimg/imgdownload/hsc/oldpsf/
-
-# testing
-bubbleimg/*/testing/
-bubbleimg/*/*/testing/
-bubbleimg/*/*/*/testing/
-bubbleimg/*/*/*/*/testing/
+bubbleimg/imgmeasure/iso/test/verification_data/
 

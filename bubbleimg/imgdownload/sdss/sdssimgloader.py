@@ -34,7 +34,6 @@ class sdssimgLoader(imgLoader):
 				raise ValueError("xid created inconsistent with init ra")
 
 
-
 	def make_stamps(self, overwrite=False, band_rf='r', tokeepframe=False):
 		"""
 		make stamp images of all the bands of the object. takes care of overwrite with argument 'overwrite'. Default: do not overwrite. 

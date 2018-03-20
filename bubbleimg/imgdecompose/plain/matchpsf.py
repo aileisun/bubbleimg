@@ -54,13 +54,6 @@ def match_psf_fits(fp_img, fp_psf, fp_psfto, fp_img_out, fp_psf_out, fp_psk_out,
 
 	replace_img_in_fits(fn_from=fp_img, fn_to=fp_img_out, img=img_out, comment="PSF matched by ALS", overwrite=overwrite)
 
-	# # construct hdus for outputs
-	# hdus = fits.open(fp_img)
-	# hdus[0].data = img_out
-	# hdus[0].header['COMMENT'] = "PSF matched by ALS"
-	# # hdus[0].header['COMMENT'] = "    from {} to {}".format(os.path.basename(fp_psf), os.path.basename(fp_psfto))
-	# hdus.writeto(fp_img_out, overwrite=overwrite)
-
 	fits.PrimaryHDU(psf_out).writeto(fp_psf_out, overwrite=overwrite)
 	if towrite_psk:
 		fits.PrimaryHDU(psk_out).writeto(fp_psk_out, overwrite=overwrite)
@@ -429,4 +422,3 @@ def has_smaller_psf(psf1, psf2, mode='quick', fracdiff_threshold=0.1):
 
 
 	return (size2 - size1)/size1 > fracdiff_threshold
-	# return (size1 < size2)

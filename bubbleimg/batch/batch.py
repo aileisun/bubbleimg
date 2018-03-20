@@ -1,7 +1,6 @@
 # batch.py
 # ALS 2017/05/29
 
-# import pdb
 import numpy as np
 import astropy.table as at
 from astropy.io import ascii
@@ -252,7 +251,6 @@ class Batch(object):
 
 				# making header
 				header_heading = ",".join(self.args_in_list)
-				# import pdb; pdb.set_trace()
 				tab_example = at.Table.read(obj1.dir_obj+fn_tab, comment='#')
 				self._rename_list_args(tab_example)
 				header_content = tabtools.tab_to_string(tab_example, withheader=True).split("\n")[0]
@@ -266,7 +264,6 @@ class Batch(object):
 				tab_good = ascii.read([header]+lines_data, comment='#')
 			else:
 				tab_good = at.Table()
-			# pdb.set_trace()
 
 			#=== compiling except objects (with masked content)
 			if len(self.list_good) > 0 and len(self.list_except) > 0:
@@ -283,7 +280,6 @@ class Batch(object):
 
 			#=== combining
 			tab = at.vstack([tab_good, tab_except])
-			# pdb.set_trace()
 
 			if len(tab) > 0:
 				tab.sort('ra')

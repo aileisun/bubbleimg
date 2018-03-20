@@ -21,8 +21,6 @@ def findzrange_wline_OIIIs(threshold=0.6, survey='sdss'):
     # l1 = getllambda.getllambda(ion='OIII',lid=4960,vacuum=True) 
     l2 = getllambda.getllambda(ion='OIII',lid=5008,vacuum=True) 
 
-    # lmin = min(l1, l2)
-    # lmax = max(l1, l2)
     lmin = l2
     lmax = l2
     findzrange_line(fileprefix, lmin, lmax, threshold=threshold, survey=survey)

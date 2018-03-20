@@ -18,7 +18,6 @@ from . import hscsspquery
 from ..plainobj import plainObj
 
 fn_table_template_sql = 'table_template.sql'
-# fn_photoobj_template_sql = 'photoobj_template.sql'
 fn_xid_template_sql = 'xid_template.sql'
 
 class hscObj(plainObj):

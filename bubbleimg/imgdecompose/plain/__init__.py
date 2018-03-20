@@ -8,5 +8,3 @@ from . import matchpsf
 
 from .plaindecomposer import plainDecomposer
 
-# reload(plaindecomposer)
-# reload(matchpsf)
