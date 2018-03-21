@@ -1,3 +1,4 @@
+[![DOI](https://zenodo.org/badge/61499563.svg)](https://zenodo.org/badge/latestdoi/61499563)
 [![Paper](https://img.shields.io/badge/astro--ph.GA-1803.07241-B31B1B.svg)](https://arxiv.org/abs/1803.07241)
 
 # Bubbleimg
@@ -6,7 +7,7 @@ Bubbleimg is a python software for imaging emission-line regions of galaxies wit
 
 ## Example
 
-![](docs/j0920.pdf)
+![](docs/j0920.png)
 
 The map of the [OIII] extended emission-line region of AGN J092023+003448 constructed from the Subaru Hyper-Suprime Cam images. 
 
@@ -47,7 +48,7 @@ Then bubbleimg could be imported in Python.
 
 There are a number of required packages, as listed in [setup.py](setup.py), including a few that needs to be installed manually. Bubbleimg runs under Python 3. 
 
-The code is licensed under the MIT license and is provided "as is". Forking the code is welcome. 
+The code is licensed under the MIT license and is provided "AS IS". Forking the code is welcome. 
 
 ## Attribution
 
