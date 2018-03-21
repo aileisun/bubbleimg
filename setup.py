@@ -44,5 +44,10 @@ setup(name='bubbleimg',
           'PyAstronomy',
           'paramiko',
           'requests',
-      ],
+        ],
+      dependency_links=[
+          'https://github.com/aileisun/modelBC03',
+          'http://www.sdss.org/dr12/algorithms/read_psf/',
+          'https://github.com/drphilmarshall/HumVI', 
+        ],
       zip_safe=False)
