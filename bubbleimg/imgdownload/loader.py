@@ -267,7 +267,7 @@ class imgLoader(obsobj.Operator):
 		return status
 
 
-	def plot_colorimg(self, bands ='riz', img_type='stamp', overwrite=False):
+	def plot_colorimg(self, bands ='riz', img_type='stamp', s=[1.0, 1.1, 1.0], p=[1.6, 1.6], overwrite=False):
 		"""
 		make color composit image using external package HumVI. Example file name: 'color_stamp-riz.png'.
 
@@ -276,13 +276,17 @@ class imgLoader(obsobj.Operator):
 		bands ='riz'
 		img_type='stamp'
 		overwrite=False
+		s=[1.0, 1.1, 1.0]
+			humvi params
+		p=[1.6, 1.6]
+			humvi params
 
 		Return
 		------
 		status (bool)
 		"""
 		m = self.get_imager()
-		return m.make_colorimg(bands=bands, img_type=img_type, overwrite=overwrite)
+		return m.make_colorimg(bands=bands, img_type=img_type, s=s, p=p, overwrite=overwrite)
 
 
 	def get_imager(self):

@@ -4,6 +4,7 @@
 import os
 import astropy.units as u
 from astropy.io import fits
+import numpy as np
 
 from astropy.cosmology import FlatLambdaCDM
 cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
@@ -175,14 +176,20 @@ class Imager(Operator):
 		return xc, yc
 
 
-	def make_colorimg(self, bands ='riz', img_type='stamp', overwrite=False):
+	def make_colorimg(self, bands ='riz', img_type='stamp', s=[1.0, 1.1, 1.0], p=[1.6, 1.6], overwrite=False):
 		"""
 		make color composit image using external package HumVI. Example file name: 'color_stamp-riz.png'.
+
+		See Humvi documentation -- https://github.com/drphilmarshall/HumVI
 
 		Params
 		------
 		bands ='riz'
 		img_type='stamp'
+		s=[1.0, 1.1, 1.0]
+			humvi params for color balance. Default is set to bring out the middle band. 
+		p=[1.6, 1.6]
+			humvi params Q, alpha
 		overwrite=False
 
 		Return
@@ -193,9 +200,12 @@ class Imager(Operator):
 
 		fns_in = [self.dir_obj+img_type+'-'+band+'.fits' for band in bands[::-1]]
 
+		# set params, for example, commandparams = ' -s 1.0,1.1,1.0  -p 1.6,1.6  -o '
+		commandparams = ' -s {}  -p {}  -o '.format(','.join(np.array(s).astype('str')), ','.join(np.array(p).astype('str')))
+
 		if (not os.path.isfile(fn)) or overwrite:
 			commandfiles = '{0} {1} {2} {3}'.format(fn, fns_in[0], fns_in[1], fns_in[2])
-			commandHumVI = file_humvi_compose+' -s 1.0,1.1,1.0  -p 1.6,1.6  -o '+commandfiles
+			commandHumVI = file_humvi_compose+commandparams+commandfiles
 
 			os.system(commandHumVI)
 
