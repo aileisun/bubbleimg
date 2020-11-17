@@ -27,44 +27,54 @@ def make_plot_img_w_contours(fn_plot, img, contours):
     fig.savefig(fn_plot)
 
 
-def make_iso_visual_panel(fn, img_compo, img_map, contours1, contours3, z, pixsize, legend_suffix, name, title_compo, title_map, label_cbar):
-    fig, (ax0, ax1, ax_cb) = get_figure_grids(n_panel=2)
+def make_iso_visual_panel(fn, img_compo, img_map, contours1, contours3, z, pixsize, legend_suffix, name, title_compo, title_map, label_cbar, fontsize=12, tocolorbar=True, totitle=True):
+
+    if tocolorbar:
+        fig, (ax0, ax1, ax_cb) = get_figure_grids_wcolorbar(n_panel=2)
+    else: 
+        # fig, (ax0, ax1) = plt.subplots(1, 2, sharey=True, figsize=(6, 3))
+
+        fig, (ax0, ax1) = get_figure_grids(n_panel=2)
 
     # plot composit
     ax_imshow(fig, ax0, img_compo, origin='upper', tocolorbar=False, tosetlim=True)
 
     nx, ny = img_compo.shape[:2]
-    overplot_ruler(ax0, z, pixsize=pixsize, rlength_arcsec=10., nx=nx, ny=ny)
+    overplot_ruler(ax0, z, pixsize=pixsize, rlength_arcsec=10., nx=nx, ny=ny, fontsize=fontsize)
 
-    ax0.text(5, 12, name, color='white', fontsize=12)
-    ax0.text(nx-35, 12, '$z={}$'.format('%.2f'%z), color='white', fontsize=10)
-    ax0.set_title(title_compo)
-    ax0.title.set_position([.5, 1.03])
+    ax0.text(5, 12, name, color='white', fontsize=fontsize)
+    ax0.text(nx-35, 12, '$z={}$'.format('%.2f'%z), color='white', fontsize=fontsize-4)
+    if totitle:
+        ax0.set_title(title_compo, fontsize=fontsize)
+        ax0.title.set_position([.5, 1.03])
 
     # plot line map
     im = ax_imshow(fig, ax1, img_map, vmin=-1, vmax=8, origin='lower', tocolorbar=False, tosetlim=True)
     overplot_contours(ax1, contours3, lw=1.)
     overplot_contours(ax1, contours1, lw=0.2)
 
-    make_legend_isophotes(ax1, lw=2, suffix=legend_suffix)
+    make_legend_isophotes(ax1, lw=2, suffix=legend_suffix, fontsize=fontsize)
 
-    ax1.set_title(title_map)
-    ax1.title.set_position([.5, 1.03])
+    if totitle:
+        ax1.set_title(title_map, fontsize=fontsize)
+        ax1.title.set_position([.5, 1.03])
 
     # plot color bar
-    cbar = fig.colorbar(im, cax=ax_cb, label=label_cbar, format='%i')
-    ax_cb.set_aspect(20)
+    if tocolorbar:
+        cbar = fig.colorbar(im, cax=ax_cb, label=label_cbar, format='%i')
+        ax_cb.set_aspect(20)
 
     # set ticks off
     for ax in [ax0, ax1]: 
         ax.axis('off')
 
     # saving
+    plt.tight_layout()
     fig.savefig(fn, format='pdf')
     plt.close()
 
 
-def get_figure_grids(n_panel=3):
+def get_figure_grids_wcolorbar(n_panel=3):
     """ start figure and make subplots, there is one more additional (small) axis for colorbar """
     plt.close('all')
     fig=plt.figure(figsize=(2*n_panel+2.5, 3.))
@@ -72,6 +82,18 @@ def get_figure_grids(n_panel=3):
     gs = gridspec.GridSpec(1, n_panel+1, width_ratios=[1 for i in range(n_panel)]+[0.05], wspace=0.1, left=0.05, right=0.90)
 
     axes = [plt.subplot(gs[i]) for i in range(n_panel+1)]
+
+    return fig, axes
+
+
+def get_figure_grids(n_panel=2):
+    """ start figure and make subplots, there is one more additional (small) axis for colorbar """    
+    plt.close('all')
+    fig = plt.figure(figsize=(3*n_panel, 3.))
+
+    gs = gridspec.GridSpec(1, n_panel, width_ratios=[1 for i in range(n_panel)], wspace=0.02, left=0.02, right=0.98, top=0.95, bottom=0.05)
+
+    axes = [plt.subplot(gs[i]) for i in range(n_panel)]
 
     return fig, axes
 
@@ -155,7 +177,7 @@ def overplot_contours(ax, contours, color='white', lw=3, alpha=1., label='__nola
 
 
 
-def overplot_ruler(ax, z, pixsize=0.396, rlength_arcsec=10., nx=64, ny=64):
+def overplot_ruler(ax, z, pixsize=0.396, rlength_arcsec=10., nx=64, ny=64, fontsize=18):
     """
     Params
     ------
@@ -183,16 +205,16 @@ def overplot_ruler(ax, z, pixsize=0.396, rlength_arcsec=10., nx=64, ny=64):
     ax.plot([xmid-rlength_pix, xmid], [y, y], color='white', lw=2)
     ax.plot([xmid-rlength_pix, xmid-rlength_pix], [y+1., y-1.], color='white', lw=2)
     ax.plot([xmid, xmid], [y+1., y-1.], color='white', lw=2)
-    ax.text(xmid+4., y+1, '10" ('+'%.0f'%rlength_kpc+' kpc)', color='white', fontsize=12)
+    ax.text(xmid+4., y+1, '10" ('+'%.0f'%rlength_kpc+' kpc)', color='white', fontsize=fontsize-4)
 
 
 
-def make_legend_isophotes(ax, lw=2, suffix=''):
+def make_legend_isophotes(ax, lw=2, suffix='', fontsize=18):
     """ add legend of isophotes """
     ax.plot(-1, -1, color='white', lw=lw, label='Isophote'+suffix)
     # ax.plot(-1, -1, color='red', lw=lw, label='Galaxy mask')
 
-    lg = ax.legend(loc='lower right', prop={'size':10})
+    lg = ax.legend(loc='lower right', prop={'size':fontsize-4})
 
     frame = lg.get_frame()
     frame.set_facecolor('#000099')

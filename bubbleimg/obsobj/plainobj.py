@@ -19,7 +19,7 @@ class plainObj(object):
 		it does not automatically create dir_obj when instantiated, one can call funciton make_dir_obj()
 
 
-		Params
+		Parameters
 		----------
 		ra = None (float)
 		dec = None (float)
@@ -86,7 +86,6 @@ class plainObj(object):
 		# sanity check: dir_obj is like a directory
 		if self.dir_obj[-1] != '/':
 			raise Exception('[plainobj] dir_obj not a directory path')
-
 
 
 	def make_dir_obj(self):

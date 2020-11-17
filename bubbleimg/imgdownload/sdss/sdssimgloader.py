@@ -103,10 +103,10 @@ class sdssimgLoader(imgLoader):
 		if not os.path.isfile(self.dir_obj+filename_psfield) or overwrite:
 			psf.download_psField(xid=self.obj.sdss.xid, dir_out=self.dir_obj, filename=filename_psfield)
 
-	
 		# make psf-(band).fit from psField.fit
 		ispsffiles = np.all([os.path.isfile(self.get_fp_psf(b)) for b in self.bands])
 
+		self.obj.sdss.load_photoobj()
 		if (not ispsffiles) or overwrite:
 			psf.psField_to_psfs(dir_obj=self.dir_obj, photoobj=self.obj.sdss.photoobj, bands=['u', 'g', 'r', 'i', 'z'])
 

@@ -113,20 +113,24 @@ class isoMeasurer(Measurer):
 		return os.path.isfile(fn)
 
 
-	def make_visualpanel(self, compo_bands ='gri', imgtag='OIII5008_I', onlycenter=True, minarea=5, centerradius=5.*u.arcsec, overwrite=False):
+	def make_visualpanel(self, fn=None, compo_bands ='gri', imgtag='OIII5008_I', onlycenter=True, minarea=5, centerradius=5.*u.arcsec, tocolorbar=True, totitle=True, fontsize=12, overwrite=False):
 		""" 
 		make panel figure to visualize the composit and the iso measurements
 		saved to e.g., 'msr_iso-OIII5008_I_panel.pdf'
 
 		Params
 		------
+		fn = None: default: msr_iso_{imgtag}_panel.pdf
 		compo_bands ='gri', imgtag='OIII5008_I', overwrite=False
 
 		Return
 		------
 		status
 		"""
-		fn = self.get_fp_msrplot(imgtag=imgtag, suffix='_panel')
+		if fn is None:
+			fn = self.get_fp_msrplot(imgtag=imgtag, suffix='_panel')
+		else: 
+			fn = self.dir_obj+fn
 
 		if not os.path.isfile(fn) or overwrite:
 			print("[isomeasurer] making visual panel")
@@ -165,7 +169,7 @@ class isoMeasurer(Measurer):
 			title_map = '$\mathrm{[OIII]\lambda 5007~Intensity}$'
 			label_cbar = '$I~[10^{-15}~\mathrm{erg~s^{-1}~cm^{-2}~arcsec^{-2}}]$'
 
-			plottools.make_iso_visual_panel(fn, img_compo, img_map, contours1, contours3, z, pixsize, legend_suffix, name, title_compo, title_map, label_cbar)
+			plottools.make_iso_visual_panel(fn, img_compo, img_map, contours1, contours3, z, pixsize, legend_suffix, name, title_compo, title_map, label_cbar, tocolorbar=tocolorbar, totitle=totitle, fontsize=fontsize)
 
 		else:
 			print("[isomeasurer] skip making visual panel as files exist")
